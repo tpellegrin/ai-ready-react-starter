@@ -1,0 +1,173 @@
+import { Theme } from './types';
+import { foundations } from './foundations';
+
+export const base: Theme = {
+  colors: {
+    text: {
+      primary: foundations.colors.black,
+      secondary: foundations.colors.gray250,
+      tertiary: foundations.colors.gray200,
+      onDarkPrimary: foundations.colors.white,
+      onDarkSecondary: foundations.colors.gray100,
+      emphasis: foundations.colors.orange150,
+      accent: foundations.colors.purple200,
+      disabled: foundations.colors.gray150,
+    },
+    surface: {
+      base: foundations.colors.tan50,
+      raised: foundations.colors.white,
+      overlay: foundations.colors.tan150,
+      muted: foundations.colors.gray100,
+      onDark: foundations.colors.black,
+      accent: foundations.colors.purple250,
+      glow: foundations.colors.whiteA40,
+      glowOnDark: foundations.colors.whiteA10,
+      transparent: foundations.colors.transparent,
+      divider: foundations.colors.blackA10,
+    },
+    border: {
+      default: foundations.colors.blackA10,
+      onDark: foundations.colors.whiteA10,
+      focus: foundations.colors.gray250,
+      transparent: foundations.colors.transparent,
+    },
+    action: {
+      primary: foundations.colors.black,
+      primaryHover: foundations.colors.blackA90,
+      secondary: foundations.colors.white,
+      secondaryHover: foundations.colors.whiteA40,
+      tertiary: foundations.colors.transparent,
+      tertiaryHover: foundations.colors.whiteA40,
+      accent: foundations.colors.purple250,
+      accentHover: foundations.colors.purple50,
+      disabled: foundations.colors.tan150,
+    },
+    icon: {
+      primary: foundations.colors.black,
+      secondary: foundations.colors.gray200,
+      onDark: foundations.colors.white,
+      emphasis: foundations.colors.orange150,
+      accent: foundations.colors.purple200,
+      disabled: foundations.colors.gray150,
+    },
+    accent: {
+      primary: {
+        s50: foundations.colors.purple50,
+        s100: foundations.colors.purple200,
+      },
+      secondary: {
+        s50: foundations.colors.orange50,
+        s100: foundations.colors.orange100,
+      },
+      tertiary: {
+        s25: foundations.colors.yellow25,
+        s50: foundations.colors.yellow50,
+        s100: foundations.colors.yellow150,
+      },
+      quaternary: {
+        s50: foundations.colors.pink50,
+        s100: foundations.colors.pink150,
+      },
+      quinary: {
+        s50: foundations.colors.green25,
+        s100: foundations.colors.green150,
+      },
+    },
+    transparent: {
+      transparent: foundations.colors.transparent,
+      overlay: foundations.colors.blackA40,
+      light: {
+        s50: foundations.colors.whiteA10,
+        s150: foundations.colors.whiteA40,
+        s250: foundations.colors.whiteA80,
+      },
+      dark: {
+        s50: foundations.colors.blackA10,
+        s150: foundations.colors.blackA40,
+      },
+    },
+    status: {
+      success: foundations.colors.green150,
+      warning: foundations.colors.yellow100,
+      error: foundations.colors.orange150,
+      brand: foundations.colors.purple250,
+      neutral: foundations.colors.gray100,
+      info: foundations.colors.gray100,
+    },
+  },
+  gradients: {
+    successToError: foundations.gradients.successToError,
+    lowToHigh: foundations.gradients.lowToHigh,
+    card: foundations.gradients.card,
+    cardAlternate: foundations.gradients.cardAlternate,
+    appBackground: foundations.gradients.appBackground,
+    headerBackground: foundations.gradients.headerBackground,
+  },
+  shadows: {
+    elevation: {
+      sm: foundations.shadows.sm,
+      md: foundations.shadows.md,
+      lg: foundations.shadows.lg,
+    },
+    interactionStates: {
+      hover: foundations.shadows.hover,
+      focus: foundations.shadows.focus,
+      active: foundations.shadows.active,
+    },
+  },
+  fontFamilies: {
+    primary: `${foundations.fonts.inter}, sans-serif`,
+    accent: `${foundations.fonts.inter}, sans-serif`,
+  },
+  fontSizes: {
+    caption: '0.75rem',
+    body: '0.875rem',
+    headingXLarge: '2.5rem',
+    headingLarge: '2rem',
+    headingMedium: '1.5rem',
+    headingSmall: '1.25rem',
+    headingXSmall: '1.125rem',
+    accentLarge: '2rem',
+    accentMedium: '1.5rem',
+    accentSmall: '1.25rem',
+    accentXSmall: '0.8125rem',
+  },
+  fontWeights: {
+    primary: {
+      regular: foundations.fontWeights.inter.regular,
+      medium: foundations.fontWeights.inter.medium,
+      semiBold: foundations.fontWeights.inter.semibold,
+    },
+    accent: {
+      regular: foundations.fontWeights.inter.regular,
+    },
+  },
+  borderRadii: {
+    none: foundations.radii.none,
+    xs: foundations.radii.xs,
+    sm: foundations.radii.sm,
+    md: foundations.radii.md,
+    lg: foundations.radii.lg,
+    full: foundations.radii.max,
+  },
+  spacers: {
+    none: foundations.spacing.none,
+    xxxs: foundations.spacing.xxxs,
+    xxs: foundations.spacing.xxs,
+    xs: foundations.spacing.xs,
+    sm: foundations.spacing.sm,
+    md: foundations.spacing.md,
+    lg: foundations.spacing.lg,
+    xl: foundations.spacing.xl,
+    xxl: foundations.spacing.xxl,
+  },
+  zIndexes: {
+    background: foundations.zIndexes.background,
+    base: foundations.zIndexes.base,
+    content: foundations.zIndexes.content,
+    header: foundations.zIndexes.header,
+    footer: foundations.zIndexes.footer,
+    modal: foundations.zIndexes.modal,
+    toast: foundations.zIndexes.toast,
+  },
+};

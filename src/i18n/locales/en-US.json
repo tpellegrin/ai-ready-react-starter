@@ -1,0 +1,119 @@
+{
+  "app": {
+    "welcome": {
+      "title": "Welcome to React Boilerplate",
+      "body": "This is a clean starter template for your next project.",
+      "cta": "Get Started",
+      "demoHubCta": "View starter overview"
+    }
+  },
+  "demoHub": {
+    "badge": "Demo / Starter",
+    "title": "Starter overview",
+    "intro": "This is a reusable frontend boilerplate. The links below demonstrate the patterns it ships with. All demo content is safe to remove when adopting the boilerplate.",
+    "entries": {
+      "signIn": {
+        "title": "Sign In",
+        "description": "Auth adapter boundary, form pattern, validation, loading and error states."
+      },
+      "welcome": {
+        "title": "Guest Welcome",
+        "description": "Guest layout, language switching, and reusable layout primitives."
+      },
+      "dashboard": {
+        "title": "Authenticated Dashboard",
+        "description": "Protected route, query layer, and async data states. Sign in to view it."
+      },
+      "onboarding": {
+        "title": "Onboarding Flow",
+        "description": "Multi-step flow layout with progress and back/next behavior."
+      }
+    },
+    "removal": {
+      "title": "Demo-only",
+      "body": "Remove this page and related demo routes when adopting the boilerplate. See docs/adoption.md."
+    }
+  },
+  "auth": {
+    "signIn": {
+      "title": "Sign In",
+      "demoMessage": "Enter any credentials to sign in (Demo)",
+      "error": "Invalid email or password",
+      "submit": "Sign In",
+      "submitting": "Signing in..."
+    }
+  },
+  "onboarding": {
+    "welcome": {
+      "heading": "Step 1 of 3",
+      "title": "Welcome",
+      "body": "This quick setup takes just a moment. We will walk you through a few steps to get you started."
+    },
+    "preferences": {
+      "heading": "Step 2 of 3",
+      "title": "Your Preferences",
+      "body": "Choose the settings that work best for you. You can always change these later."
+    },
+    "complete": {
+      "heading": "Step 3 of 3",
+      "title": "You are all set",
+      "body": "Setup is complete. Everything is ready for you.",
+      "cta": "Go to Dashboard"
+    }
+  },
+  "user": {
+    "dashboard": {
+      "title": "Dashboard",
+      "welcome": "Welcome, {name}!",
+      "description": "This is a protected user dashboard.",
+      "signOut": "Sign Out",
+      "appStatus": {
+        "title": "App Status (React Query Example)",
+        "loading": "Loading status...",
+        "error": "Error loading status."
+      }
+    }
+  },
+  "errors": {
+    "generic": {
+      "title": "Something went wrong",
+      "description": "The application encountered an unexpected error."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "We couldn’t find the page you requested."
+    },
+    "actions": {
+      "goHome": "Go back home"
+    }
+  },
+  "common": {
+    "actions": {
+      "continue": "Continue",
+      "back": "Back",
+      "save": "Save",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "tryAgain": "Try again"
+    },
+    "labels": {
+      "email": "Email",
+      "password": "Password",
+      "name": "Name"
+    }
+  },
+  "flow": {
+    "common": {
+      "language": {
+        "selectorAria": "Language selector",
+        "en": "English",
+        "pt": "Português",
+        "es": "Español"
+      },
+      "a11y": {
+        "back": "Go back",
+        "close": "Close"
+      }
+    }
+  }
+}

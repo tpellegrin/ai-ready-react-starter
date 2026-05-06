@@ -1,0 +1,119 @@
+{
+  "app": {
+    "welcome": {
+      "title": "Bienvenido a React Boilerplate",
+      "body": "Esta es una plantilla limpia para su próximo proyecto.",
+      "cta": "Comenzar",
+      "demoHubCta": "Ver resumen del starter"
+    }
+  },
+  "demoHub": {
+    "badge": "Demo / Starter",
+    "title": "Resumen del starter",
+    "intro": "Este es un boilerplate frontend reutilizable. Los enlaces a continuación demuestran los patrones incluidos. Todo el contenido de demo se puede eliminar de forma segura al adoptar el boilerplate.",
+    "entries": {
+      "signIn": {
+        "title": "Inicio de sesión",
+        "description": "Límite del adaptador de auth, patrón de formulario, validación, estados de carga y error."
+      },
+      "welcome": {
+        "title": "Bienvenida (Guest)",
+        "description": "Layout para invitados, cambio de idioma y primitivas de layout reutilizables."
+      },
+      "dashboard": {
+        "title": "Panel autenticado",
+        "description": "Ruta protegida, capa de queries y estados de datos asíncronos. Inicia sesión para verlo."
+      },
+      "onboarding": {
+        "title": "Flujo de onboarding",
+        "description": "Layout de flujo multi-paso con progreso y navegación atrás/adelante."
+      }
+    },
+    "removal": {
+      "title": "Solo demo",
+      "body": "Elimina esta página y las rutas demo relacionadas al adoptar el boilerplate. Ver docs/adoption.md."
+    }
+  },
+  "auth": {
+    "signIn": {
+      "title": "Iniciar sesión",
+      "demoMessage": "Ingrese cualquier credencial para iniciar sesión (Demo)",
+      "error": "Correo electrónico o contraseña inválidos",
+      "submit": "Iniciar sesión",
+      "submitting": "Iniciando sesión..."
+    }
+  },
+  "onboarding": {
+    "welcome": {
+      "heading": "Paso 1 de 3",
+      "title": "Bienvenido",
+      "body": "Esta configuración rápida solo toma un momento. Te guiaremos por algunos pasos para comenzar."
+    },
+    "preferences": {
+      "heading": "Paso 2 de 3",
+      "title": "Tus Preferencias",
+      "body": "Elige la configuración que mejor funcione para ti. Siempre puedes cambiarla más adelante."
+    },
+    "complete": {
+      "heading": "Paso 3 de 3",
+      "title": "Todo listo",
+      "body": "La configuración está completa. Todo está listo para ti.",
+      "cta": "Ir al Panel"
+    }
+  },
+  "user": {
+    "dashboard": {
+      "title": "Panel",
+      "welcome": "¡Bienvenido, {name}!",
+      "description": "Este es un panel de usuario protegido.",
+      "signOut": "Cerrar sesión",
+      "appStatus": {
+        "title": "Estado de la aplicación (ejemplo de React Query)",
+        "loading": "Cargando estado...",
+        "error": "Error al cargar el estado."
+      }
+    }
+  },
+  "errors": {
+    "generic": {
+      "title": "Algo salió mal",
+      "description": "La aplicación encontró un error inesperado."
+    },
+    "notFound": {
+      "title": "Página no encontrada",
+      "description": "No pudimos encontrar la página que solicitó."
+    },
+    "actions": {
+      "goHome": "Volver al inicio"
+    }
+  },
+  "common": {
+    "actions": {
+      "continue": "Continuar",
+      "back": "Volver",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "submit": "Enviar",
+      "tryAgain": "Intentar de nuevo"
+    },
+    "labels": {
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "name": "Nombre"
+    }
+  },
+  "flow": {
+    "common": {
+      "language": {
+        "selectorAria": "Selector de idioma",
+        "en": "English",
+        "pt": "Português",
+        "es": "Español"
+      },
+      "a11y": {
+        "back": "Volver",
+        "close": "Cerrar"
+      }
+    }
+  }
+}
