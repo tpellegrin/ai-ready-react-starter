@@ -17,14 +17,15 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_PAGES: "true"
+      GITHUB_PAGES_REPO: ${{ github.event.repository.name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -41,10 +42,28 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Verify static build
+        run: |
+          test -d dist
+          test -f dist/index.html
+          cp dist/index.html dist/404.html
+
+      - name: Inspect built asset paths
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Repo name: ${{ github.event.repository.name }}"
+          test -f dist/index.html
+          echo "First asset references:"
+          grep -E 'src="/|href="/' dist/index.html | head -20 || true
+          echo "Output root:"
+          ls -la dist
+          echo "Assets:"
+          ls -la dist/assets | head || true
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build
+          path: dist
 
   deploy:
     runs-on: ubuntu-latest

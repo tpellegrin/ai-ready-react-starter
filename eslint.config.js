@@ -12,7 +12,6 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
-      '**/build/**',
       '**/coverage/**',
       '**/.pnpm-debug.log**',
       'scripts/i18n-check.cjs',
