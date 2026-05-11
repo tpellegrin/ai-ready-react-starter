@@ -103,8 +103,16 @@ This project includes `@capacitor/core` for potential mobile wrapper compatibili
 - If you don't need mobile support, you can remove the Capacitor dependencies and `capacitor.config.ts`.
 
 ## Deployment
-The project is configured for static hosting.
+The project is configured for static hosting, including built-in support for GitHub Pages project sites.
+
 ```bash
 pnpm build
 ```
-The output will be in the `build/` directory.
+
+The output will be in the `dist/` directory.
+
+### GitHub Pages
+To deploy to GitHub Pages:
+1. Ensure the `.github/workflows/deploy-pages.yml` workflow is enabled.
+2. The workflow automatically handles the repository base path (e.g., `/<repo-name>/`) by setting `GITHUB_PAGES=true` during the build.
+3. For assets in the `public/` folder, always prefix paths with `import.meta.env.BASE_URL` or use absolute paths that Vite can process. Prefer importing assets from `src/` whenever possible.

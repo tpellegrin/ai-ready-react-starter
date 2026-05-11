@@ -151,6 +151,7 @@ A focused checklist. Use exact paths.
 11. **Update theme/branding** — edit tokens in `src/styles/` (theme,
     colors, typography). Do not hardcode visual values in components.
 12. **Run validation** — `pnpm validate` and `pnpm build`.
+13. **Configure GitHub Pages** (Optional) — If deploying to a GitHub Pages project site (`https://<owner>.github.io/<repo-name>/`), the boilerplate is already hardened for this. Ensure the `deploy-pages.yml` workflow is active. For `public/` assets, use `import.meta.env.BASE_URL` as a prefix.
 
 ---
 
