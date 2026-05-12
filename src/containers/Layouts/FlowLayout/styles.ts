@@ -8,7 +8,7 @@ import {
   scrollerContainer,
 } from 'styles/mixins';
 
-export const ContentColumn = styled(Flex)<{
+export const _FlowLayoutContentColumn = styled(Flex)<{
   $paddingInline?: string;
   $paddingBlock?: string;
 }>`
@@ -32,7 +32,9 @@ export const ContentColumn = styled(Flex)<{
   `}
 `;
 
-export const ScrollViewport = styled.div<{ $scrollLocked?: boolean }>`
+export const _FlowLayoutScrollViewport = styled.div<{
+  $scrollLocked?: boolean;
+}>`
   display: flex;
   flex: 1 1 auto;
   min-height: 0;

@@ -18,7 +18,7 @@ import { useNavigation } from 'globals/context/NavigationContext';
 import { useTransition } from 'hooks/useTransition';
 import { useScrollManagement } from 'hooks/useScrollManagement';
 import { ErrorBoundary } from 'components/ErrorBoundary';
-import { Wrapper, Stage } from './styles';
+import { _AnimatedOutletWrapper, _AnimatedOutletStage } from './styles';
 
 /**
  * AnimatedOutlet mounts route content with CSS transitions,
@@ -136,7 +136,7 @@ export const AnimatedOutlet = () => {
   const transitionKey = isFlowRoute ? '__flow__' : location.key;
 
   const content = (
-    <Stage
+    <_AnimatedOutletStage
       className="routes-stage"
       data-route-transition={activeTransition ?? TransitionType.fade}
     >
@@ -150,7 +150,7 @@ export const AnimatedOutlet = () => {
           onEntering={onEntering}
           onExited={() => onExited(transitionKey)}
         >
-          <Wrapper
+          <_AnimatedOutletWrapper
             ref={getNodeRef(transitionKey)}
             className={getClassName(TRANSITION_CLASS)}
             style={transitionStyle}
@@ -159,10 +159,10 @@ export const AnimatedOutlet = () => {
             data-allow-motion
           >
             {outlet}
-          </Wrapper>
+          </_AnimatedOutletWrapper>
         </CSSTransition>
       </TransitionGroup>
-    </Stage>
+    </_AnimatedOutletStage>
   );
 
   if (hasTransitionError) return content;

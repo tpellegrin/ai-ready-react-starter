@@ -2,7 +2,7 @@ import { styled } from 'styled-components';
 
 import { fillParent } from 'styles/mixins';
 
-export const LayoutTransitionContainer = styled.div`
+export const _LayoutTransitionContainerRoot = styled.div`
   ${fillParent};
 
   width: 100%;
@@ -12,7 +12,7 @@ export const LayoutTransitionContainer = styled.div`
   overflow: visible;
 `;
 
-export const LayoutTransitionInner = styled.div`
+export const _LayoutTransitionContainerInner = styled.div`
   ${fillParent};
 
   display: flex;

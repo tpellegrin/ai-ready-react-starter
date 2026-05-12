@@ -5,7 +5,7 @@ import { Text } from 'components/Text';
 import { Input } from 'components/Form/Input';
 
 import type { Props } from './types';
-import { Divider } from './styles';
+import { _LabeledInputFieldDivider } from './styles';
 
 export const LabeledInputField: React.FC<Props> = ({
   label,
@@ -45,7 +45,7 @@ export const LabeledInputField: React.FC<Props> = ({
         {action}
       </Flex>
 
-      {!isDividerHidden && <Divider />}
+      {!isDividerHidden && <_LabeledInputFieldDivider />}
 
       <Flex direction="row" gap="xxs" width="fit-content">
         {typeof value === 'string' ? (

@@ -7,7 +7,7 @@ import { TransitionType } from 'containers/Layouts/common/LayoutTransitionContai
  * Stage provides a clipping container and stacking context for route pages.
  * It ensures content remains visible when idle and during transitions.
  */
-export const Stage = styled.div`
+export const _AnimatedOutletStage = styled.div`
   /* Provide a default that lints and browsers can resolve; inherited by children */
   --route-transition-duration: ${TRANSITIONS.duration.default}ms;
 
@@ -24,7 +24,7 @@ export const Stage = styled.div`
  * and becomes absolutely positioned only during enter/exit phases, so both
  * the leaving and entering pages can animate concurrently.
  */
-export const Wrapper = styled.div`
+export const _AnimatedOutletWrapper = styled.div`
   position: relative; /* normal flow by default */
   width: 100%;
   height: auto;

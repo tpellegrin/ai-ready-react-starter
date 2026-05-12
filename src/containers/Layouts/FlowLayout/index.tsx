@@ -8,15 +8,15 @@ import React, {
 
 import { OverlayRoleContext } from 'components/CenterOnlyTransition/OverlayRoleContext';
 import {
-  LayoutTransitionContainer,
-  LayoutTransitionInner,
+  _LayoutTransitionContainerRoot,
+  _LayoutTransitionContainerInner,
 } from '../common/LayoutTransitionContainer/styles';
 import { resolveFooter } from '../common/helpers';
 import { FlowLayoutHeader, FlowLayoutHeaderProps } from './FlowLayoutHeader';
 import { LayoutChromeContext } from '../common/LayoutChromeContext';
 
 import { Props } from './types';
-import { ContentColumn, ScrollViewport } from './styles';
+import { _FlowLayoutContentColumn, _FlowLayoutScrollViewport } from './styles';
 import { useNavigation } from 'globals/context/NavigationContext';
 
 /**
@@ -200,19 +200,19 @@ export const FlowLayout: React.FC<Props> = ({
   }, []);
 
   return (
-    <LayoutTransitionContainer
+    <_LayoutTransitionContainerRoot
       className={contentInnerClassName}
       data-center-content
       data-allow-motion
     >
-      <LayoutTransitionInner>
+      <_LayoutTransitionContainerInner>
         {banner}
-        <ScrollViewport
+        <_FlowLayoutScrollViewport
           ref={scrollViewportRef}
           data-app-scroller="flow"
           $scrollLocked={scrollLocked}
         >
-          <ContentColumn
+          <_FlowLayoutContentColumn
             ref={contentRef}
             $paddingInline={paddingInline}
             $paddingBlock={paddingBlock}
@@ -226,10 +226,10 @@ export const FlowLayout: React.FC<Props> = ({
             {...restContentFlexProps}
           >
             {children}
-          </ContentColumn>
-        </ScrollViewport>
-      </LayoutTransitionInner>
-    </LayoutTransitionContainer>
+          </_FlowLayoutContentColumn>
+        </_FlowLayoutScrollViewport>
+      </_LayoutTransitionContainerInner>
+    </_LayoutTransitionContainerRoot>
   );
 };
 
