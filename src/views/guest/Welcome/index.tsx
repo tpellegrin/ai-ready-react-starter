@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import { _WelcomeContent } from './styles';
 
 import { Flex } from 'components/Flex';
 import { FromBelowReveal } from 'components/Animations/FromBelowReveal';
@@ -7,14 +7,6 @@ import { Button } from 'components/Button';
 import { LanguageSelector } from 'components/LanguageSelector';
 import { paths } from 'globals/paths';
 import { useI18n } from 'i18n/provider';
-
-const WelcomeContent = styled.div`
-  width: 100%;
-  max-width: 30rem;
-  padding: 0 ${({ theme }) => theme.spacers.md};
-  box-sizing: border-box;
-  margin: 0 auto;
-`;
 
 export function Welcome() {
   const navigate = useNavigate();
@@ -29,7 +21,7 @@ export function Welcome() {
       width="100%"
     >
       <FromBelowReveal delayMs={400}>
-        <WelcomeContent>
+        <_WelcomeContent>
           <Flex gap="md" alignItems="center" direction="row">
             <LanguageSelector />
             <Button
@@ -39,7 +31,7 @@ export function Welcome() {
               onClick={() => navigate(paths.signIn)}
             />
           </Flex>
-        </WelcomeContent>
+        </_WelcomeContent>
       </FromBelowReveal>
     </Flex>
   );

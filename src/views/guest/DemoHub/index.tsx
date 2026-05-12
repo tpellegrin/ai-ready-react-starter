@@ -1,6 +1,10 @@
 // DEMO: This starter overview is safe to remove when adopting the boilerplate. See docs/adoption.md.
-import { Link } from 'react-router-dom';
-import styled from 'styled-components';
+import {
+  _DemoHubPage,
+  _DemoHubBadge,
+  _DemoHubEntryList,
+  _DemoHubEntryLink,
+} from './styles';
 
 import { Flex } from 'components/Flex';
 import { Text } from 'components/Text';
@@ -44,57 +48,16 @@ const DEMO_ENTRIES: DemoEntry[] = [
   },
 ];
 
-const Page = styled.div`
-  width: 100%;
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: ${({ theme }) => theme.spacers.lg} ${({ theme }) => theme.spacers.md};
-  box-sizing: border-box;
-`;
-
-const Badge = styled.span`
-  align-self: flex-start;
-  padding: ${({ theme }) => theme.spacers.xxs}
-    ${({ theme }) => theme.spacers.sm};
-  border-radius: ${({ theme }) => theme.borderRadii.sm};
-  background: ${({ theme }) => theme.colors.surface.muted};
-  color: ${({ theme }) => theme.colors.text.secondary};
-  font-family: ${({ theme }) => theme.fontFamilies.primary};
-  font-size: ${({ theme }) => theme.fontSizes.caption};
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-`;
-
-const EntryList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacers.md};
-  width: 100%;
-`;
-
-const EntryLink = styled(Link)`
-  text-decoration: none;
-  color: inherit;
-  display: block;
-  border-radius: ${({ theme }) => theme.borderRadii.md};
-
-  &:focus-visible {
-    outline: 0.125rem solid ${({ theme }) => theme.colors.border.focus};
-    outline-offset: 0.125rem;
-  }
-`;
-
 export function DemoHub() {
   const { t } = useI18n();
 
   return (
-    <Page>
+    <_DemoHubPage>
       <Flex direction="column" gap="lg">
         <Flex direction="column" gap="sm">
-          <Badge data-testid="demo-hub-badge">{t('demoHub.badge')}</Badge>
+          <_DemoHubBadge data-testid="demo-hub-badge">
+            {t('demoHub.badge')}
+          </_DemoHubBadge>
           <Text as="h1" variant="headingLg">
             {t('demoHub.title')}
           </Text>
@@ -107,10 +70,10 @@ export function DemoHub() {
           <LanguageSelector />
         </Flex>
 
-        <EntryList>
+        <_DemoHubEntryList>
           {DEMO_ENTRIES.map((entry) => (
             <li key={entry.id}>
-              <EntryLink
+              <_DemoHubEntryLink
                 to={entry.to}
                 data-testid={`demo-hub-link-${entry.id}`}
               >
@@ -124,10 +87,10 @@ export function DemoHub() {
                     </Text>
                   </Flex>
                 </CardBase>
-              </EntryLink>
+              </_DemoHubEntryLink>
             </li>
           ))}
-        </EntryList>
+        </_DemoHubEntryList>
 
         <CardBase>
           <Flex direction="column" gap="xxs">
@@ -140,6 +103,6 @@ export function DemoHub() {
           </Flex>
         </CardBase>
       </Flex>
-    </Page>
+    </_DemoHubPage>
   );
 }

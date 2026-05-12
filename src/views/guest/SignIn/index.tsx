@@ -1,20 +1,12 @@
 // DEMO: Replace or remove this view when adopting the boilerplate. See docs/adoption.md.
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import { _SignInForm } from './styles';
 import { Flex } from 'components/Flex';
 import { Button } from 'components/Button';
 import { Input } from 'components/Form/Input';
 import { Text } from 'components/Text';
 import { useAuth } from 'auth/useAuth';
 import { useI18n } from 'i18n/provider';
-
-const Form = styled.form`
-  width: 100%;
-  max-width: 20rem;
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacers.md};
-`;
 
 export function SignIn() {
   const { signIn } = useAuth();
@@ -51,7 +43,7 @@ export function SignIn() {
       </Text>
       <Text variant="bodyMd">{t('auth.signIn.demoMessage')}</Text>
 
-      <Form onSubmit={handleSubmit}>
+      <_SignInForm onSubmit={handleSubmit}>
         <Input
           type="email"
           placeholder={t('common.labels.email')}
@@ -82,7 +74,7 @@ export function SignIn() {
           type="submit"
           disabled={isLoading}
         />
-      </Form>
+      </_SignInForm>
     </Flex>
   );
 }
