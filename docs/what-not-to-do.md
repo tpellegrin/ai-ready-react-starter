@@ -34,5 +34,15 @@ Avoid building complex abstractions for simple problems.
 - **No** complex factory systems unless there is a clear, repeated need.
 - **No** "future-proof" extension points that are not currently used.
 
+## Do not use namespace imports for styled components
+Avoid `import * as _ from './styles'` or `import * as S from './styles'`. Direct named imports are preferred for better readability and grep-ability.
+- **Bad**: `import * as _ from './styles'; <_._Container />`
+- **Good**: `import { _ComponentNameRoot } from './styles'; <_ComponentNameRoot />`
+
+## Do not use ambiguous internal names
+Internal styled components must include the owning component name to avoid confusion and make global searches more effective.
+- **Bad**: `export const _Root`, `export const _Container`, `export const _Wrapper`.
+- **Good**: `export const _PriceActionBarRoot`, `export const _PriceActionBarContainer`.
+
 ## Do not let examples become product code
 Example routes and components (like the Dashboard demo) are there to demonstrate how to use the boilerplate. They should remain neutral and easy to delete once the real project development begins.

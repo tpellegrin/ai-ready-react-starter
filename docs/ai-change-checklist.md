@@ -16,6 +16,10 @@ Use this checklist before, during, and after making changes to the boilerplate t
 - [ ] I kept all user-facing copy i18n-ready using the translation system.
 - [ ] I respected the auth boundary by using `useAuth` instead of direct storage access.
 - [ ] I used the React Query/API layer for all server data fetching.
+- [ ] I followed the styled-components naming convention:
+  - Direct named imports from `./styles` (no namespace imports).
+  - Internal styled components start with `_` and include the component name.
+  - Styled components live in a separate `styles.ts` or `styles.tsx` file.
 - [ ] I kept shared components domain-neutral and reusable.
 - [ ] I ensured that any demo or example code remains easily replaceable.
 

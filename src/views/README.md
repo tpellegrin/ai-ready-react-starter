@@ -6,6 +6,7 @@ Views compose routes, flows, components, data, and copy into high-level pages. T
 ## Rules
 - **State-Based Separation**: Organize views into `guest`, `onboarding`, and `user` subfolders based on the routing model.
 - **Composition**: Compose views using primitives from `src/components/`.
+- **Styles**: Export styled components from a local `styles.ts` using the `_ViewNameElementName` naming convention.
 - **i18n**: Ensure all text in views is externalized.
 
 ## Avoid

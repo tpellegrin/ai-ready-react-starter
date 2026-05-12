@@ -59,6 +59,11 @@ Powered by **styled-components**.
 - **Themes**: Design tokens (colors, spacing, typography) live in `src/styles/themes/`.
 - **Global Styles**: Base styles and resets in `src/styles/global.ts`.
 - **Tokens**: Always use `props.theme` values instead of hardcoding CSS values.
+- **Conventions**:
+  - Components use direct named imports for local styles from `./styles`.
+  - No namespace imports (`import * as _` or `import * as S`).
+  - Internal styled components start with `_` and include the owning component name (e.g., `_ButtonRoot`).
+  - Styled components are exported from a separate `styles.ts` or `styles.tsx` file.
 
 ## Flow system
 The app has a dedicated flow architecture for guided, multi-step experiences.
