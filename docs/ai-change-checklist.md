@@ -20,6 +20,7 @@ Use this checklist before, during, and after making changes to the boilerplate t
   - Direct named imports from `./styles` (no namespace imports).
   - Internal styled components start with `_` and include the component name.
   - Styled components live in a separate `styles.ts` or `styles.tsx` file.
+- [ ] I separated meaningful control logic into a colocated `logic.ts` file.
 - [ ] I kept shared components domain-neutral and reusable.
 - [ ] I ensured that any demo or example code remains easily replaceable.
 

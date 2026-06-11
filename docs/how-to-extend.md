@@ -27,15 +27,17 @@ Study `src/views/onboarding/` as the canonical reference before building a new f
 
 ## Add a new view
 1. Create a folder in `src/views/[type]/[ViewName]`.
-2. Create a `styles.ts` file for styled components using the `_ViewNameElementName` naming convention.
-3. Implement the view component in `index.tsx`, composing existing primitives and local styles.
-4. Export it from the folder's `index.tsx`.
+2. Create a `logic.ts` file for component-specific hooks, derived state, and handlers if the view has meaningful logic.
+3. Create a `styles.ts` file for styled components using the `_ViewNameElementName` naming convention.
+4. Implement the view component in `index.tsx`, using the hook from `logic.ts` and local styles.
+5. Export it from the folder's `index.tsx`.
 
 ## Add a reusable component
 1. Place domain-neutral components in `src/components/`.
-2. Follow the `index.tsx` + `styles.ts` + `types.ts` structure.
-3. Use `styled-components` for styling in `styles.ts`, using the `_ComponentNameElementName` naming convention and referencing `props.theme`.
-4. Ensure it is accessible and supports i18n where applicable.
+2. Follow the `index.tsx` + `logic.ts` (optional) + `styles.ts` + `types.ts` structure.
+3. Use `logic.ts` to separate meaningful control logic (data fetching, search, filtering) from rendering.
+4. Use `styled-components` for styling in `styles.ts`, using the `_ComponentNameElementName` naming convention and referencing `props.theme`.
+5. Ensure it is accessible and supports i18n where applicable.
 
 ## Add a feature-specific component
 1. If a component is specific to a single view or flow, place it within that view/flow folder.

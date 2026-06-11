@@ -20,6 +20,7 @@ Do not rewrite, flatten, or replace systems unless explicitly asked.
 - **Auth adapter/provider boundary**: Defined in `src/auth/`, providing a clear interface for authentication.
 - **React Query/API layer**: Uses `@tanstack/react-query` for data fetching. The canonical example lives in `src/api/demoApi.ts`, with shared query keys in `src/api/queryKeys.ts`.
 - **Styled-components styling approach**: Using theme tokens and global styles in `src/styles/`. Components use direct named imports for local styles (no namespace imports).
+- **Colocated Logic**: For components with meaningful logic, colocate it in a `logic.ts` file beside the component. `index.tsx` should focus on rendering and composition, while `logic.ts` handles data fetching, state, and handlers.
 - **Component primitives**: Reusable, domain-neutral components in `src/components/`.
 - **Animation system**: Unified route and reveal animations.
 - **i18n system**: Multi-language support in `src/i18n/`.
@@ -33,6 +34,11 @@ Before changing code:
   - Import directly from `./styles` (no `import * as _`).
   - Internal names start with `_` and include the component name (e.g., `_ButtonRoot`).
   - Use `Root` for top-level elements, descriptive suffixes for others.
+- Colocated Logic (`logic.ts`):
+  - For components with meaningful local logic, colocate that logic in a `logic.ts` file beside the component.
+  - Keep `index.tsx` focused on rendering (JSX structure, passing props).
+  - Put data fetching, derived state, navigation handlers, filtering, and component-specific hooks in `logic.ts`.
+  - Avoid logic.ts for tiny purely presentational components.
 - Reuse existing primitives and helpers.
 - Prefer extending the current architecture over creating a parallel one.
 - Keep names neutral and reusable (e.g., `Item`, `Resource`, `Profile`).

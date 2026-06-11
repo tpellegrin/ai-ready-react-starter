@@ -26,14 +26,14 @@ The app uses an **app-state-based routing model** in `src/containers/AppRouter.t
 - **Guest Router**: For unauthenticated users (Sign In, Sign Up, Welcome).
 - **Onboarding Router**: For users who are authenticated but haven't finished setup.
 - **User Router**: For fully authenticated and setup users (Dashboard, Settings).
-Guards are handled by the `AppRouter` switching logic, which reacts to auth and navigation state.
+  Guards are handled by the `AppRouter` switching logic, which reacts to auth and navigation state.
 
 ## Authentication
 Authentication is abstracted via an **Auth Adapter** pattern in `src/auth/`.
 - `AuthAdapter`: The interface defining the contract.
 - `AuthProvider`: Manages the current adapter and exposes auth state via `useAuth`.
 - `mockAdapter.ts`: A demo implementation for development without a backend.
-To move to production, replace the mock adapter with a real implementation (e.g., OIDC, Firebase) without changing the `useAuth` consumers.
+  To move to production, replace the mock adapter with a real implementation (e.g., OIDC, Firebase) without changing the `useAuth` consumers.
 
 ## Data fetching/API layer
 Managed via **TanStack Query (React Query) v5**.
@@ -53,6 +53,7 @@ Forms should follow a consistent pattern:
 - **Primitives**: Low-level, domain-neutral components (Button, Text, Box) in `src/components/`.
 - **Shared Components**: Reusable UI patterns (CardBase, ModalBase).
 - **Composition**: Prefer composing primitives over creating monolithic components.
+- **Colocated Logic**: For components with meaningful local logic (data fetching, state, handlers), colocate that logic in a `logic.ts` file beside the component's `index.tsx`. The index file should remain focused on rendering and composition.
 
 ## Styling and theme
 Powered by **styled-components**.

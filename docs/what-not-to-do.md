@@ -34,6 +34,11 @@ Avoid building complex abstractions for simple problems.
 - **No** complex factory systems unless there is a clear, repeated need.
 - **No** "future-proof" extension points that are not currently used.
 
+## Do not mix complex logic with rendering
+Avoid embedding substantial business or control logic directly in JSX components.
+- **Bad**: Putting `useQuery`, complex `useMemo` filtering, and navigation handlers all inside a single `index.tsx` file.
+- **Good**: Moving that logic into a colocated `logic.ts` hook and keeping `index.tsx` focused on the UI structure.
+
 ## Do not use namespace imports for styled components
 Avoid `import * as _ from './styles'` or `import * as S from './styles'`. Direct named imports are preferred for better readability and grep-ability.
 - **Bad**: `import * as _ from './styles'; <_._Container />`
