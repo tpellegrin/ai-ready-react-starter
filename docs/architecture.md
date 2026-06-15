@@ -69,7 +69,7 @@ Powered by **styled-components**.
 ## Flow system
 The app has a dedicated flow architecture for guided, multi-step experiences.
 - **Flow routes**: Use the `/flow/` URL prefix. AppRouter automatically routes them through `CenterTransitionShell` for LTR/RTL slide transitions.
-- **Path registry**: Step paths and ordering live in `src/globals/paths.ts` under the `flow` key.
+- **Path registry**: Step paths and ordering live in `src/globals/paths.ts` under the `flow` key. New flows must conform to the existing contract (keys in `paths.flow` matching URL segments) instead of modifying navigation infrastructure.
 - **Helpers**: `src/flows/fromPaths.ts` provides `getNextStepPath`, `getPrevStepPath`, etc.
 - **Hooks**: `useFlowNav` (navigation) and `useFlowProgressFromPaths` (progress) in `src/hooks/`.
 - **Layout**: All flow screens compose `FlowLayout` from `src/containers/Layouts/FlowLayout/`.

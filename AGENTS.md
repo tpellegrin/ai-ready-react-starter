@@ -23,6 +23,7 @@ Do not rewrite, flatten, or replace systems unless explicitly asked.
 - **Colocated Logic**: For components with meaningful logic, colocate it in a `logic.ts` file beside the component. `index.tsx` should focus on rendering and composition, while `logic.ts` handles data fetching, state, and handlers.
 - **Component primitives**: Reusable, domain-neutral components in `src/components/`.
 - **Animation system**: Unified route and reveal animations.
+- **Flow navigation contract**: Standardized flow path resolution and navigation in `src/flows/fromPaths.ts`. New flows must conform to this contract (keys in `paths.flow` matching URL segments) instead of modifying the infrastructure.
 - **i18n system**: Multi-language support in `src/i18n/`.
 - **Validation scripts**: Automated checks via `pnpm validate`.
 
@@ -41,6 +42,7 @@ Before changing code:
   - Avoid logic.ts for tiny purely presentational components.
 - Reuse existing primitives and helpers.
 - Prefer extending the current architecture over creating a parallel one.
+- Prefer existing common components such as `Flex`, `Box`, and `Text`. For feature-specific layout behavior, create local styled components in the feature/view folder instead of introducing broad global primitives.
 - Keep names neutral and reusable (e.g., `Item`, `Resource`, `Profile`).
 - Keep copy i18n-ready.
 - Keep examples generic.
@@ -58,5 +60,6 @@ After changing code:
 - Direct auth storage access outside auth adapters.
 - Direct data fetching in UI primitives.
 - Bypassing route guards or provider boundaries.
+- Modifying foundational baseline layout components (e.g., `BaseLayout`) to solve feature-specific UI issues. These components must remain generic and stable. Use page-specific composition, feature layouts, or wrapper components instead.
 - Duplicate component primitives.
 - Overly abstract “future-proof” systems.

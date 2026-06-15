@@ -44,6 +44,15 @@ Avoid `import * as _ from './styles'` or `import * as S from './styles'`. Direct
 - **Bad**: `import * as _ from './styles'; <_._Container />`
 - **Good**: `import { _ComponentNameRoot } from './styles'; <_ComponentNameRoot />`
 
+## Do not bypass route guards
+Never bypass route guards or provider boundaries.
+
+## Do not modify shared flow infrastructure
+Do not modify shared flow navigation infrastructure such as `fromPaths.ts` to make a new flow work. New flows must conform to the existing flow path contract, including `__order` and route registration. When a new flow fails in `goNext`/`goBack`, compare its path object and route registration with a working flow and fix the flow definition/caller first.
+
+## Do not modify foundational baseline components
+Avoid modifying foundational baseline layout components such as `BaseLayout` to solve feature-specific UI issues. `BaseLayout` must remain generic and stable because it supports multiple app regions and flow layouts. Prefer page-specific composition, feature layouts, wrapper components, or existing layout extension points. If a base component change appears necessary, first document why no safer local alternative exists and verify all dependent layouts.
+
 ## Do not use ambiguous internal names
 Internal styled components must include the owning component name to avoid confusion and make global searches more effective.
 - **Bad**: `export const _Root`, `export const _Container`, `export const _Wrapper`.

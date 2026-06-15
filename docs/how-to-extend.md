@@ -6,7 +6,7 @@ This guide explains how to add common features while preserving the boilerplate'
 
 For a complete guide, see [`docs/flows.md`](./flows.md). The short version:
 
-1. Add step paths under `flowPaths` in `src/globals/paths.ts` (key order = step order).
+1. Add step paths under `flowPaths` in `src/globals/paths.ts` (key order = step order). Ensure the key in `flowPaths` matches the flow segment in the URL (e.g., key `my-flow` for `/flow/my-flow/...`).
 2. Create screen components in `src/views/<routerType>/<FlowName>/` that compose `FlowLayout`.
 3. Use `useFlowNav` for `goNext()` / `goBack()` and `useFlowProgressFromPaths` for progress.
 4. Register routes in the appropriate `src/views/<routerType>/index.tsx` — the `/flow/` prefix is enough to enable slide transitions.
@@ -29,6 +29,7 @@ Study `src/views/onboarding/` as the canonical reference before building a new f
 1. Create a folder in `src/views/[type]/[ViewName]`.
 2. Create a `logic.ts` file for component-specific hooks, derived state, and handlers if the view has meaningful logic.
 3. Create a `styles.ts` file for styled components using the `_ViewNameElementName` naming convention.
+   - For specialized layout needs (e.g. hero headers, floating cards), create local styled components in this file instead of introducing broad global layout abstractions.
 4. Implement the view component in `index.tsx`, using the hook from `logic.ts` and local styles.
 5. Export it from the folder's `index.tsx`.
 

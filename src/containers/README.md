@@ -7,6 +7,7 @@ Containers are responsible for the composition of the application's shell, layou
 - **Provider Order**: Maintain the correct order of providers in `App.tsx`.
 - **Router Separation**: Preserve the guest/onboarding/user separation in `AppRouter.tsx`.
 - **Global Layouts**: Keep high-level layout shells (e.g., `CenterTransitionShell`) here.
+- **Baseline Stability**: Do not modify foundational layout components (like `BaseLayout`) to solve feature-specific UI issues. Use composition or extension points.
 
 ## Avoid
 - **Business Logic**: Avoid putting feature-specific business logic in containers.

@@ -15,6 +15,7 @@ Use this checklist before, during, and after making changes to the boilerplate t
 - [ ] I used theme tokens (`props.theme`) instead of hardcoded visual values.
 - [ ] I kept all user-facing copy i18n-ready using the translation system.
 - [ ] I respected the auth boundary by using `useAuth` instead of direct storage access.
+- [ ] I ensured new flows conform to the `paths.flow` contract (keys matching URL segments) instead of modifying shared infrastructure.
 - [ ] I used the React Query/API layer for all server data fetching.
 - [ ] I followed the styled-components naming convention:
   - Direct named imports from `./styles` (no namespace imports).
@@ -23,6 +24,7 @@ Use this checklist before, during, and after making changes to the boilerplate t
 - [ ] I separated meaningful control logic into a colocated `logic.ts` file.
 - [ ] I kept shared components domain-neutral and reusable.
 - [ ] I ensured that any demo or example code remains easily replaceable.
+- [ ] I avoided broad global layout abstractions for feature-specific layout problems.
 
 ## After editing
 - [ ] I updated the documentation if I changed or added an architectural pattern.

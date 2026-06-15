@@ -81,6 +81,8 @@ export const paths = {
 
 **Key ordering matters**: `useFlowNav` and `useFlowProgress` derive step order from the object key order in `paths.flow.<flowId>`. Add steps in the order users should progress through them.
 
+**Note on flow IDs**: The key used in `flowPaths` must match the flow segment in the URL. For example, if your URL is `/flow/my-flow/step1`, the key in `flowPaths` must be `my-flow`. Using camelCase for multi-word flow keys (like `myFlow`) while using kebab-case in the URL (like `my-flow`) will cause runtime errors in the flow navigation helpers. If you need a camelCase alias for JS/TS usage, define it in the `paths` object export.
+
 ### Flow helpers (`src/flows/fromPaths.ts`)
 
 Utility functions that read `paths.flow` and operate on the current URL:
@@ -270,13 +272,15 @@ Review the "When to use a flow" section above. If the experience is a single pag
 
 Add your flow under `flowPaths` in `src/globals/paths.ts`. Step key order determines navigation order.
 
+**Critical**: The key in `flowPaths` MUST match the flow segment in the URL.
+
 ```ts
 export const flowPaths = {
   onboarding: { ... },          // existing
-  preferences: {                // new flow
-    theme:    '/flow/preferences/theme',
-    language: '/flow/preferences/language',
-    done:     '/flow/preferences/done',
+  'preferences-flow': {         // use a key that matches the URL segment
+    theme:    '/flow/preferences-flow/theme',
+    language: '/flow/preferences-flow/language',
+    done:     '/flow/preferences-flow/done',
   },
 } as const;
 ```
