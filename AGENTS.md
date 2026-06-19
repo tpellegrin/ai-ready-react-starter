@@ -41,8 +41,9 @@ Before changing code:
   - Put data fetching, derived state, navigation handlers, filtering, and component-specific hooks in `logic.ts`.
   - Avoid logic.ts for tiny purely presentational components.
 - Reuse existing primitives and helpers.
-- Prefer extending the current architecture over creating a parallel one.
-- Prefer existing common components such as `Flex`, `Box`, and `Text`. For feature-specific layout behavior, create local styled components in the feature/view folder instead of introducing broad global primitives.
+- Prefer existing common components such as `Flex`, `Box`, and `Text`.
+- `Box` is a visual surface/card-like component, NOT a neutral layout div. It has a visible border by default. Do not use it for grouping elements without a visible container.
+- For neutral layout behavior, use `Flex` or create local styled components in the feature/view folder instead of introducing broad global primitives.
 - Keep names neutral and reusable (e.g., `Item`, `Resource`, `Profile`).
 - Keep copy i18n-ready.
 - Keep examples generic.

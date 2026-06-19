@@ -53,6 +53,13 @@ Do not modify shared flow navigation infrastructure such as `fromPaths.ts` to ma
 ## Do not modify foundational baseline components
 Avoid modifying foundational baseline layout components such as `BaseLayout` to solve feature-specific UI issues. `BaseLayout` must remain generic and stable because it supports multiple app regions and flow layouts. Prefer page-specific composition, feature layouts, wrapper components, or existing layout extension points. If a base component change appears necessary, first document why no safer local alternative exists and verify all dependent layouts.
 
+## Do not use Box as a neutral layout wrapper
+`Box` is a visual surface/card-like component with a default border. Do not use it as a generic `div` or for neutral layout/padding.
+- **Bad**: `<Box px="xl" py="xl">` as a page wrapper.
+- **Bad**: `<Box px="none" py="none">` just to group elements.
+- **Good**: Use `Flex` for alignment and gaps.
+- **Good**: Use local styled wrappers in `styles.ts` for feature-specific padding and layout.
+
 ## Do not use ambiguous internal names
 Internal styled components must include the owning component name to avoid confusion and make global searches more effective.
 - **Bad**: `export const _Root`, `export const _Container`, `export const _Wrapper`.
