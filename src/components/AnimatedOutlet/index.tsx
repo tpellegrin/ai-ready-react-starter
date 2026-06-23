@@ -55,6 +55,8 @@ export const AnimatedOutlet = () => {
 
   // Latch and mirror transition when navigation key changes; force Fade globally
   useEffect(() => {
+    const isFirstLoad = lastKeyRef.current === null;
+
     if (lastKeyRef.current !== location.key) {
       registerNavigationCommit(location.key);
       const next = TransitionType.fade;
@@ -67,12 +69,16 @@ export const AnimatedOutlet = () => {
         transitionClearTimeoutRef.current = null;
       }
 
-      setTransition(next);
+      // Only apply global transition state if this is a subsequent navigation.
+      // Initial load should not lock scroll or apply transition classes to the shell.
+      if (!isFirstLoad) {
+        setTransition(next);
+      }
 
       // If we're inside the Flow (stable transition key prevents onExited),
       // schedule an explicit clear so NavigationContext.transition doesn't stay latched.
       const isFlow = location.pathname.startsWith('/flow/');
-      if (isFlow) {
+      if (isFlow && !isFirstLoad) {
         transitionClearTimeoutRef.current = window.setTimeout(() => {
           setTransition(null);
           transitionClearTimeoutRef.current = null;
@@ -102,6 +108,11 @@ export const AnimatedOutlet = () => {
     // Restore the scroll position if this route persisted it.
     restoreScrollPosition(location.pathname);
   }, [restoreScrollPosition, location.pathname]);
+
+  const onEntered = useCallback(() => {
+    setActiveTransition(null);
+    setTransition(null);
+  }, [setTransition]);
 
   const onExited = useCallback(
     (key: string) => {
@@ -148,6 +159,7 @@ export const AnimatedOutlet = () => {
           classNames={TRANSITION_CLASS}
           onEnter={onEnter}
           onEntering={onEntering}
+          onEntered={onEntered}
           onExited={() => onExited(transitionKey)}
         >
           <_AnimatedOutletWrapper
