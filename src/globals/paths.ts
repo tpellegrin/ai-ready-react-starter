@@ -3,8 +3,10 @@ export const guestPaths = {
   welcome: '/welcome',
   signIn: '/sign-in',
   signUp: '/sign-up',
-  // DEMO: starter overview route, safe to remove. See docs/adoption.md.
+  // starter:demo-start
+  // Starter overview alias (src/demo). Removed by `pnpm adopt --remove-demo`.
   demo: '/demo',
+  // starter:demo-end
 } as const;
 
 /**
@@ -25,7 +27,13 @@ export const flowPaths = {
   },
 } as const;
 
-export const userPaths = { dashboard: '/' } as const;
+export const userPaths = {
+  dashboard: '/',
+  // starter:reference-start
+  // Resource reference feature. Removed by `pnpm adopt --remove-reference`.
+  resources: '/resources',
+  // starter:reference-end
+} as const;
 
 export const paths = {
   ...guestPaths,

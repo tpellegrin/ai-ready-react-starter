@@ -3,7 +3,12 @@ import type React from 'react';
 
 import { getLocale } from 'i18n';
 import { useI18n } from 'i18n/provider';
-import { formatWithIntl, parseLocaleNumber } from 'utils/numberFormat';
+import {
+  formatTypedNumber,
+  formatWithIntl,
+  parseLocaleNumber,
+  parseTypedNumber,
+} from 'i18n/numberFormat';
 import {
   countDigitsBefore,
   indexFromDigitCount,
@@ -16,7 +21,9 @@ import {
   getEffectiveMaxFractionDigits,
 } from './utils';
 
-import type { InputProps } from './types';
+import { assignRef } from 'utils/react';
+
+import type { InputLogicProps } from './types';
 
 export type UseInputLogicResult = {
   fieldProps: Pick<
@@ -31,6 +38,7 @@ export type UseInputLogicResult = {
     | 'onCompositionEnd'
     | 'onPointerDown'
     | 'onClick'
+    | 'onBlur'
     | 'placeholder'
   > & { ref: (node: HTMLInputElement | null) => void };
 };
@@ -40,8 +48,8 @@ export type UseInputLogicResult = {
  * Keeps Input/index.tsx lean and focused on rendering only.
  */
 export const useInputLogic = (
-  props: InputProps,
-  forwardedRef: React.Ref<HTMLInputElement>,
+  props: InputLogicProps,
+  forwardedRef: React.Ref<HTMLInputElement> | undefined,
 ): UseInputLogicResult => {
   const {
     id,
@@ -58,6 +66,8 @@ export const useInputLogic = (
     onChange,
     placeholder,
     onPointerDown: onPointerDownProp,
+    onClick: onClickProp,
+    onBlur: onBlurProp,
   } = props;
 
   const { lang } = useI18n();
@@ -73,18 +83,12 @@ export const useInputLogic = (
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const composingRef = useRef(false);
+  // The value this field last reported. When the parent echoes it back, the
+  // display already shows it (possibly mid-typing, e.g. "1."): don't reformat.
+  const emittedRef = useRef<number | null | undefined>(undefined);
   const setRefs = (node: HTMLInputElement | null) => {
     inputRef.current = node;
-    if (typeof forwardedRef === 'function') forwardedRef(node);
-    else if (
-      forwardedRef &&
-      typeof (forwardedRef as React.MutableRefObject<HTMLInputElement | null>)
-        .current !== 'undefined'
-    ) {
-      (
-        forwardedRef as React.MutableRefObject<HTMLInputElement | null>
-      ).current = node;
-    }
+    assignRef(forwardedRef, node);
   };
 
   // Local display state when formatting is enabled
@@ -105,6 +109,10 @@ export const useInputLogic = (
   // Keep the Display in sync with the external value
   useEffect(() => {
     if (!formattingEnabled) return;
+    if (emittedRef.current !== undefined && value === emittedRef.current) {
+      return;
+    }
+    emittedRef.current = undefined;
     if (typeof value === 'number' && Number.isFinite(value)) {
       setDisplay(
         formatWithIntl(value, {
@@ -160,7 +168,13 @@ export const useInputLogic = (
         ? countFractionDigitsBefore(raw, caretBefore, locale)
         : undefined;
 
-    const parsed = parseLocaleNumber(raw, locale);
+    // Decimal fields keep in-progress input ("1.", "1.50") while typing.
+    const typed =
+      format === 'number' && decimalsExpected
+        ? parseTypedNumber(raw, locale, effectiveMaxFrac)
+        : null;
+    const parsed = typed ? typed.value : parseLocaleNumber(raw, locale);
+    emittedRef.current = parsed;
     onValueChange?.(parsed);
 
     if (parsed === null) {
@@ -176,13 +190,18 @@ export const useInputLogic = (
       return;
     }
 
-    const next = formatWithIntl(parsed, {
-      locale,
-      format,
-      currency,
-      maximumFractionDigits,
-      useGrouping,
-    });
+    const next = typed
+      ? formatTypedNumber(
+          { ...typed, value: parsed },
+          { locale, maximumFractionDigits: effectiveMaxFrac, useGrouping },
+        )
+      : formatWithIntl(parsed, {
+          locale,
+          format,
+          currency,
+          maximumFractionDigits,
+          useGrouping,
+        });
     setDisplay(next);
 
     // Restore caret, preserving the integer/fraction region when applicable
@@ -249,30 +268,49 @@ export const useInputLogic = (
       n.focus();
       const text = n.value;
       requestAnimationFrame(() => {
-        try {
-          // Default to end of string
-          let targetPos: number | undefined;
+        // Default to end of string
+        let targetPos: number | undefined;
 
-          // Only try smart placement if we expect decimals
-          if (text && decimalsExpected) {
-            const parsed = parseLocaleNumber(text, locale);
-            if (parsed !== null && Number.isFinite(parsed)) {
-              const intDigits = Math.trunc(Math.abs(parsed)).toString().length;
-              targetPos = indexFromDigitCount(text, intDigits);
-            }
+        // Only try smart placement if we expect decimals
+        if (text && decimalsExpected) {
+          const parsed = parseLocaleNumber(text, locale);
+          if (parsed !== null && Number.isFinite(parsed)) {
+            const intDigits = Math.trunc(Math.abs(parsed)).toString().length;
+            targetPos = indexFromDigitCount(text, intDigits);
           }
+        }
 
-          const unclamped = targetPos ?? text.length;
-          const pos = clampCaretToNumericStart(text, unclamped);
-          n.setSelectionRange(pos, pos);
-        } catch {}
+        const unclamped = targetPos ?? text.length;
+        const pos = clampCaretToNumericStart(text, unclamped);
+        n.setSelectionRange(pos, pos);
       });
     }
     // If already focused, allow default behavior so users can select text or click to position caret
   };
 
-  const handleClick: React.MouseEventHandler<HTMLInputElement> = () => {
-    if (!format) return; // refer to props.format directly to avoid stale closure
+  // Leaving the field settles in-progress input ("1." → "1").
+  const handleBlur: React.FocusEventHandler<HTMLInputElement> = (event) => {
+    if (
+      formattingEnabled &&
+      typeof value === 'number' &&
+      Number.isFinite(value)
+    ) {
+      setDisplay(
+        formatWithIntl(value, {
+          locale,
+          format,
+          currency,
+          maximumFractionDigits,
+          useGrouping,
+        }),
+      );
+    }
+    onBlurProp?.(event);
+  };
+
+  const handleClick: React.MouseEventHandler<HTMLInputElement> = (event) => {
+    onClickProp?.(event);
+    if (!format || event.defaultPrevented) return;
     const n = inputRef.current;
     if (!n) return;
     // Defer until after Browser sets selection based on click
@@ -295,12 +333,13 @@ export const useInputLogic = (
       ref: setRefs,
       type: formattingEnabled ? 'text' : type,
       inputMode: formattingEnabled ? (inputMode ?? 'decimal') : inputMode,
-      value: formattingEnabled ? display : value,
+      value: formattingEnabled ? display : value === null ? '' : value,
       onChange: handleChange,
       onCompositionStart: () => (composingRef.current = true),
       onCompositionEnd: () => (composingRef.current = false),
       onPointerDown: handlePointerDown,
       onClick: handleClick,
+      onBlur: handleBlur,
       placeholder: effectivePlaceholder,
     },
   };

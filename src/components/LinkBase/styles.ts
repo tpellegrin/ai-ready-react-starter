@@ -1,39 +1,37 @@
+import { Link } from 'react-router-dom';
 import { styled, css } from 'styled-components';
 
-export const _LinkBaseRoot = styled.a<{
-  $isDisabled?: boolean;
-  $isFullWidth?: boolean;
-}>`
+import { focusRing } from 'styles/mixins';
+
+const linkBaseStyles = css<{ $isFullWidth?: boolean | undefined }>`
+  display: inline-flex;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: ${({ theme }) => theme.borderRadii.xs};
   background: transparent;
   color: inherit;
   text-decoration: inherit;
-  border: 0;
-  outline: none;
-  margin: 0;
-  padding: 0;
-  display: inline-flex;
-  align-items: unset;
-  justify-content: unset;
-  line-height: inherit;
-  -webkit-touch-callout: none;
-  user-select: none;
   cursor: pointer;
 
   &:focus-visible {
-    outline: none;
+    ${focusRing};
   }
 
   ${({ $isFullWidth }) =>
     $isFullWidth &&
     css`
-      width: 100%;
       display: flex;
+      width: 100%;
     `}
+`;
 
-  ${({ $isDisabled }) =>
-    $isDisabled &&
-    css`
-      cursor: not-allowed;
-      pointer-events: none;
-    `}
+export const _LinkBaseAnchor = styled.a<{ $isFullWidth?: boolean | undefined }>`
+  ${linkBaseStyles}
+`;
+
+export const _LinkBaseRouterLink = styled(Link)<{
+  $isFullWidth?: boolean | undefined;
+}>`
+  ${linkBaseStyles}
 `;

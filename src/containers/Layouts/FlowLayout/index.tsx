@@ -6,17 +6,21 @@ import React, {
   useRef,
 } from 'react';
 
-import { OverlayRoleContext } from 'components/CenterOnlyTransition/OverlayRoleContext';
+import { OverlayRoleContext } from 'utils/transitions/overlayRole';
 import {
   _LayoutTransitionContainerRoot,
   _LayoutTransitionContainerInner,
 } from '../common/LayoutTransitionContainer/styles';
 import { resolveFooter } from '../common/helpers';
-import { FlowLayoutHeader, FlowLayoutHeaderProps } from './FlowLayoutHeader';
+import {
+  FlowLayoutHeader,
+  type FlowLayoutHeaderProps,
+} from './FlowLayoutHeader';
 import { LayoutChromeContext } from '../common/LayoutChromeContext';
 
-import { Props } from './types';
+import { type Props } from './types';
 import { _FlowLayoutContentColumn, _FlowLayoutScrollViewport } from './styles';
+import { IS_DEV } from 'config';
 import { useNavigation } from 'globals/context/NavigationContext';
 
 /**
@@ -153,11 +157,7 @@ export const FlowLayout: React.FC<Props> = ({
       if (scrollRef.current === el) {
         scrollRef.current = prevScrollRefEl.current;
       } else {
-        if (
-          typeof process !== 'undefined' &&
-          process.env.NODE_ENV !== 'production'
-        ) {
-          // eslint-disable-next-line no-console
+        if (IS_DEV) {
           console.warn(
             '[FlowLayout] scrollRef changed by another owner while FlowLayout was mounted. Not restoring to avoid clobbering.',
           );
@@ -167,16 +167,12 @@ export const FlowLayout: React.FC<Props> = ({
   }, [scrollRef]);
 
   useEffect(() => {
-    if (
-      typeof process === 'undefined' ||
-      process.env.NODE_ENV === 'production'
-    ) {
+    if (!IS_DEV) {
       return;
     }
 
     const el = scrollViewportRef.current;
     if (!el) {
-      // eslint-disable-next-line no-console
       console.warn(
         '[FlowLayout] Missing flow scroll viewport. Scroll ownership contract cannot be enforced.',
       );
@@ -184,7 +180,6 @@ export const FlowLayout: React.FC<Props> = ({
     }
 
     if (el.dataset.appScroller !== 'flow') {
-      // eslint-disable-next-line no-console
       console.warn(
         '[FlowLayout] Scroll viewport must be tagged with data-app-scroller="flow".',
       );
@@ -192,7 +187,6 @@ export const FlowLayout: React.FC<Props> = ({
 
     const transform = window.getComputedStyle(el).transform;
     if (transform && transform !== 'none') {
-      // eslint-disable-next-line no-console
       console.warn(
         '[FlowLayout] Flow scroll viewport must remain transform-free. Move route transforms to [data-center-content].',
       );

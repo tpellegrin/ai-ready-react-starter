@@ -3,6 +3,6 @@ export type Props = {
   index: number; // zero-based
   position: number; // one-based
   total: number;
-  flowId?: string;
-  step?: string;
+  flowId?: string | undefined;
+  step?: string | undefined;
 };

@@ -1,4 +1,4 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { t } from 'i18n';
 
 interface Props {
@@ -33,9 +33,9 @@ export class ErrorBoundary extends Component<Props, State> {
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log the error to an error reporting service
-    // eslint-disable-next-line no-console
+
     console.error('Error caught by ErrorBoundary:', error, errorInfo);
 
     // Call the onError callback if provided
@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  render(): ReactNode {
+  override render(): ReactNode {
     if (this.state.hasError) {
       // Render fallback UI if provided, otherwise render a default error message
       if (this.props.fallback) {

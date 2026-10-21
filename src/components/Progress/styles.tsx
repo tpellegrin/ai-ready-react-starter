@@ -1,7 +1,6 @@
 import { css, styled } from 'styled-components';
 
-import { getAccessibleDuration } from 'utils/transitions/config';
-import { DURATION_MS } from 'containers/Layouts/common/LayoutTransitionContainer/types';
+import { getAccessibleDuration, DURATION_MS } from 'utils/transitions/config';
 
 import type { Props } from './types';
 

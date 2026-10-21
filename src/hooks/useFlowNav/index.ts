@@ -1,13 +1,16 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useNavigation } from 'globals/context/NavigationContext';
-import { TransitionType } from 'containers/Layouts/common/LayoutTransitionContainer/types';
-import { getAccessibleDuration, TRANSITIONS } from 'utils/transitions/config';
+import {
+  TransitionType,
+  getAccessibleDuration,
+  TRANSITIONS,
+} from 'utils/transitions/config';
 import {
   getNextStepPath,
   getNextApplicableStepPath,
   parseFlowFromPath,
-  CanEnterFn,
+  type CanEnterFn,
 } from 'flows/fromPaths';
 
 /**
@@ -32,7 +35,7 @@ export const useFlowNav = <T = unknown>(
    * If `to` is not provided, compute the next step from paths.ts order based on the current URL.
    * A new screen slides in from the right; content moves left.
    */
-  const goNext = (to?: string) => {
+  const goNext = (to?: string): boolean => {
     let target = to;
     if (!target) {
       const { flowId, step } = parseFlowFromPath(pathname);
@@ -55,7 +58,8 @@ export const useFlowNav = <T = unknown>(
 
     try {
       setNextTransitionIntent(TransitionType.ltr);
-      return navigate(target);
+      navigate(target);
+      return true;
     } catch (error) {
       clearNavigationBlock();
       setNextTransitionIntent(null);
@@ -68,16 +72,18 @@ export const useFlowNav = <T = unknown>(
    * to react-router's Navigate (e.g., -1 to go back in history).
    * A new screen slides in from the left; content moves right.
    */
-  const goBack = (to: string | number = -1) => {
+  const goBack = (to: string | number = -1): boolean => {
     const lockMs = duration + 120;
     if (!tryAcquireNavLock(lockMs)) return false;
 
     try {
       setNextTransitionIntent(TransitionType.rtl);
       if (typeof to === 'number') {
-        return navigate(to);
+        navigate(to);
+      } else {
+        navigate(to);
       }
-      return navigate(to);
+      return true;
     } catch (error) {
       clearNavigationBlock();
       setNextTransitionIntent(null);

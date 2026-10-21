@@ -1,11 +1,11 @@
 import React from 'react';
 
 import { MainLayout } from 'containers/Layouts/MainLayout';
-import { CenterAnimatedOutlet } from 'components/AnimatedOutlet/CenterAnimatedOutlet';
+import { CenterAnimatedOutlet } from 'containers/RouteTransitions/AnimatedOutlet/CenterAnimatedOutlet';
 import {
   LayoutChromeContext,
-  LayoutChromeOwnerToken,
-  LayoutChromePayload,
+  type LayoutChromeOwnerToken,
+  type LayoutChromePayload,
 } from 'containers/Layouts/common/LayoutChromeContext';
 import type {
   HeaderProp,

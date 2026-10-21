@@ -17,6 +17,7 @@ For a complete guide, see [`docs/flows.md`](./flows.md). The short version:
 Study `src/views/onboarding/` as the canonical reference before building a new flow.
 
 ## Add a new route
+
 1. Identify the router type: `Guest`, `Onboarding`, or `User`.
 2. Locate the corresponding file in `src/views/[type]/index.tsx`.
 3. Add the route definition to the exported array.
@@ -26,6 +27,7 @@ Study `src/views/onboarding/` as the canonical reference before building a new f
 4. If it's a "flow" route, use the `/flow/` prefix to enable center-transition animations.
 
 ## Add a new view
+
 1. Create a folder in `src/views/[type]/[ViewName]`.
 2. Create a `logic.ts` file for component-specific hooks, derived state, and handlers if the view has meaningful logic.
 3. Create a `styles.ts` file for styled components using the `_ViewNameElementName` naming convention.
@@ -34,6 +36,7 @@ Study `src/views/onboarding/` as the canonical reference before building a new f
 5. Export it from the folder's `index.tsx`.
 
 ## Add a reusable component
+
 1. Place domain-neutral components in `src/components/`.
 2. Follow the `index.tsx` + `logic.ts` (optional) + `styles.ts` + `types.ts` structure.
 3. Use `logic.ts` to separate meaningful control logic (data fetching, search, filtering) from rendering.
@@ -41,50 +44,72 @@ Study `src/views/onboarding/` as the canonical reference before building a new f
 5. Ensure it is accessible and supports i18n where applicable.
 
 ## Add a feature-specific component
+
 1. If a component is specific to a single view or flow, place it within that view/flow folder.
 2. If it's used across multiple views but is domain-specific, create a folder in `src/features/[FeatureName]/components`.
 
-## Add an API call
-1. Create a generic API function in `src/api/` (or `src/utils/` if following the demo pattern).
-2. Use `fetch` or a library like `axios`.
-3. Ensure it returns a Promise.
+## Add a feature
 
-## Add a mutation
-1. Use `useMutation` from `react-query`.
-2. Define the mutation function in the API layer.
-3. Handle `onSuccess` and `onError` to provide user feedback (e.g., via a progress bar or toast).
+Run `pnpm gen feature <name>` and follow
+[recipes/new-feature.md](recipes/new-feature.md). Features live in
+`src/features/<name>` and are imported only through their `index.ts`
+([boundaries](architecture/boundaries.md)).
+
+## Add an API call or mutation
+
+1. Define the response schema in the feature's `model.ts` (Zod).
+2. Call `apiClient.request({ path, schema, signal })` from the feature's
+   `api.ts` — never `fetch`/`axios` in components.
+3. Add keys, `queryOptions` and `useMutation` hooks (invalidating the
+   feature's keys) in `queries.ts`.
+4. Add MSW handlers and fixtures in the feature's `mocks/`.
+
+Details: [recipes/data-and-forms.md](recipes/data-and-forms.md).
 
 ## Add a form
-1. Use components from `src/components/Form`.
-2. Use `LabeledInputField` for consistent styling.
-3. Manage form state with a library or React `useState` for simple cases.
-4. Ensure all labels are translated.
+
+Use React Hook Form + Zod with `Field` and the `Form` primitives; schemas
+return error codes, translated with `useFieldErrorMessage()`; server 422
+errors go to fields with `applyServerFieldErrors`. See
+[ui/foundation.md](ui/foundation.md#forms) and `ResourceForm`.
 
 ## Add auth behavior
-1. Access auth state and methods via the `useAuth` hook.
-2. Avoid direct manipulation of tokens or local storage.
-3. If you need to change how authentication works, implement a new `AuthAdapter` in `src/auth/`.
+
+1. Read auth state and actions through `useAuth()`.
+2. Never touch tokens or auth storage outside an adapter (lint-enforced).
+3. To change how authentication works, write an `AuthAdapter` and register it
+   in the composition root ([recipe](recipes/real-auth-adapter.md)).
 
 ## Add theme tokens
+
 1. Add new tokens to the base theme in `src/styles/themes/base.ts`.
 2. Ensure they are available in the `DefaultTheme` interface if using TypeScript.
 
 ## Add translations
+
 1. Add keys to `src/i18n/locales/[lang].json`.
 2. Use the `useI18n` hook to access them.
 3. Run `pnpm i18n:check` to ensure all languages are in sync.
 
 ## Add tests
+
 1. Create a `[FileName].test.tsx` file next to your component or utility.
-2. Use Vitest and React Testing Library.
-3. Run `pnpm test:run` to verify.
+2. Use Vitest and React Testing Library with `renderWithProviders` or
+   `renderApp` (`src/test`); data flows through MSW handlers.
+3. Add a story (`[Name].stories.tsx`) with a play function for UI states.
+4. Run `pnpm test:run` (and `pnpm test:storybook` for stories).
 
 ## Add environment variables
-1. Add the variable to `.env.example` with a placeholder or description.
-2. Update your `.env` file locally.
-3. Reference it in code using `import.meta.env.VITE_VARIABLE_NAME`.
+
+Follow [configuration.md](configuration.md#adding-a-variable): add the
+variable to the Zod schema, `src/vite-env.d.ts`, `.env.example` and the
+committed `.env.*` files, and read it through `src/config` (reading
+`import.meta.env` elsewhere is a lint error). `VITE_*` values are public.
 
 ## Add dependencies
+
 1. Only add dependencies if they solve a problem that existing libraries cannot.
 2. Favor lightweight, well-maintained libraries.
-3. Update `AGENTS.md` or `architecture.md` if the library introduces a new architectural pattern.
+3. Record the reason (and what existing dependencies could not do) in the PR
+   and, for architectural libraries, in an ADR.
+4. Production dependencies must pass `pnpm audit --prod` ([SECURITY.md](../SECURITY.md)).

@@ -1,22 +1,15 @@
-import {
-  AnchorHTMLAttributes,
-  ButtonHTMLAttributes,
-  MouseEventHandler,
-} from 'react';
+import type { ButtonHTMLAttributes, Ref } from 'react';
 
-type CommonProps = {
-  blurDelay?: number;
-  blurOnClick?: boolean;
-  disabled?: boolean;
-  stopPropagation?: boolean;
-  onClick?: MouseEventHandler;
-  isFullWidth?: boolean;
+/**
+ * Unstyled native <button>. Buttons perform actions; use LinkBase for
+ * navigation (an element that changes the URL must be a link).
+ */
+export type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
+  ref?: Ref<HTMLButtonElement> | undefined;
+  /** Blur after click (e.g. toolbar buttons that should not keep focus). */
+  blurOnClick?: boolean | undefined;
+  /** Delay before blurring, in ms. */
+  blurDelay?: number | undefined;
+  stopPropagation?: boolean | undefined;
+  isFullWidth?: boolean | undefined;
 };
-
-export type ButtonProps = CommonProps & ButtonHTMLAttributes<HTMLButtonElement>;
-
-export type AnchorProps = CommonProps &
-  AnchorHTMLAttributes<HTMLAnchorElement> &
-  Required<Pick<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>>;
-
-export type Props = ButtonProps | AnchorProps;

@@ -1,3 +1,5 @@
+import { IS_DEV } from 'config';
+
 import ptBR from './locales/pt-BR.json';
 import enUS from './locales/en-US.json';
 import esES from './locales/es-ES.json';
@@ -61,24 +63,32 @@ const interpolate = (
   );
 };
 
-export const t = (
+export type TranslationParams = Record<string, string | number>;
+
+/** Pure lookup for an explicit locale (falls back to the base locale). */
+export const translate = (
+  locale: Locale,
   key: I18nKey,
-  params?: Record<string, string | number>,
+  params?: TranslationParams,
 ): string => {
-  const candidate = getByPath(locales[currentLocale], key);
+  const candidate = getByPath(locales[locale], key);
   if (typeof candidate === 'string') return interpolate(candidate, params);
   const fallback = getByPath(locales[baseLocale], key);
   if (typeof fallback === 'string') return interpolate(fallback, params);
-  if (
-    typeof import.meta !== 'undefined' &&
-    import.meta.env?.MODE !== 'production'
-  ) {
-    // Surface missing key during development
-    // eslint-disable-next-line no-console
+  if (IS_DEV) {
+    // Surface missing keys during development.
     console.warn(`[i18n] Missing key: ${key}`);
   }
   return key; // last-resort echo of the key
 };
+
+/**
+ * Translate with the active locale, for code outside React (e.g. startup
+ * errors). Components must use `useI18n().t`, which re-renders and changes
+ * identity when the locale changes.
+ */
+export const t = (key: I18nKey, params?: TranslationParams): string =>
+  translate(currentLocale, key, params);
 
 // Formatters (locale-aware)
 const currencyByLocale: Record<Locale, string> = {
@@ -90,7 +100,11 @@ const currencyByLocale: Record<Locale, string> = {
 
 export const formatCurrency = (
   value: number,
-  opts?: { locale?: Locale; currency?: string; maximumFractionDigits?: number },
+  opts?: {
+    locale?: Locale | undefined;
+    currency?: string | undefined;
+    maximumFractionDigits?: number | undefined;
+  },
 ): string => {
   const locale = opts?.locale ?? getLocale();
   const currency = opts?.currency ?? currencyByLocale[locale] ?? 'USD';
@@ -105,9 +119,9 @@ export const formatCurrency = (
 export const formatNumber = (
   value: number,
   opts?: {
-    locale?: Locale;
-    maximumFractionDigits?: number;
-    useGrouping?: boolean;
+    locale?: Locale | undefined;
+    maximumFractionDigits?: number | undefined;
+    useGrouping?: boolean | undefined;
   },
 ): string => {
   const locale = opts?.locale ?? getLocale();

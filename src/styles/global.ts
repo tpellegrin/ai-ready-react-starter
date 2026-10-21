@@ -1,13 +1,9 @@
 import { createGlobalStyle } from 'styled-components';
-import { normalize } from 'styled-normalize';
-
 import { TRANSITIONS } from 'utils/transitions/config';
 import { prettyScrollbar } from './mixins';
 import { typography } from './themes/typography';
 
 export const GlobalStyle = createGlobalStyle`
-  ${normalize}
-  
   :root {
     --route-transition-duration: ${TRANSITIONS.duration.default}ms;
   }
@@ -70,10 +66,6 @@ export const GlobalStyle = createGlobalStyle`
 
   .app-root [data-allow-fade] {
     --transition-props: opacity;
-  }
-
-  body.no-select {
-    user-select: none;
   }
 
   p {

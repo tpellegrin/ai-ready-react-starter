@@ -14,11 +14,15 @@ ENV.marker
 
 # Testing
 /coverage
+/test-results
+/playwright-report
 
 # Production
 /build
 /dist
+/dist-*
 /storybook-static
+/reports
 
 # Misc
 .DS_Store
@@ -46,3 +50,7 @@ next-env.d.ts
 
 # Vercel
 .vercel
+
+# Architecture check scratch fixtures (scripts/architecture/check.mjs)
+__arch__/
+/src/features/arch-fixture-feature/

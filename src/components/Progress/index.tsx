@@ -4,6 +4,7 @@ import { _ProgressRoot, _ProgressValue } from './styles';
 import type { Props } from './types';
 
 export const Progress: React.FC<Props> = ({
+  label,
   percentage,
   variant = 'rounded',
 }) => {
@@ -12,6 +13,7 @@ export const Progress: React.FC<Props> = ({
   return (
     <_ProgressRoot
       role="progressbar"
+      aria-label={label}
       aria-valuenow={clampedPercentage}
       aria-valuemin={0}
       aria-valuemax={100}

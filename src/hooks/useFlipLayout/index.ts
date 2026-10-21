@@ -4,9 +4,9 @@ import {
   getAccessibleDuration,
   prefersReducedMotion,
 } from 'utils/transitions/config';
-import { OverlayRoleContext } from 'components/CenterOnlyTransition/OverlayRoleContext';
+import { OverlayRoleContext } from 'utils/transitions/overlayRole';
 
-import { FlipEntry, UseFlipLayoutOptions } from './types';
+import { type FlipEntry, type UseFlipLayoutOptions } from './types';
 
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
@@ -64,16 +64,12 @@ export const useFlipLayout = (
     const targetCache = targetCacheRef.current;
 
     // Gather current hosts (LAST)
-    let hosts: HTMLElement[] = [];
-    if (selector === ':scope > *') {
-      const { children } = container;
-      hosts = Array(children.length);
-      for (let i = 0; i < children.length; i += 1) {
-        hosts[i] = children.item(i) as HTMLElement;
-      }
-    } else {
-      hosts = Array.from(container.querySelectorAll<HTMLElement>(selector));
-    }
+    const hosts: HTMLElement[] =
+      selector === ':scope > *'
+        ? Array.from(container.children).filter(
+            (child): child is HTMLElement => child instanceof HTMLElement,
+          )
+        : Array.from(container.querySelectorAll<HTMLElement>(selector));
 
     // Early store & bail if nothing to do
     if (hosts.length === 0) {
@@ -83,8 +79,7 @@ export const useFlipLayout = (
 
     // Measure LAST rects
     const currentRects = new Map<HTMLElement, DOMRect>();
-    for (let i = 0; i < hosts.length; i += 1) {
-      const host = hosts[i];
+    for (const host of hosts) {
       const target = resolveTarget(host, targetCache);
       currentRects.set(host, target.getBoundingClientRect());
     }
@@ -94,8 +89,7 @@ export const useFlipLayout = (
     if (prevRects && shouldAnimate) {
       // Build entries with precomputed deltas
       const entries: FlipEntry[] = [];
-      for (let i = 0; i < hosts.length; i += 1) {
-        const host = hosts[i];
+      for (const host of hosts) {
         const prevRect = prevRects.get(host);
         if (!prevRect) continue;
 
@@ -138,8 +132,7 @@ export const useFlipLayout = (
         }
 
         // Seed inverted transforms without transition
-        for (let i = 0; i < entries.length; i += 1) {
-          const entry = entries[i];
+        for (const entry of entries) {
           const el = entry.target;
 
           if (!el.hasAttribute('data-allow-motion')) {
@@ -170,8 +163,7 @@ export const useFlipLayout = (
         container.getBoundingClientRect();
 
         // Play to identity (i.e., back to prior computed transform or 'none')
-        for (let i = 0; i < entries.length; i += 1) {
-          const entry = entries[i];
+        for (const entry of entries) {
           const el = entry.target;
           el.style.transition =
             'transform var(--transition-duration) var(--transition-easing)';
@@ -188,8 +180,7 @@ export const useFlipLayout = (
         const finalize = () => {
           if (didFinalize) return;
           didFinalize = true;
-          for (let i = 0; i < entries.length; i += 1) {
-            const entry = entries[i];
+          for (const entry of entries) {
             const el = entry.target;
             el.style.transition = entry.prevInlineTransition;
             el.style.transform = entry.prevInlineTransform;
@@ -214,10 +205,8 @@ export const useFlipLayout = (
           if (finished >= entries.length) finalize();
         };
 
-        for (let i = 0; i < entries.length; i += 1) {
-          entries[i].target.addEventListener('transitionend', onEnd, {
-            signal,
-          });
+        for (const entry of entries) {
+          entry.target.addEventListener('transitionend', onEnd, { signal });
         }
 
         const watchdog = window.setTimeout(finalize, accessible + 200);

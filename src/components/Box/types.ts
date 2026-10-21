@@ -1,19 +1,19 @@
 import type React from 'react';
 
-import { Theme } from 'styles/themes/types';
-import { SpaceColorKeys } from 'utils/colors';
+import { type Theme } from 'styles/themes/types';
+import { type SpaceColorKeys } from 'styles/colors';
 
 export type Props = React.HTMLAttributes<HTMLDivElement> & {
-  borderColor?: SpaceColorKeys<'border'>;
-  backgroundColor?: SpaceColorKeys<'surface'>;
-  color?: SpaceColorKeys<'text'>;
-  borderRadius?: keyof Theme['borderRadii'];
-  gradient?: keyof Theme['gradients'];
-  elevation?: keyof Theme['shadows']['elevation'];
-  px?: keyof Theme['spacers'];
-  py?: keyof Theme['spacers'];
-  pxDesktop?: keyof Theme['spacers'];
-  pyDesktop?: keyof Theme['spacers'];
-  children?: React.ReactNode;
-  className?: string;
+  borderColor?: SpaceColorKeys<'border'> | undefined;
+  backgroundColor?: SpaceColorKeys<'surface'> | undefined;
+  color?: SpaceColorKeys<'text'> | undefined;
+  borderRadius?: keyof Theme['borderRadii'] | undefined;
+  gradient?: keyof Theme['gradients'] | undefined;
+  elevation?: keyof Theme['shadows']['elevation'] | undefined;
+  px?: keyof Theme['spacers'] | undefined;
+  py?: keyof Theme['spacers'] | undefined;
+  pxDesktop?: keyof Theme['spacers'] | undefined;
+  pyDesktop?: keyof Theme['spacers'] | undefined;
+  children?: React.ReactNode | undefined;
+  className?: string | undefined;
 };

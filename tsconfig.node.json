@@ -1,12 +1,27 @@
+// Tooling that runs in Node: Vite/Vitest/Playwright/Storybook configs, repo
+// scripts (JS checked via JSDoc) and end-to-end tests.
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "skipLibCheck": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true,
-    "outDir": "node_modules/.cache/tsc",
-    "tsBuildInfoFile": "node_modules/.tmp/tsconfig.node.tsbuildinfo"
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "allowJs": true,
+    "checkJs": true
   },
-  "include": ["vite.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "capacitor.config.ts",
+    ".storybook/main.ts",
+    ".storybook/vite.config.ts",
+    "scripts/**/*.mjs",
+    "e2e/**/*.ts"
+  ],
+  "exclude": [
+    "scripts/architecture/fixtures/**",
+    "scripts/architecture/support/**",
+    "scripts/templates/**"
+  ]
 }

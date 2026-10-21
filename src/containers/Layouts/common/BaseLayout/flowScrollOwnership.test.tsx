@@ -32,11 +32,7 @@ const TestNavigationProbe: React.FC<{
 
 const TallFlowPage = ({ scrollInitiallyLocked = false }) => {
   return (
-    <FlowLayout
-      stickyHeader
-      fixedFooter
-      scrollInitiallyLocked={scrollInitiallyLocked}
-    >
+    <FlowLayout scrollInitiallyLocked={scrollInitiallyLocked}>
       <div style={{ minHeight: 2000, width: '100%' }}>Tall content</div>
     </FlowLayout>
   );
@@ -44,7 +40,7 @@ const TallFlowPage = ({ scrollInitiallyLocked = false }) => {
 
 describe('FlowLayout scroll ownership contract', () => {
   it('uses FlowLayout viewport as the active scroller for tall flow content', () => {
-    const onNavigationRead = vi.fn();
+    const onNavigationRead = vi.fn<(value: NavigationProbeValue) => void>();
 
     const container = document.createElement('div');
     container.className = 'app-root';
@@ -73,8 +69,8 @@ describe('FlowLayout scroll ownership contract', () => {
     expect(flowScroller).toBeInTheDocument();
 
     expect(onNavigationRead).toHaveBeenCalled();
-    const lastCall =
-      onNavigationRead.mock.calls[onNavigationRead.mock.calls.length - 1][0];
+    const lastCall = onNavigationRead.mock.lastCall?.[0];
+    if (!lastCall) throw new Error('navigation probe was not called');
     expect(lastCall.scrollRef.current).toBe(flowScroller);
 
     flowScroller.scrollTop = 120;

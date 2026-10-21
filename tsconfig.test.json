@@ -1,0 +1,11 @@
+// Tests, stories, test utilities and Storybook preview code. Extends the app
+// project so aliases and strictness are identical; adds test-only globals.
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "types": ["vite/client", "vitest/globals", "node"]
+  },
+  "include": ["src", ".storybook/preview.tsx"],
+  "exclude": []
+}

@@ -1,181 +1,152 @@
 /** @vitest-environment jsdom */
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Link, Outlet } from 'react-router-dom';
-import { ThemeProvider } from 'styled-components';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
+
 import { useAuth } from 'auth/useAuth';
-import { I18nProvider } from 'i18n/provider';
-import { NavigationProvider } from 'globals/context/NavigationContext';
-import { AppRouter } from './AppRouter';
-import { base } from 'styles/themes/base';
+import type { RouteTable } from 'containers/routing/types';
+import { renderApp } from 'test/app';
+import { createFakeAuthAdapter, testUser } from 'test/auth';
+import { runDetached } from 'utils/async';
 
-// Mock useAuth to control auth state in tests
-vi.mock('auth/useAuth', () => ({
-  useAuth: vi.fn(),
-}));
+/** Shows where the router is, so tests can assert the URL. */
+const Page = ({ name }: { name: string }) => {
+  const { pathname, search } = useLocation();
+  return (
+    <main>
+      <h1>{name}</h1>
+      <p data-testid="location">{`${pathname}${search}`}</p>
+    </main>
+  );
+};
 
-// Minimal mock to avoid router-hook complexities in this smoke test
-vi.mock('../components/AnimatedOutlet', () => ({
-  AnimatedOutlet: () => (
-    <div data-testid="animated-outlet">
-      <Outlet />
-    </div>
-  ),
-}));
-vi.mock('./Layouts/Shells/CenterTransitionShell', () => ({
-  CenterTransitionShell: () => (
-    <div data-testid="center-transition-shell">
-      <Outlet />
-    </div>
-  ),
-}));
+const SignInPage = () => {
+  const { signIn } = useAuth();
+  return (
+    <main>
+      <h1>Sign in page</h1>
+      <button
+        type="button"
+        onClick={() =>
+          runDetached(signIn({ email: 'ada@example.com', password: 'secret' }))
+        }
+      >
+        Sign in
+      </button>
+    </main>
+  );
+};
 
-// Mock views to avoid complex rendering
-vi.mock('views/guest', () => ({
-  GuestRoutes: [
-    {
-      path: '/',
-      Component: () => (
-        <div data-testid="guest-view">
-          Guest
-          <Link
-            to="/flow/onboarding/welcome"
-            data-testid="guest-link-onboarding"
-          >
-            Onboarding
-          </Link>
-        </div>
-      ),
-    },
-    {
-      path: '/demo',
-      Component: () => <div data-testid="demo-hub-view">Demo</div>,
-    },
+const routes: RouteTable = {
+  guest: [
+    { path: '/', element: <Page name="Guest home" /> },
+    { path: '/sign-in', Component: SignInPage },
   ],
-}));
-vi.mock('views/onboarding', () => ({
-  OnboardingRoutes: [
-    {
-      path: '/flow/onboarding/welcome',
-      Component: () => (
-        <div data-testid="onboarding-welcome">Onboarding Welcome</div>
-      ),
-    },
+  onboarding: [
+    { path: '/flow/onboarding/welcome', element: <Page name="Onboarding" /> },
   ],
-}));
-vi.mock('views/user', () => ({
-  UserRoutes: [
-    { path: '/', Component: () => <div data-testid="user-view">User</div> },
+  user: [
+    { path: '/', element: <Page name="User home" /> },
+    { path: '/settings', element: <Page name="Settings" /> },
   ],
-}));
+};
 
-const createClient = () =>
-  new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
+const heading = (name: string) =>
+  screen.findByRole('heading', { level: 1, name });
 
 describe('AppRouter', () => {
-  const renderRouter = () => {
-    const client = createClient();
-    return render(
-      <QueryClientProvider client={client}>
-        <ThemeProvider theme={base}>
-          <div className="app-root">
-            <I18nProvider>
-              <NavigationProvider>
-                <AppRouter />
-              </NavigationProvider>
-            </I18nProvider>
-          </div>
-        </ThemeProvider>
-      </QueryClientProvider>,
+  it('renders guest routes when signed out', async () => {
+    renderApp({ routes });
+    expect(await heading('Guest home')).toBeInTheDocument();
+  });
+
+  it('renders user routes when signed in', async () => {
+    renderApp({ routes, adapter: createFakeAuthAdapter({ user: testUser }) });
+    expect(await heading('User home')).toBeInTheDocument();
+  });
+
+  it('redirects to the first onboarding step when the user needs onboarding', async () => {
+    renderApp({
+      routes,
+      adapter: createFakeAuthAdapter({
+        user: { ...testUser, needsOnboarding: true },
+      }),
+    });
+    expect(await heading('Onboarding')).toBeInTheDocument();
+  });
+
+  it('keeps a deep-linked protected destination across sign-in', async () => {
+    const user = userEvent.setup();
+    renderApp({ routes, initialPath: '/settings?tab=profile' });
+
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
+
+    expect(await heading('Settings')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/settings?tab=profile',
     );
-  };
-
-  it('renders guest routes when unauthenticated', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: false,
-      isInitialized: true,
-      user: null,
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-      restoreSession: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
-
-    renderRouter();
-
-    expect(await screen.findByTestId('guest-view')).toBeTruthy();
   });
 
-  it('redirects to the first onboarding step when authenticated user needs onboarding', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: true,
-      isInitialized: true,
-      user: { id: '1', email: 'test@example.com', needsOnboarding: true },
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-      restoreSession: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+  it('sends a signed-in user from a guest-only path to home after sign-in', async () => {
+    const user = userEvent.setup();
+    renderApp({ routes, initialPath: '/sign-in' });
 
-    renderRouter();
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
 
-    // Regression: when entering the onboarding router from `/`, the user
-    // must be redirected to the first onboarding step instead of falling
-    // through to the wildcard ErrorPage ("Something went wrong").
-    expect(await screen.findByTestId('onboarding-welcome')).toBeTruthy();
+    expect(await heading('User home')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/);
   });
 
-  it('renders user routes when authenticated and does not need onboarding', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: true,
-      isInitialized: true,
-      user: { id: '1', email: 'test@example.com', needsOnboarding: false },
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-      restoreSession: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+  it.each([
+    '/sign-in?returnTo=//evil.example/phish',
+    '/sign-in?returnTo=https%3A%2F%2Fevil.example',
+    '/sign-in?returnTo=%2Funknown',
+  ])('ignores unsafe or unknown returnTo targets (%s)', async (initialPath) => {
+    const user = userEvent.setup();
+    renderApp({ routes, initialPath });
 
-    renderRouter();
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByTestId('user-view')).toBeTruthy();
+    expect(await heading('User home')).toBeInTheDocument();
   });
 
-  it('reaches the onboarding flow when an unauthenticated user follows a link to /flow/onboarding/welcome (DemoHub regression)', async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: false,
-      isInitialized: true,
-      user: null,
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-      restoreSession: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
-
-    renderRouter();
-    const link = await screen.findByTestId('guest-link-onboarding');
-    await userEvent.click(link);
-
-    // Regression: clicking a link to a flow path while on the guest router
-    // must not fall through to the wildcard ErrorPage ("Something went wrong").
-    expect(await screen.findByTestId('onboarding-welcome')).toBeTruthy();
+  it('shows Not Found for paths no route group defines', async () => {
+    renderApp({ routes, initialPath: '/does-not-exist' });
+    expect(await heading('Page not found')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go back home' })).toHaveAttribute(
+      'href',
+      '/',
+    );
   });
 
-  it('renders nothing when not initialized', () => {
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: false,
-      isInitialized: false,
-      user: null,
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-      restoreSession: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+  it('announces loading while the session is restored', async () => {
+    const adapter = createFakeAuthAdapter();
+    let resolveRestore: (user: null) => void = () => undefined;
+    adapter.restoreSession.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRestore = resolve;
+        }),
+    );
+    renderApp({ routes, adapter });
 
-    const { container } = renderRouter();
-    expect(container.querySelector('.app-root')?.childNodes.length).toBe(0);
+    expect(await screen.findByRole('status')).toHaveTextContent('Loading…');
+    resolveRestore(null);
+    expect(await heading('Guest home')).toBeInTheDocument();
+  });
+
+  it('shows a recoverable error when restoring the session fails', async () => {
+    const user = userEvent.setup();
+    const adapter = createFakeAuthAdapter({ user: testUser });
+    adapter.restoreSession.mockRejectedValueOnce(new Error('network down'));
+    renderApp({ routes, adapter });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't check your session",
+    );
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await heading('User home')).toBeInTheDocument();
+    expect(adapter.restoreSession).toHaveBeenCalledTimes(2);
   });
 });

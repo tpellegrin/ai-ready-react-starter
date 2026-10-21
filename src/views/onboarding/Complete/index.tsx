@@ -1,7 +1,8 @@
 // DEMO: Replace or remove this onboarding screen when adopting the boilerplate. See docs/adoption.md.
-import { useNavigation } from 'hooks/useNavigation';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'auth/useAuth';
-import { RouterType } from 'globals/types';
+import { paths } from 'globals/paths';
+import { runDetached } from 'utils/async';
 import { FlowLayout } from 'containers/Layouts/FlowLayout';
 import { useFlowNav } from 'hooks/useFlowNav';
 import { useFlowProgressFromPaths } from 'hooks/useFlowProgress';
@@ -15,12 +16,18 @@ export function Complete() {
   const { t } = useI18n();
   const { goBack } = useFlowNav();
   const { percentage } = useFlowProgressFromPaths();
-  const { switchRouter } = useNavigation();
-  const { completeOnboarding } = useAuth();
+  const navigate = useNavigate();
+  const { completeOnboarding, isAuthenticated } = useAuth();
 
-  const handleFinish = async () => {
-    await completeOnboarding();
-    switchRouter(RouterType.user);
+  // Authenticated users complete onboarding; AppRouter then derives the user
+  // router from auth state. A guest viewing the demo preview just returns to
+  // the start: the preview never grants access to protected routes.
+  const handleFinish = () => {
+    if (!isAuthenticated) {
+      navigate(paths.index);
+      return;
+    }
+    runDetached(completeOnboarding());
   };
 
   return (

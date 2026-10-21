@@ -1,6 +1,9 @@
 /**
- * Centralized configuration for transition animations
- * This file contains all animation parameters used throughout the application
+ * Motion contracts shared by route shells, layouts and reveal helpers.
+ *
+ * This module is intentionally low-level (no React Router, no app context) so
+ * shared UI primitives and app shells can both depend on it. See
+ * docs/animation-system.md.
  */
 
 export const TRANSITIONS = {
@@ -21,9 +24,22 @@ export const TRANSITIONS = {
   },
   class: {
     transition: 'transition-status',
-    body: 'transition',
   },
-};
+} as const;
+
+/** Route transition variants. Non-flow routes fade; flow routes slide ltr/rtl. */
+export const TransitionType = {
+  ltr: 'ltr',
+  rtl: 'rtl',
+  fade: 'fade',
+} as const;
+export type TransitionType =
+  (typeof TransitionType)[keyof typeof TransitionType];
+
+/** Default route transition duration (ms) before reduced-motion clamping. */
+export const DURATION_MS = TRANSITIONS.duration.default;
+/** Base class name applied by react-transition-group to route wrappers. */
+export const TRANSITION_CLASS = TRANSITIONS.class.transition;
 
 /**
  * User preference for reduced motion

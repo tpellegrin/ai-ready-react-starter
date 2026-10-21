@@ -1,47 +1,23 @@
-import { forwardRef, useMemo } from 'react';
-
 import { Box } from 'components/Box';
 
-import { Props, SizeProps, VariantProps } from './types';
+import type { Props } from './types';
 
-export const CardBase = forwardRef<HTMLDivElement, Props>(
-  ({ children, className, elevation, size = 'md', variant = 'base' }, ref) => {
-    const sizeProps: SizeProps = useMemo(() => {
-      switch (size) {
-        case 'md':
-        default:
-          return {
-            borderRadius: 'md',
-            px: 'md',
-            py: 'md',
-            pxDesktop: 'lg',
-            pyDesktop: 'lg',
-          };
-      }
-    }, [size]);
-
-    const variantProps: VariantProps = useMemo(() => {
-      switch (variant) {
-        case 'base':
-        default:
-          return {
-            borderColor: 'default',
-            backgroundColor: 'muted',
-            color: 'primary',
-          };
-      }
-    }, [variant]);
-
-    return (
-      <Box
-        ref={ref}
-        {...sizeProps}
-        {...variantProps}
-        className={className}
-        elevation={elevation}
-      >
-        {children}
-      </Box>
-    );
-  },
+export const CardBase = ({ ref, children, className, elevation }: Props) => (
+  <Box
+    ref={ref}
+    className={className}
+    elevation={elevation}
+    borderRadius="md"
+    borderColor="default"
+    backgroundColor="muted"
+    color="primary"
+    px="md"
+    py="md"
+    pxDesktop="lg"
+    pyDesktop="lg"
+  >
+    {children}
+  </Box>
 );
+
+CardBase.displayName = 'CardBase';

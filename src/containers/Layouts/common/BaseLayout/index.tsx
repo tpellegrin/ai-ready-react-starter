@@ -35,10 +35,9 @@ import {
   _BaseLayoutHeader,
   _BaseLayoutFooter,
 } from './styles';
-import { Props } from './types';
+import { type Props } from './types';
 import { useNavigation } from 'globals/context/NavigationContext';
-import { DURATION_MS } from 'containers/Layouts/common/LayoutTransitionContainer/types';
-import { getAccessibleDuration } from 'utils/transitions/config';
+import { DURATION_MS, getAccessibleDuration } from 'utils/transitions/config';
 
 export const BaseLayout: React.FC<Props> = ({
   children,

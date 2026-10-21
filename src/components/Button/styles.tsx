@@ -7,11 +7,19 @@ import type { Props } from './types';
 
 export const TRANSITION_MS = 150;
 
+export const _ButtonIcon = styled.span`
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  line-height: 0;
+`;
+
 export const _ButtonRoot = styled(ButtonBase)<{
   $variant: Props['variant'];
   $size: Props['size'];
   $isCompact: boolean;
   $isDisabled: boolean;
+  $isPending: boolean;
 }>`
   display: flex;
   align-items: center;
@@ -45,10 +53,6 @@ export const _ButtonRoot = styled(ButtonBase)<{
     }
   }
 
-  &:focus {
-    box-shadow: ${({ theme }) => theme.shadows.interactionStates.focus};
-  }
-
   &:active {
     box-shadow: ${({ theme }) => theme.shadows.interactionStates.active};
 
@@ -58,9 +62,15 @@ export const _ButtonRoot = styled(ButtonBase)<{
   }
 
   ${Text} {
-    margin: 0 auto;
+    margin: 0;
     color: inherit !important;
   }
+
+  ${({ $isPending }) =>
+    $isPending &&
+    css`
+      cursor: progress;
+    `}
 
   ${({ $isCompact }) =>
     $isCompact &&

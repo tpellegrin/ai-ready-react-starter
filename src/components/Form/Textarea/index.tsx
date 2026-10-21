@@ -36,7 +36,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         alignStart
       >
         {startAdornment && (
-          <Control.Adornment position="start">
+          <Control.Adornment $position="start">
             {startAdornment}
           </Control.Adornment>
         )}
@@ -54,7 +54,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
 
         {endAdornment && (
-          <Control.Adornment position="end">{endAdornment}</Control.Adornment>
+          <Control.Adornment $position="end">{endAdornment}</Control.Adornment>
         )}
       </Control>
     );

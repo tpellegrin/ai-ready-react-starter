@@ -1,42 +1,56 @@
-import React, { useMemo } from 'react';
+import type { MouseEvent } from 'react';
 
+import { Spinner } from 'components/Spinner';
 import { Text } from 'components/Text';
-import { _ButtonRoot, TRANSITION_MS } from './styles';
+
+import { _ButtonIcon, _ButtonRoot } from './styles';
 import type { Props } from './types';
 
-import type { Props as ButtonBaseProps } from 'components/ButtonBase/types';
-
-export const Button: React.FC<Props> = ({
+export const Button = ({
   size = 'medium',
   variant = 'primary',
   isCompact = false,
-  // Icon props kept for future parity with Design System
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  startIconName,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  endIconName,
   label,
+  startIcon,
+  endIcon,
+  disabled,
+  isPending = false,
+  pendingLabel,
+  onClick,
   ...baseProps
-}) => {
-  const textVariant = useMemo<
-    NonNullable<React.ComponentProps<typeof Text>['variant']>
-  >(() => {
-    if (size === 'medium') return 'bodyMdBold';
-    return 'captionMdBold';
-  }, [size]);
+}: Props) => {
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    // Pending buttons stay focusable but must not submit or act twice.
+    if (isPending) {
+      event.preventDefault();
+      return;
+    }
+    onClick?.(event);
+  };
+
+  const leading = isPending ? <Spinner /> : startIcon;
 
   return (
     <_ButtonRoot
-      {...(baseProps as ButtonBaseProps)}
+      {...baseProps}
+      disabled={disabled}
+      aria-disabled={isPending || undefined}
+      onClick={handleClick}
       $size={size}
       $variant={variant}
       $isCompact={isCompact}
-      $isDisabled={!!(baseProps as ButtonBaseProps).disabled}
-      blurDelay={TRANSITION_MS}
+      $isDisabled={!!disabled}
+      $isPending={isPending}
     >
-      <Text as="span" variant={textVariant} truncate>
-        {label}
+      {leading ? <_ButtonIcon aria-hidden="true">{leading}</_ButtonIcon> : null}
+      <Text
+        as="span"
+        variant={size === 'medium' ? 'bodyMdBold' : 'captionMdBold'}
+        truncate
+      >
+        {isPending ? (pendingLabel ?? label) : label}
       </Text>
+      {endIcon ? <_ButtonIcon aria-hidden="true">{endIcon}</_ButtonIcon> : null}
     </_ButtonRoot>
   );
 };

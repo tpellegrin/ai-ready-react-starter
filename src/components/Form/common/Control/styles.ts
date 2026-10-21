@@ -7,8 +7,8 @@ export type ControlSize = 'small' | 'medium';
 export type ControlStatus = 'default' | 'error' | 'success' | 'loading';
 
 export const _ControlBackground = styled.div<{
-  $disabled?: boolean;
-  $noBorder?: boolean;
+  $disabled?: boolean | undefined;
+  $noBorder?: boolean | undefined;
 }>`
   pointer-events: none;
   position: absolute;
@@ -24,7 +24,9 @@ export const _ControlBackground = styled.div<{
     background-color 150ms ease-in;
 `;
 
-export const _ControlContent = styled.div<{ $alignStart?: boolean }>`
+export const _ControlContent = styled.div<{
+  $alignStart?: boolean | undefined;
+}>`
   display: flex;
   align-items: ${({ $alignStart }) => ($alignStart ? 'flex-start' : 'center')};
   position: relative;
@@ -35,11 +37,11 @@ export const _ControlContent = styled.div<{ $alignStart?: boolean }>`
   }
 `;
 
-export const _ControlRoot = styled.label<{
+export const _ControlRoot = styled.div<{
   $size: ControlSize;
   $status: ControlStatus;
-  $isDisabled?: boolean;
-  $noBorder?: boolean;
+  $isDisabled?: boolean | undefined;
+  $noBorder?: boolean | undefined;
 }>`
   --control-border-color: ${({ theme }) => theme.colors.border.default};
   --control-bg: ${({ theme }) => theme.colors.action.secondary};
@@ -61,7 +63,7 @@ export const _ControlRoot = styled.label<{
   ${({ $status, theme }) =>
     $status === 'error' &&
     css`
-      --control-border-color: ${theme.colors.status.error};
+      --control-border-color: ${theme.colors.feedback.error.border};
     `}
   ${({ $status, theme }) =>
     $status === 'success' &&
@@ -71,7 +73,8 @@ export const _ControlRoot = styled.label<{
 
   &:focus-within ${/* sc-selector */ _ControlBackground} {
     border-color: var(--control-border-color);
-    box-shadow: ${({ theme }) => theme.shadows.interactionStates.focus};
+    box-shadow: 0 0 0 ${({ theme }) => theme.focus.ringWidth}
+      ${({ theme }) => theme.colors.border.focus};
   }
 
   ${onlyHoverDevice} {
@@ -81,7 +84,7 @@ export const _ControlRoot = styled.label<{
   }
 `;
 
-export const _ControlAdornment = styled.div<{ position: 'start' | 'end' }>`
+export const _ControlAdornment = styled.div<{ $position: 'start' | 'end' }>`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacers.xs};
@@ -91,8 +94,8 @@ export const _ControlAdornment = styled.div<{ position: 'start' | 'end' }>`
     pointer-events: none;
   }
 
-  ${({ position, theme }) =>
-    position === 'start'
+  ${({ $position, theme }) =>
+    $position === 'start'
       ? `margin-right: ${theme.spacers.xs};`
       : `margin-left: ${theme.spacers.xs};`}
 `;
@@ -110,8 +113,7 @@ export const _ControlSuffix = styled.div`
 
 export const _ControlField = styled.input<{
   $size: ControlSize;
-  $multiline?: boolean;
-  $visuallyHidden?: boolean;
+  $multiline?: boolean | undefined;
 }>`
   margin: 0;
   padding: 0 0.75rem;
@@ -167,18 +169,4 @@ export const _ControlField = styled.input<{
     border-color: var(--control-border-color);
     box-shadow: ${({ theme }) => theme.shadows.interactionStates.focus};
   }
-
-  ${({ $visuallyHidden }) =>
-    $visuallyHidden &&
-    css`
-      position: absolute !important;
-      width: 0.0625rem;
-      height: 0.0625rem;
-      padding: 0;
-      margin: -0.0625rem;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    `}
 `;

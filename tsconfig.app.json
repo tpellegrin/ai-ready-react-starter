@@ -1,27 +1,48 @@
+// Runtime application code (what ships in the bundle).
+// Tests, stories and test utilities live in tsconfig.test.json so test-only
+// globals (vi, describe) and dev dependencies never type-check in runtime files.
+//
+// Alias map: every top-level folder under src/ is importable by name
+// (e.g. `components/Button`). This is the single source of truth for Vite,
+// Vitest, ESLint and editors (via vite-tsconfig-paths and the TS project
+// service). Register a new top-level folder here deliberately.
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "ES2022",
-    "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
     "jsx": "react-jsx",
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "types": ["vite/client"],
+    "paths": {
+      "api/*": ["./src/api/*"],
+      "assets/*": ["./src/assets/*"],
+      "auth/*": ["./src/auth/*"],
+      "components/*": ["./src/components/*"],
+      "config": ["./src/config/index.ts"],
+      "config/*": ["./src/config/*"],
+      "containers/*": ["./src/containers/*"],
+      "demo/*": ["./src/demo/*"],
+      "features/*": ["./src/features/*"],
+      "flows/*": ["./src/flows/*"],
+      "forms": ["./src/forms/index.ts"],
+      "forms/*": ["./src/forms/*"],
+      "globals/*": ["./src/globals/*"],
+      "guards/*": ["./src/guards/*"],
+      "hooks/*": ["./src/hooks/*"],
+      "i18n": ["./src/i18n/index.ts"],
+      "i18n/*": ["./src/i18n/*"],
+      "mocks/*": ["./src/mocks/*"],
+      "styles/*": ["./src/styles/*"],
+      "test/*": ["./src/test/*"],
+      "utils/*": ["./src/utils/*"],
+      "views/*": ["./src/views/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/__tests__/**",
+    "src/**/*.stories.tsx",
+    "src/test/**"
+  ]
 }

@@ -1,7 +1,7 @@
 import React, {
   createContext,
-  FC,
-  ReactNode,
+  type FC,
+  type ReactNode,
   useContext,
   useMemo,
   useRef,
@@ -9,12 +9,10 @@ import React, {
   useEffect,
 } from 'react';
 
-import { RouterType } from 'globals/types';
-import { TransitionType } from 'containers/Layouts/common/LayoutTransitionContainer/types';
+import { IS_DEV } from 'config';
+import { type TransitionType } from 'utils/transitions/config';
 
 type NavigationContextProps = {
-  routerType: RouterType;
-  setRouterType: (type: RouterType) => void;
   transition: TransitionType | null;
   setTransition: (t: TransitionType | null) => void;
   scrollRef: React.RefObject<HTMLElement | null>;
@@ -31,8 +29,6 @@ type NavigationContextProps = {
 };
 
 const NavigationContext = createContext<NavigationContextProps>({
-  routerType: RouterType.guest,
-  setRouterType: () => {},
   transition: null,
   setTransition: () => {},
   scrollRef: { current: null } as React.RefObject<HTMLElement | null>,
@@ -52,7 +48,6 @@ const NavigationContext = createContext<NavigationContextProps>({
 export const NavigationProvider: FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [routerType, setRouterType] = useState<RouterType>(RouterType.guest);
   const [transition, setTransition] = useState<TransitionType | null>(null);
   const [navEpoch, setNavEpoch] = useState(0);
   const scrollRef = useRef<HTMLElement>(null);
@@ -136,8 +131,6 @@ export const NavigationProvider: FC<{ children: ReactNode }> = ({
 
   const value = useMemo(
     () => ({
-      routerType,
-      setRouterType,
       transition,
       setTransition,
       scrollRef,
@@ -152,7 +145,6 @@ export const NavigationProvider: FC<{ children: ReactNode }> = ({
       clearNavigationBlock,
     }),
     [
-      routerType,
       transition,
       navEpoch,
       registerNavigationCommit,
@@ -165,13 +157,9 @@ export const NavigationProvider: FC<{ children: ReactNode }> = ({
 
   // Dev guard: ensure the global motion clamp root (.app-root) exists
   useEffect(() => {
-    if (
-      typeof process !== 'undefined' &&
-      process.env.NODE_ENV !== 'production'
-    ) {
+    if (IS_DEV) {
       const root = document.querySelector('.app-root');
       if (!root) {
-        // eslint-disable-next-line no-console
         console.warn(
           '[GlobalStyles] .app-root element not found. Global transition clamp may not apply. Ensure your app root has class="app-root".',
         );

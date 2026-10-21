@@ -1,114 +1,118 @@
-# Architecture Overview
+# Architecture overview
 
-## Project purpose
-This project is a reusable frontend boilerplate designed for speed, maintainability, and AI-friendliness. It provides a solid foundation with pre-configured systems for routing, authentication, styling, and data fetching, allowing developers (and AI agents) to focus on building features rather than infrastructure.
+A compact React 19 + Vite + TypeScript SPA foundation: neutral
+infrastructure, one removable reference feature, and guardrails that fail
+when the architecture is violated ([guardrails](guardrails.md)).
 
-## Architectural principles
-- **Preserve existing systems**: The core infrastructure is designed to be stable. Extend it instead of replacing it.
-- **Prefer composition**: Build complex UIs by composing small, generic primitives.
-- **Keep infrastructure generic**: Infrastructure should not know about specific product domains.
-- **Keep examples replaceable**: Demo code (sign-in, example queries) should be easy to remove or replace.
-- **Avoid domain-specific logic**: Use neutral terminology across the boilerplate.
-- **Avoid overengineering**: Build the simplest solution that fits the architecture.
+## Principles
 
-## App shell
-The application shell is managed in `src/containers/App.tsx`. It composes global providers in a specific order:
-1. `QueryClientProvider` (Data fetching)
-2. `ThemeProvider` (Styling)
-3. `I18nProvider` (Internationalization)
-4. `AuthProvider` (Authentication)
-5. `NavigationProvider` (Routing state)
-6. `ProgressBarProvider` (UI feedback)
-7. `AppRouter` (Routing logic)
+- **Extend, don't replace.** Routing, auth, data, styling, animation and
+  i18n are stable systems with documented extension points.
+- **Generic infrastructure, replaceable examples.** Demo and reference code
+  is removable with one command ([adoption](adoption.md)).
+- **Parse at boundaries.** Configuration, API responses, URL input, storage
+  and form input go through Zod schemas.
+- **Enforced structure.** Layers and features have an import matrix checked
+  by lint ([boundaries](architecture/boundaries.md)).
+- **Accessible by default.** Primitives encode labels, focus and
+  announcements; axe runs in story and e2e tests.
+
+## Startup and app shell
+
+`src/main.tsx` is the composition root: it loads the validated config,
+starts the MSW worker only in mock-enabled builds, creates the auth adapter
+from `VITE_AUTH_PROVIDER` (`containers/composition`) and renders `App` with
+its dependencies as props. Startup failures render a readable message.
+
+`src/containers/App.tsx` composes providers: QueryClient → Theme (global
+styles, fonts) → I18n → Toast → Auth (clears the query cache when the user
+changes) → Navigation → ProgressBar → AppRouter. ADRs
+[0001](decisions/0001-app-shell-and-providers.md),
+[0010](decisions/0010-configuration-and-composition-root.md).
 
 ## Routing
-The app uses an **app-state-based routing model** in `src/containers/AppRouter.tsx`.
-- **Guest Router**: For unauthenticated users (Sign In, Sign Up, Welcome).
-- **Onboarding Router**: For users who are authenticated but haven't finished setup.
-- **User Router**: For fully authenticated and setup users (Dashboard, Settings).
-  Guards are handled by the `AppRouter` switching logic, which reacts to auth and navigation state.
+
+Hash-based data routers, one per session state (guest, onboarding, user),
+derived during render. Unknown paths follow a per-group policy with a
+validated `returnTo`, lazy routes are code-split with reload-on-chunk-error.
+See [routing.md](routing.md) and [flows.md](flows.md) for multi-step flows.
 
 ## Authentication
-Authentication is abstracted via an **Auth Adapter** pattern in `src/auth/`.
-- `AuthAdapter`: The interface defining the contract.
-- `AuthProvider`: Manages the current adapter and exposes auth state via `useAuth`.
-- `mockAdapter.ts`: A demo implementation for development without a backend.
-  To move to production, replace the mock adapter with a real implementation (e.g., OIDC, Firebase) without changing the `useAuth` consumers.
 
-## Data fetching/API layer
-Managed via **TanStack Query (React Query) v5**.
-- Configuration is in `src/globals/react-query.ts`.
-- API functions live in `src/api/`.
-- Query keys are centralized in `src/api/queryKeys.ts`.
-- Views consume data using `useQuery` or `useMutation` hooks with the object signature.
-- **Constraint**: Do not perform raw `fetch` calls directly in components; always go through the API layer.
+`AuthProvider` owns session state and calls an injected `AuthAdapter`
+(`restoreSession`, `signIn`, `signOut`, `completeOnboarding`). The reference
+adapter uses an HttpOnly cookie session; the demo adapter exists only in demo
+builds. Views use `useAuth()` only. See
+[recipes/real-auth-adapter.md](recipes/real-auth-adapter.md) and ADR
+[0003](decisions/0003-auth-adapter-boundary.md).
 
-## Forms
-Forms should follow a consistent pattern:
-- Use reusable components from `src/components/Form/` and `src/components/LabeledInputField`.
-- Handle loading, error, and success states clearly.
-- Ensure all labels and messages are i18n-ready.
+## Data
 
-## UI components
-- **Primitives**: Low-level, domain-neutral components (Button, Text, Box) in `src/components/`.
-- **Shared Components**: Reusable UI patterns (CardBase, ModalBase).
-- **Composition**: Prefer composing primitives over creating monolithic components.
-- **Colocated Logic**: For components with meaningful local logic (data fetching, state, handlers), colocate that logic in a `logic.ts` file beside the component's `index.tsx`. The index file should remain focused on rendering and composition.
+A thin fetch client (`src/api/http`) with base URL, credentials, abort,
+normalized `ApiError`s and a response schema per request; TanStack Query for
+server state with feature-owned keys, bounded retries and cache isolation per
+identity. In development, tests and Storybook, MSW serves the reference API
+(`src/mocks`). See [recipes/data-and-forms.md](recipes/data-and-forms.md) and
+ADR [0011](decisions/0011-http-client-and-server-state.md).
 
-## Styling and theme
-Powered by **styled-components**.
-- **Themes**: Design tokens (colors, spacing, typography) live in `src/styles/themes/`.
-- **Global Styles**: Base styles and resets in `src/styles/global.ts`.
-- **Tokens**: Always use `props.theme` values instead of hardcoding CSS values.
-- **Conventions**:
-  - Components use direct named imports for local styles from `./styles`.
-  - No namespace imports (`import * as _` or `import * as S`).
-  - Internal styled components start with `_` and include the owning component name (e.g., `_ButtonRoot`).
-  - Styled components are exported from a separate `styles.ts` or `styles.tsx` file.
+## Features
 
-## Flow system
-The app has a dedicated flow architecture for guided, multi-step experiences.
-- **Flow routes**: Use the `/flow/` URL prefix. AppRouter automatically routes them through `CenterTransitionShell` for LTR/RTL slide transitions.
-- **Path registry**: Step paths and ordering live in `src/globals/paths.ts` under the `flow` key. New flows must conform to the existing contract (keys in `paths.flow` matching URL segments) instead of modifying navigation infrastructure.
-- **Helpers**: `src/flows/fromPaths.ts` provides `getNextStepPath`, `getPrevStepPath`, etc.
-- **Hooks**: `useFlowNav` (navigation) and `useFlowProgressFromPaths` (progress) in `src/hooks/`.
-- **Layout**: All flow screens compose `FlowLayout` from `src/containers/Layouts/FlowLayout/`.
-- **Demo**: The onboarding flow (`src/views/onboarding/`) is the canonical reference implementation.
-- See [`docs/flows.md`](./flows.md) for the full flow architecture reference.
+Product capabilities live in `src/features/<name>` (model, api, queries,
+components with colocated `logic.ts`, mocks) behind an `index.ts` public API.
+`src/features/resources` is the reference: list with loading/empty/error
+states, URL filter, create/edit dialog with client and server validation,
+delete confirmation, toasts and locale-aware formatting. Scaffold new ones
+with `pnpm gen feature <name>` ([recipe](recipes/new-feature.md)).
+
+## UI, forms and styling
+
+Domain-neutral primitives in `src/components` (Radix for dialogs and toasts),
+React Hook Form + Zod with `Field` composition, styled-components with theme
+tokens (`src/styles/themes`). Conventions: local styles imported by name from
+`./styles`, internal styled components named `_<Component><Part>`, rendering
+in `index.tsx` and logic in `logic.ts`. See [ui/foundation.md](ui/foundation.md).
 
 ## Animation
-The project includes a unified animation system:
-- **Route Transitions**: Handled by `AnimatedOutlet` and `CenterTransitionShell`.
-- **Helpers**: Found in `src/components/Animations/`.
-- **FLIP**: Use `useFlipLayout` for smooth repositioning.
+
+Route fades (`containers/RouteTransitions/AnimatedOutlet`), flow slides
+(`CenterTransitionShell`), reveal helpers in `src/components/Animations`,
+all respecting `prefers-reduced-motion`. See
+[animation-system.md](animation-system.md).
 
 ## i18n
-Multi-language support is managed in `src/i18n/`.
-- Locales live in `src/i18n/locales/`.
-- Use the `useI18n` hook for translations.
-- **Constraint**: Avoid hardcoding user-facing strings in JSX.
 
-## Testing
-- **Vitest**: Used for unit and integration tests.
-- **Testing Library**: React Testing Library is used for component and integration tests.
-- **Location**: Tests should live next to the files they test (e.g., `Component.test.tsx`).
-- Run tests via `pnpm test:run`.
+`src/i18n`: typed keys, `useI18n()` with interpolation, locale-aware number,
+currency and date formatting, a generated pseudo-locale, and
+`pnpm i18n:check` for key parity. All user-facing copy goes through `t()`.
 
-## Validation
-A comprehensive validation suite is available via `pnpm validate`. It runs:
-- Prettier check
-- ESLint
-- Stylelint
-- TypeScript typecheck
-- i18n consistency check
-- Vitest suite
+## Testing and quality
 
-## Environment configuration
-- Use `.env.example` as a template for environment variables.
-- Never commit actual secrets or `.env` files.
+Unit/integration tests with Vitest + Testing Library + MSW; components in
+Chromium through Storybook (interaction + axe); Playwright against built
+apps; build-output inspection; generator and adoption checks in temporary
+copies. `pnpm validate` for everyday work, `pnpm verify` for everything CI
+runs. See ADR [0015](decisions/0015-testing-strategy.md) and
+[guardrails.md](guardrails.md).
 
-## Extension workflow
-1. Identify if the change is **Infrastructure** (generic) or **Example** (replaceable).
-2. Find the appropriate folder based on the architectural layer.
-3. Follow the existing naming and implementation patterns.
-4. Run `pnpm validate` to ensure no regressions.
+## Configuration and deployment
+
+Build-time `VITE_*` variables validated by one schema
+([configuration.md](configuration.md)); static output with hash routing works
+on any host, including sub-paths. Capacitor is optional
+([mobile-capacitor.md](mobile-capacitor.md)).
+
+## Where things go
+
+| Change                     | Location                                                           |
+| -------------------------- | ------------------------------------------------------------------ |
+| Product capability         | `src/features/<name>`                                              |
+| Page / route               | `src/views/<group>/<Page>` + `src/views/<group>/index.tsx`         |
+| Path constant              | `src/globals/paths.ts`                                             |
+| Reusable neutral component | `src/components/<Name>`                                            |
+| Shared hook                | `src/hooks/<useName>`                                              |
+| HTTP/server-state plumbing | `src/api`                                                          |
+| Auth provider integration  | `src/auth/adapters` + `src/containers/composition`                 |
+| Config variable            | `src/config/schema.ts` (+ `vite-env.d.ts`, `.env.example`)         |
+| Mock API for a feature     | `src/features/<name>/mocks`, registered in `src/mocks/handlers.ts` |
+| Copy                       | `src/i18n/locales/*.json`                                          |
+| Design tokens              | `src/styles/themes`                                                |

@@ -18,8 +18,8 @@
 
 import { styled, css } from 'styled-components';
 
-import { Theme } from 'styles/themes/types';
-import { getSpaceColor, SpaceColorKeys } from 'utils/colors';
+import { type Theme } from 'styles/themes/types';
+import { getSpaceColor, type SpaceColorKeys } from 'styles/colors';
 import {
   prettyScrollbar,
   fillParent,
@@ -35,8 +35,8 @@ export const _BaseLayoutRoot = styled.div`
 `;
 
 export const _BaseLayoutMain = styled.main<{
-  $backgroundColor?: SpaceColorKeys<'surface'>;
-  $gradient?: keyof Theme['gradients'];
+  $backgroundColor?: SpaceColorKeys<'surface'> | undefined;
+  $gradient?: keyof Theme['gradients'] | undefined;
 }>`
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto; /* header | content | footer */
@@ -56,7 +56,9 @@ export const _BaseLayoutMain = styled.main<{
     `}
 `;
 
-export const _BaseLayoutHeader = styled.header<{ $sticky?: boolean }>`
+export const _BaseLayoutHeader = styled.header<{
+  $sticky?: boolean | undefined;
+}>`
   /* Header sits in the first grid row; the scroller is the center row,
      so the header is naturally pinned without sticky positioning. */
   grid-row: 1;
@@ -69,7 +71,9 @@ export const _BaseLayoutHeader = styled.header<{ $sticky?: boolean }>`
   transform: translateZ(0);
 `;
 
-export const _BaseLayoutFooter = styled.footer<{ $fixed?: boolean }>`
+export const _BaseLayoutFooter = styled.footer<{
+  $fixed?: boolean | undefined;
+}>`
   /* Footer is the third grid row; always visible, no overlay */
   grid-row: 3;
   position: static;
@@ -84,10 +88,7 @@ export const _BaseLayoutFooter = styled.footer<{ $fixed?: boolean }>`
   }
 `;
 
-export const _BaseLayoutContent = styled.div<{
-  $maxWidth?: number;
-  $footerOffset?: number;
-}>`
+export const _BaseLayoutContent = styled.div`
   ${prettyScrollbar()}
 
   /* Center scroller sits in the 2nd grid row */

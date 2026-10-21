@@ -29,6 +29,7 @@ Use `src/globals/platforms.ts` to detect if the app is running on a mobile devic
 ## Removing Capacitor
 
 If you don't intend to support mobile platforms:
+
 1. Uninstall `@capacitor/core`:
    ```bash
    pnpm remove @capacitor/core

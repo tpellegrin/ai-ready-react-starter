@@ -1,16 +1,16 @@
 import { styled, css } from 'styled-components';
 
-import { getSpaceColor } from 'utils/colors';
+import { getSpaceColor } from 'styles/colors';
 import { typography } from 'styles/themes/typography';
-import { Props } from './types';
+import { type Props } from './types';
 
 export const _TextRoot = styled.p<{
-  $variant?: Props['variant'];
-  $align?: Props['align'];
-  $color?: Props['color'];
-  $truncate?: boolean;
-  $numeric?: Props['numeric'];
-  $fontSize?: number;
+  $variant?: Props['variant'] | undefined;
+  $align?: Props['align'] | undefined;
+  $color?: Props['color'] | undefined;
+  $truncate?: boolean | undefined;
+  $numeric?: Props['numeric'] | undefined;
+  $fontSize?: number | undefined;
 }>`
   color: inherit;
 

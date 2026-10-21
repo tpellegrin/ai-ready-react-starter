@@ -6,8 +6,23 @@ import {
   useImperativeHandle,
 } from 'react';
 
+import { useI18n } from 'i18n/provider';
+
 import { Control } from '../common/Control';
 import type { SelectProps, SelectOption } from './types';
+
+/**
+ * showPicker() needs a user gesture and throws when it is missing, when the
+ * page is in a cross-origin frame, or when unsupported. Focus is then enough:
+ * the keyboard or a direct click opens the native picker.
+ */
+const openPicker = (select: HTMLSelectElement) => {
+  try {
+    select.showPicker();
+  } catch {
+    // Not allowed here; the select stays focused.
+  }
+};
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   (
@@ -28,11 +43,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       options,
       'aria-describedby': ariaDescribedBy,
       'aria-labelledby': ariaLabelledBy,
-      onFocus,
       ...selectProps
     },
     ref,
   ) => {
+    const { t } = useI18n();
     const fieldRef = useRef<HTMLSelectElement | null>(null);
     useImperativeHandle(ref, () => fieldRef.current as HTMLSelectElement);
 
@@ -43,46 +58,28 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
     const isVisuallyDisabled = !!disabled || !!isLoading;
 
-    const handleRootClick: React.MouseEventHandler<
-      HTMLLabelElement | HTMLDivElement
-    > = useCallback(
-      (e) => {
-        if (readOnly || isVisuallyDisabled) {
-          e.preventDefault();
-          return;
-        }
-        fieldRef.current?.click();
-        (
-          fieldRef.current as HTMLSelectElement & { showPicker?: () => void }
-        )?.showPicker?.();
-      },
-      [readOnly, isVisuallyDisabled],
-    );
+    // Clicking the chrome around the select (padding, adornments) opens the
+    // native picker. Clicks on the select itself keep native behaviour.
+    const handleRootClick: React.MouseEventHandler<HTMLDivElement> =
+      useCallback(
+        (e) => {
+          const field = fieldRef.current;
+          if (!field || e.target === field) return;
+          if (readOnly || isVisuallyDisabled) return;
+          field.focus();
+          openPicker(field);
+        },
+        [readOnly, isVisuallyDisabled],
+      );
 
     const handleMouseDown: React.MouseEventHandler<HTMLSelectElement> =
       useCallback(
         (e) => {
-          if (readOnly) {
-            e.preventDefault();
-            return;
-          }
-          const target = e.currentTarget as HTMLSelectElement & {
-            showPicker?: () => void;
-          };
-          if (typeof target.showPicker === 'function') {
-            e.preventDefault();
-          }
+          // A select has no native read-only state: block the picker.
+          if (readOnly) e.preventDefault();
         },
         [readOnly],
       );
-
-    const handleFocus = useCallback<React.FocusEventHandler<HTMLSelectElement>>(
-      (e) => {
-        onFocus?.(e);
-        // Optionally, scroll into view
-      },
-      [onFocus],
-    );
 
     const shouldShowPlaceholder = !!placeholder && !isLoading;
     const isControlled = value !== undefined;
@@ -112,7 +109,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         onClick={handleRootClick}
       >
         {startAdornment && (
-          <Control.Adornment position="start">
+          <Control.Adornment $position="start">
             {startAdornment}
           </Control.Adornment>
         )}
@@ -129,12 +126,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           value={value}
           defaultValue={effectiveDefaultValue}
           onMouseDown={handleMouseDown}
-          onFocus={handleFocus}
           {...selectProps}
         >
           {isLoading && (
             <option value="" disabled>
-              Loading…
+              {t('common.status.loading')}
             </option>
           )}
           {!isLoading && shouldShowPlaceholder && (
@@ -146,7 +142,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         </Control.Field>
 
         {endAdornment && (
-          <Control.Adornment position="end">{endAdornment}</Control.Adornment>
+          <Control.Adornment $position="end">{endAdornment}</Control.Adornment>
         )}
       </Control>
     );

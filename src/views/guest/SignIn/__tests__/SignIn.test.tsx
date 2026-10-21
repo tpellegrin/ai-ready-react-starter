@@ -1,103 +1,117 @@
 /** @vitest-environment jsdom */
-import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect } from 'vitest';
-import { ThemeProvider } from 'styled-components';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from 'auth/AuthProvider';
-import { I18nProvider } from 'i18n/provider';
-import { base } from 'styles/themes/base';
+
+import { ApiError } from 'api/http';
+import type { User } from 'auth/types';
+import { createFakeAuthAdapter, testUser } from 'test/auth';
+import { renderWithProviders } from 'test/utils';
+
 import { SignIn } from '../index';
 
-const createClient = () =>
-  new QueryClient({ defaultOptions: { queries: { retry: false } } });
-
-const AllProviders: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const client = createClient();
-  return (
-    <QueryClientProvider client={client}>
-      <ThemeProvider theme={base}>
-        <I18nProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </I18nProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  );
+const renderSignIn = (adapter = createFakeAuthAdapter()) => {
+  const utils = renderWithProviders(<SignIn />, { authAdapter: adapter });
+  return { ...utils, adapter };
 };
 
+const emailField = () => screen.findByLabelText(/email/i);
+const passwordField = () => screen.getByLabelText(/password/i);
+const submitButton = () => screen.getByRole('button', { name: /sign in/i });
+
 describe('SignIn view', () => {
-  it('exposes accessible heading and email/password fields', () => {
-    render(<SignIn />, { wrapper: AllProviders });
-
+  it('labels every field visibly (not placeholder-only)', async () => {
+    renderSignIn();
     expect(
-      screen.getByRole('heading', { level: 1, name: /sign in/i }),
+      await screen.findByRole('heading', { level: 1, name: /sign in/i }),
     ).toBeInTheDocument();
-    // Placeholder is the only visible label here; expose both fields explicitly
-    expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/password/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /sign in/i }),
-    ).toBeInTheDocument();
+    expect(await emailField()).toHaveAttribute('type', 'email');
+    expect(passwordField()).toHaveAttribute('aria-required', 'true');
   });
 
-  it('disables the submit button while the auth request is in flight', async () => {
+  it('validates on submit, links errors to fields and focuses the first invalid one', async () => {
     const user = userEvent.setup();
-    render(<SignIn />, { wrapper: AllProviders });
+    const { adapter } = renderSignIn();
 
-    await user.type(screen.getByPlaceholderText(/email/i), 'a@b.c');
-    await user.type(screen.getByPlaceholderText(/password/i), 'password');
+    await user.click(submitButton());
 
-    const submit = screen.getByRole('button', { name: /sign in/i });
-    await user.click(submit);
-
-    // The submitting label is enough to prove the disabled/loading state
-    // without coupling to brittle copy: assert it via accessible name + disabled
-    const submitting = await screen.findByRole('button', { name: /signing/i });
-    expect(submitting).toBeDisabled();
-
-    await waitFor(
-      () => {
-        expect(
-          screen.queryByRole('button', { name: /signing/i }),
-        ).not.toBeInTheDocument();
-      },
-      { timeout: 2000 },
+    const email = await emailField();
+    await waitFor(() => expect(email).toHaveFocus());
+    expect(email).toHaveAttribute('aria-invalid', 'true');
+    expect(email).toHaveAccessibleDescription('This field is required.');
+    expect(passwordField()).toHaveAccessibleDescription(
+      'This field is required.',
     );
-
-    expect(
-      screen.queryByText(/invalid email or password/i),
-    ).not.toBeInTheDocument();
+    expect(adapter.signIn).not.toHaveBeenCalled();
   });
 
-  it('shows a localized error when the adapter rejects credentials', async () => {
+  it('rejects a malformed email before calling the adapter', async () => {
     const user = userEvent.setup();
-    render(<SignIn />, { wrapper: AllProviders });
+    const { adapter } = renderSignIn();
 
-    await user.type(screen.getByPlaceholderText(/email/i), 'a@b.c');
-    // The mock adapter rejects when password === 'fail'
-    await user.type(screen.getByPlaceholderText(/password/i), 'fail');
-    await user.click(screen.getByRole('button', { name: /sign in/i }));
+    await user.type(await emailField(), 'not-an-email');
+    await user.type(passwordField(), 'secret');
+    await user.click(submitButton());
 
-    expect(
-      await screen.findByText(/invalid email or password/i),
-    ).toBeInTheDocument();
-    // After error, the button must be re-enabled and back to its idle name
-    const idle = await screen.findByRole('button', { name: /sign in/i });
-    expect(idle).toBeEnabled();
+    expect(await emailField()).toHaveAccessibleDescription(
+      'Enter a valid email address.',
+    );
+    expect(adapter.signIn).not.toHaveBeenCalled();
   });
 
-  it('does not submit when fields are empty (HTML5 required)', async () => {
+  it('shows a pending, non-repeatable submit while signing in', async () => {
     const user = userEvent.setup();
-    render(<SignIn />, { wrapper: AllProviders });
+    let resolveSignIn: (value: User) => void = () => undefined;
+    const adapter = createFakeAuthAdapter();
+    adapter.signIn.mockReturnValueOnce(
+      new Promise<User>((resolve) => {
+        resolveSignIn = resolve;
+      }),
+    );
+    renderSignIn(adapter);
 
-    await user.click(screen.getByRole('button', { name: /sign in/i }));
+    await user.type(await emailField(), 'ada@example.com');
+    await user.type(passwordField(), 'secret');
+    await user.click(submitButton());
 
-    // Loading state should never appear because submission is blocked.
-    expect(
-      screen.queryByRole('button', { name: /signing/i }),
-    ).not.toBeInTheDocument();
+    const pending = await screen.findByRole('button', { name: /signing in/i });
+    expect(pending).toHaveAttribute('aria-disabled', 'true');
+    await user.click(pending);
+    expect(adapter.signIn).toHaveBeenCalledTimes(1);
+
+    resolveSignIn(testUser);
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /signing in/i })).toBeNull(),
+    );
+  });
+
+  it('announces invalid credentials as a form-level error', async () => {
+    const user = userEvent.setup();
+    renderSignIn();
+
+    await user.type(await emailField(), 'ada@example.com');
+    await user.type(passwordField(), 'wrong');
+    await user.click(submitButton());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Invalid email or password',
+    );
+    expect(submitButton()).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('localizes transport errors from the auth adapter', async () => {
+    const user = userEvent.setup();
+    const adapter = createFakeAuthAdapter();
+    adapter.signIn.mockRejectedValueOnce(
+      new ApiError({ kind: 'network', method: 'POST', url: '/api/session' }),
+    );
+    renderSignIn(adapter);
+
+    await user.type(await emailField(), 'ada@example.com');
+    await user.type(passwordField(), 'secret');
+    await user.click(submitButton());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't reach the server",
+    );
   });
 });

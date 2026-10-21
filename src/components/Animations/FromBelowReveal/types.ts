@@ -13,25 +13,25 @@ export const DEFAULTS = {
 
 export interface Props {
   /** Controls visibility; when true, content animates into view */
-  in?: boolean;
+  in?: boolean | undefined;
   /** Delay in ms before animation starts */
-  delayMs?: number;
+  delayMs?: number | undefined;
   /** Duration in ms (will be clamped via getAccessibleDuration) */
-  durationMs?: number;
+  durationMs?: number | undefined;
   /** Initial Y offset in px for the slide-up */
-  yOffset?: number;
+  yOffset?: number | undefined;
   /** CSS easing name or cubic-bezier */
-  easing?: string;
+  easing?: string | undefined;
   /** Optional className passthrough */
-  className?: string;
+  className?: string | undefined;
   /** Optional inline style */
-  style?: React.CSSProperties;
+  style?: React.CSSProperties | undefined;
   /** Optional element/component to render as */
-  as?: React.ElementType;
+  as?: React.ElementType | undefined;
   /** Children to reveal */
-  children?: React.ReactNode;
+  children?: React.ReactNode | undefined;
   /** When it becomes visible (ARMED → ACTIVE) */
-  onReveal?: () => void;
+  onReveal?: () => void | undefined;
   /** After delay+duration completes */
-  onDone?: () => void;
+  onDone?: () => void | undefined;
 }

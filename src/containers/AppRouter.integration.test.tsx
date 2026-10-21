@@ -1,81 +1,61 @@
 /** @vitest-environment jsdom */
-import { render, screen, act } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider } from 'styled-components';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { NavigationProvider } from 'globals/context/NavigationContext';
-import { I18nProvider } from 'i18n/provider';
-import { base } from 'styles/themes/base';
-import { AppRouter } from './AppRouter';
-import { AuthProvider } from 'auth/AuthProvider';
 
-// Mock scrollTo since jsdom doesn't implement it
+import { paths } from 'globals/paths';
+import { renderApp, type RouteTable } from 'test/app';
+import { createFakeAuthAdapter } from 'test/auth';
+import { settleTransitions } from 'test/timers';
+import { GuestRoutes } from 'views/guest';
+import { OnboardingRoutes } from 'views/onboarding';
+import { UserRoutes } from 'views/user';
+
 window.HTMLElement.prototype.scrollTo = vi.fn();
 
-const createClient = () =>
-  new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+/** The route table of a non-demo build. */
+const routes: RouteTable = {
+  guest: GuestRoutes,
+  onboarding: OnboardingRoutes,
+  user: UserRoutes,
+};
+
+describe('Journey: sign in, onboarding, dashboard, sign out', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-describe('AppRouter Onboarding Bug Reproduction', () => {
-  it('completes onboarding as an authenticated user and reaches Dashboard', async () => {
-    const user = userEvent.setup();
-    const client = createClient();
+  it('takes a new user through onboarding to the Dashboard and back out', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const adapter = createFakeAuthAdapter({ needsOnboarding: true });
+    renderApp({ routes, adapter, initialPath: paths.signIn });
 
-    render(
-      <QueryClientProvider client={client}>
-        <ThemeProvider theme={base}>
-          <I18nProvider>
-            <AuthProvider>
-              <NavigationProvider>
-                <div className="app-root">
-                  <AppRouter />
-                </div>
-              </NavigationProvider>
-            </AuthProvider>
-          </I18nProvider>
-        </ThemeProvider>
-      </QueryClientProvider>,
-    );
-
-    // 1. Start at DemoHub
-    expect(await screen.findByTestId('demo-hub-badge')).toBeInTheDocument();
-
-    // 2. Sign In
-    const signInLink = screen.getByTestId('demo-hub-link-signIn');
-    await user.click(signInLink);
-    await user.type(screen.getByPlaceholderText(/email/i), 'demo@example.com');
-    await user.type(screen.getByPlaceholderText(/password/i), 'password');
+    await user.type(await screen.findByLabelText(/email/i), 'new@example.com');
+    await user.type(screen.getByLabelText(/password/i), 'secret');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-    // 3. Since MOCK_USER now needsOnboarding, we should land on Onboarding Welcome
-    expect(await screen.findByText('Step 1 of 3')).toBeInTheDocument();
-    expect(screen.getByText('Welcome')).toBeInTheDocument();
-
-    // 4. Go through onboarding
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 500));
-    });
-    expect(await screen.findByText('Step 2 of 3')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 500));
-    });
+    for (const step of [1, 2]) {
+      expect(await screen.findByText(`Step ${step} of 3`)).toBeInTheDocument();
+      await settleTransitions();
+      await user.click(screen.getByRole('button', { name: /continue/i }));
+    }
     expect(await screen.findByText('Step 3 of 3')).toBeInTheDocument();
+    await settleTransitions();
+    await user.click(screen.getByRole('button', { name: /go to dashboard/i }));
 
-    // 5. Click Finish
-    const finishButton = screen.getByRole('button', {
-      name: /go to dashboard/i,
-    });
-    await user.click(finishButton);
-
-    // 6. Verify Dashboard is reached and no error is shown
-    // Dashboard has a heading "Dashboard"
     expect(
       await screen.findByRole('heading', { level: 1, name: /dashboard/i }),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+    expect(adapter.completeOnboarding).toHaveBeenCalledTimes(1);
+
+    await settleTransitions();
+    await user.click(screen.getByRole('button', { name: /sign out/i }));
+    await settleTransitions();
+    expect(
+      await screen.findByRole('button', { name: /get started/i }),
+    ).toBeInTheDocument();
+    expect(adapter.signOut).toHaveBeenCalledTimes(1);
   });
 });

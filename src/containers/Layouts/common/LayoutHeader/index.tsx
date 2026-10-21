@@ -3,7 +3,7 @@ import React from 'react';
 import { Flex } from 'components/Flex';
 
 import { _LayoutHeaderContent, _LayoutHeaderRoot } from './styles';
-import { Props } from './types';
+import { type Props } from './types';
 
 export const LayoutHeader: React.FC<Props> = ({
   children,

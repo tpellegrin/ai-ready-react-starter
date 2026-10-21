@@ -1,19 +1,23 @@
-import type { AnchorHTMLAttributes, MouseEventHandler, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, ReactNode, Ref } from 'react';
+import type { To } from 'react-router-dom';
 
-type CommonProps = {
-  blurDelay?: number;
-  blurOnClick?: boolean;
-  disabled?: boolean;
-  stopPropagation?: boolean;
-  onClick?: MouseEventHandler<HTMLAnchorElement>;
-  isFullWidth?: boolean;
-  children?: ReactNode;
+type CommonProps = Omit<
+  AnchorHTMLAttributes<HTMLAnchorElement>,
+  'href' | 'children'
+> & {
+  ref?: Ref<HTMLAnchorElement> | undefined;
+  children: ReactNode;
+  isFullWidth?: boolean | undefined;
 };
 
+/**
+ * Unstyled link. Links navigate; use ButtonBase/Button for actions.
+ * - `to`: in-app route (React Router link, works with hash routing).
+ * - `href`: document or external URL, passed through unchanged.
+ * `target="_blank"` gets `rel="noreferrer noopener"` unless rel is given.
+ */
 export type Props = CommonProps &
-  Omit<
-    AnchorHTMLAttributes<HTMLAnchorElement>,
-    'onClick' | 'children' | 'href'
-  > & {
-    href: string;
-  };
+  (
+    | { to: To; replace?: boolean | undefined; href?: never }
+    | { href: string; to?: never; replace?: never }
+  );

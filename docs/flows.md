@@ -3,6 +3,7 @@
 This document is the authoritative reference for the flow architecture. It covers what a flow is, when to use one, how the system works, and how to add a new flow.
 
 > **Related docs:**
+>
 > - [`docs/architecture.md`](./architecture.md) — general architectural overview
 > - [`docs/animation-system.md`](./animation-system.md) — transition animation details
 > - [`docs/how-to-extend.md`](./how-to-extend.md) — step-by-step extension guide
@@ -16,6 +17,7 @@ This document is the authoritative reference for the flow architecture. It cover
 A **flow** is a guided, stateful, or multi-step experience that needs stronger layout, navigation, transition, or progress conventions than a normal page.
 
 Examples of flows:
+
 - Onboarding / first-run setup
 - Multi-step preferences wizard
 - Profile completion
@@ -28,6 +30,7 @@ A normal view (dashboard, settings, detail page) is **not** a flow.
 ## When to use a flow
 
 **Use a flow when:**
+
 - The user progresses through ordered screens
 - The experience has back/next semantics
 - Progress matters (step indicator, percentage bar)
@@ -36,6 +39,7 @@ A normal view (dashboard, settings, detail page) is **not** a flow.
 - The route belongs to a temporary guided experience with a defined exit
 
 **Do not use a flow when:**
+
 - The page is a normal dashboard, settings page, or detail view
 - There is only one independent page without back/next
 - Local component state is sufficient
@@ -65,16 +69,16 @@ Flow step paths and their order live in `src/globals/paths.ts` under the `flow` 
 ```ts
 export const flowPaths = {
   onboarding: {
-    welcome:     '/flow/onboarding/welcome',
+    welcome: '/flow/onboarding/welcome',
     preferences: '/flow/onboarding/preferences',
-    complete:    '/flow/onboarding/complete',
+    complete: '/flow/onboarding/complete',
   },
 } as const;
 
 export const paths = {
   ...guestPaths,
-  flow: flowPaths,          // ← consumed by fromPaths.ts helpers
-  onboarding: flowPaths.onboarding,  // ← shorthand for views
+  flow: flowPaths, // ← consumed by fromPaths.ts helpers
+  onboarding: flowPaths.onboarding, // ← shorthand for views
   ...userPaths,
 } as const;
 ```
@@ -87,13 +91,13 @@ export const paths = {
 
 Utility functions that read `paths.flow` and operate on the current URL:
 
-| Function | Description |
-|---|---|
-| `parseFlowFromPath(pathname)` | Extracts `flowId` and `step` from the URL |
-| `getOrderedStepKeys(flowId)` | Returns step keys in order |
-| `getStepIndex(flowId, step)` | Returns index and total for progress |
-| `getNextStepPath(flowId, step)` | Returns the path for the next step |
-| `getPrevStepPath(flowId, step)` | Returns the path for the previous step |
+| Function                         | Description                                    |
+| -------------------------------- | ---------------------------------------------- |
+| `parseFlowFromPath(pathname)`    | Extracts `flowId` and `step` from the URL      |
+| `getOrderedStepKeys(flowId)`     | Returns step keys in order                     |
+| `getStepIndex(flowId, step)`     | Returns index and total for progress           |
+| `getNextStepPath(flowId, step)`  | Returns the path for the next step             |
+| `getPrevStepPath(flowId, step)`  | Returns the path for the previous step         |
 | `getNextApplicableStepPath(...)` | Like `getNextStepPath` but skips guarded steps |
 
 These are used internally by `useFlowNav` and `useFlowProgress`. Screen components should consume the hooks, not the helpers directly.
@@ -149,10 +153,14 @@ The single layout component that all flow screens should use. It provides:
 <FlowLayout
   header={{
     title: 'Step title',
-    progress: percentage,          // 0-100 or 'auto'
+    progress: percentage, // 0-100 or 'auto'
     prevButton: { onClick: goBack },
   }}
-  footer={<LayoutFooter><Button label="Continue" onClick={goNext} /></LayoutFooter>}
+  footer={
+    <LayoutFooter>
+      <Button label="Continue" onClick={goNext} />
+    </LayoutFooter>
+  }
 >
   {/* screen content */}
 </FlowLayout>
@@ -173,6 +181,7 @@ The persistent shell wrapping all `/flow/` routes. It renders `MainLayout` once 
 Flow screens always scroll through `FlowLayout`'s inner `ScrollViewport` (`data-app-scroller="flow"`). While a `FlowLayout` is mounted, it registers itself as the owner of `NavigationContext.scrollRef`. When unmounted, it restores the previous owner.
 
 Rules:
+
 - Do not put transforms on the scroll viewport — transforms break momentum scrolling and conflict with animation.
 - Do not scroll `body` or the shell scroller from a flow screen.
 - Use `scrollLockForMs` on `FlowLayout` to lock scrolling during entrance animations.
@@ -221,7 +230,7 @@ The onboarding flow (`src/views/onboarding/`) is the canonical reference impleme
 - `useFlowProgressFromPaths` for the progress indicator
 - i18n keys for all copy
 - Theme tokens and accessible headings/buttons
-- `setRouterType` to exit the flow at completion
+- `completeOnboarding()` from `useAuth` to exit the flow at completion (the router group follows auth state)
 
 **Route tree:**
 
@@ -231,7 +240,7 @@ The onboarding flow (`src/views/onboarding/`) is the canonical reference impleme
 /flow/onboarding/complete     ← Completion screen (back + finish)
 ```
 
-To trigger the onboarding flow in development, set `needsOnboarding: true` on the mock user in `src/auth/mockAdapter.ts`.
+To trigger the onboarding flow in development, sign in with an email you have not used before (the demo adapter and the mock session backend mark first sign-ins as `needsOnboarding: true`).
 
 ---
 
@@ -292,7 +301,7 @@ export const paths = {
   ...guestPaths,
   flow: flowPaths,
   onboarding: flowPaths.onboarding,
-  preferences: flowPaths.preferences,  // ← add shorthand
+  preferences: flowPaths.preferences, // ← add shorthand
   ...userPaths,
 } as const;
 ```
@@ -344,7 +353,9 @@ export function ThemeStep() {
       }
     >
       <Flex direction="column" gap="md">
-        <Text as="h1" variant="headingLg">{t('preferences.theme.title')}</Text>
+        <Text as="h1" variant="headingLg">
+          {t('preferences.theme.title')}
+        </Text>
         <Text variant="bodyMd">{t('preferences.theme.body')}</Text>
       </Flex>
     </FlowLayout>
@@ -358,10 +369,10 @@ Add routes to the appropriate router type in `src/views/<routerType>/index.tsx`:
 
 ```ts
 export const UserRoutes: RouteType[] = [
-  { path: paths.dashboard,             Component: Dashboard },
-  { path: paths.preferences.theme,    Component: ThemeStep },
+  { path: paths.dashboard, Component: Dashboard },
+  { path: paths.preferences.theme, Component: ThemeStep },
   { path: paths.preferences.language, Component: LanguageStep },
-  { path: paths.preferences.done,     Component: DoneStep },
+  { path: paths.preferences.done, Component: DoneStep },
 ];
 ```
 
@@ -374,6 +385,7 @@ Add keys to all locale files (`src/i18n/locales/*.json`) and run `pnpm i18n:chec
 ### 6. Add tests
 
 Write tests for:
+
 - Screen renders the expected heading and buttons
 - Next button navigates to the next step
 - Back button navigates to the previous step

@@ -1,80 +1,75 @@
-// DEMO: Replace or remove this view when adopting the boilerplate. See docs/adoption.md.
-import React, { useState } from 'react';
-import { _SignInForm } from './styles';
-import { Flex } from 'components/Flex';
 import { Button } from 'components/Button';
+import { Field } from 'components/Form/Field';
 import { Input } from 'components/Form/Input';
+import { InlineAlert } from 'components/InlineAlert';
 import { Text } from 'components/Text';
-import { useAuth } from 'auth/useAuth';
+// starter:demo-start
+import { appConfig } from 'config';
+// starter:demo-end
+import { useFieldErrorMessage } from 'forms';
 import { useI18n } from 'i18n/provider';
 
+import { useSignInForm } from './logic';
+import { _SignInForm, _SignInRoot } from './styles';
+
 export function SignIn() {
-  const { signIn } = useAuth();
   const { t } = useI18n();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      await signIn({ email, password });
-    } catch {
-      setError(t('auth.signIn.error'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fieldError = useFieldErrorMessage();
+  const { form, formErrorKey, isSubmitting, onSubmit } = useSignInForm();
+  const { errors } = form.formState;
 
   return (
-    <Flex
-      direction="column"
-      justifyContent="center"
-      alignItems="center"
-      height="100vh"
-      gap="md"
-    >
+    <_SignInRoot>
       <Text as="h1" variant="headingLg">
         {t('auth.signIn.title')}
       </Text>
-      <Text variant="bodyMd">{t('auth.signIn.demoMessage')}</Text>
+      {/* starter:demo-start */}
+      {appConfig.demoMode ? (
+        <Text variant="bodyMd">{t('auth.signIn.demoMessage')}</Text>
+      ) : null}
+      {/* starter:demo-end */}
 
-      <_SignInForm onSubmit={handleSubmit}>
-        <Input
-          type="email"
-          placeholder={t('common.labels.email')}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+      <_SignInForm noValidate onSubmit={onSubmit}>
+        <Field
+          label={t('common.labels.email')}
+          error={fieldError(errors.email)}
           required
-          disabled={isLoading}
-        />
-        <Input
-          type="password"
-          placeholder={t('common.labels.password')}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+        >
+          {(control) => (
+            <Input
+              {...control}
+              {...form.register('email')}
+              type="email"
+              autoComplete="email"
+            />
+          )}
+        </Field>
+        <Field
+          label={t('common.labels.password')}
+          error={fieldError(errors.password)}
           required
-          disabled={isLoading}
-        />
+        >
+          {(control) => (
+            <Input
+              {...control}
+              {...form.register('password')}
+              type="password"
+              autoComplete="current-password"
+            />
+          )}
+        </Field>
 
-        {error && (
-          <Text variant="bodyMd" color="emphasis">
-            {error}
-          </Text>
-        )}
+        {formErrorKey ? (
+          <InlineAlert tone="error">{t(formErrorKey)}</InlineAlert>
+        ) : null}
 
         <Button
-          label={
-            isLoading ? t('auth.signIn.submitting') : t('auth.signIn.submit')
-          }
           type="submit"
-          disabled={isLoading}
+          label={t('auth.signIn.submit')}
+          isPending={isSubmitting}
+          pendingLabel={t('auth.signIn.submitting')}
         />
       </_SignInForm>
-    </Flex>
+    </_SignInRoot>
   );
 }

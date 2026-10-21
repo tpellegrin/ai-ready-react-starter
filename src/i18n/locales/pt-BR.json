@@ -1,7 +1,7 @@
 {
   "app": {
     "welcome": {
-      "title": "Bem-vindo ao React Boilerplate",
+      "title": "Bem-vindo ao {name}",
       "body": "Este é um template limpo para o seu próximo projeto.",
       "cta": "Começar",
       "demoHubCta": "Ver visão geral do starter"
@@ -27,6 +27,10 @@
       "onboarding": {
         "title": "Fluxo de onboarding",
         "description": "Layout de fluxo multi-passo com progresso e navegação voltar/avançar."
+      },
+      "resources": {
+        "title": "Funcionalidade de referência: Recursos",
+        "description": "Rota protegida, consultas e mutações, formulários validados, diálogos e notificações. O login mantém você nesta página."
       }
     },
     "removal": {
@@ -66,12 +70,16 @@
       "title": "Painel",
       "welcome": "Bem-vindo, {name}!",
       "description": "Este é um painel de usuário protegido.",
+      "resourcesTitle": "Funcionalidade de referência",
+      "resourcesBody": "Explore a funcionalidade Recursos para ver o caminho completo de dados e formulários.",
+      "resourcesLink": "Abrir recursos"
+    },
+    "nav": {
+      "label": "Principal",
+      "dashboard": "Painel",
+      "resources": "Recursos",
       "signOut": "Sair",
-      "appStatus": {
-        "title": "Status do App (Exemplo de React Query)",
-        "loading": "Carregando status...",
-        "error": "Erro ao carregar status."
-      }
+      "language": "Idioma"
     }
   },
   "errors": {
@@ -83,8 +91,30 @@
       "title": "Página não encontrada",
       "description": "Não conseguimos encontrar a página solicitada."
     },
+    "outdated": {
+      "title": "Há uma versão mais recente",
+      "description": "Parte do aplicativo não pôde ser carregada. Recarregue a página para obter a versão mais recente."
+    },
     "actions": {
-      "goHome": "Voltar para o início"
+      "goHome": "Voltar para o início",
+      "reload": "Recarregar página"
+    },
+    "session": {
+      "title": "Não foi possível verificar sua sessão",
+      "description": "Verifique sua conexão e tente novamente."
+    },
+    "startup": "Não foi possível iniciar o aplicativo. Recarregue a página ou fale com o suporte.",
+    "api": {
+      "network": "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+      "aborted": "A solicitação foi cancelada.",
+      "unexpectedResponse": "O servidor enviou uma resposta que não conseguimos ler. Tente novamente mais tarde.",
+      "unauthorized": "Sua sessão expirou. Entre novamente.",
+      "forbidden": "Você não tem permissão para fazer isso.",
+      "notFound": "Não encontramos o que você procurava.",
+      "conflict": "Outra pessoa alterou isto. Atualize e tente novamente.",
+      "validation": "Alguns dados precisam da sua atenção.",
+      "rateLimited": "Muitas solicitações. Aguarde um momento e tente novamente.",
+      "server": "Algo deu errado do nosso lado. Tente novamente."
     }
   },
   "common": {
@@ -94,12 +124,22 @@
       "save": "Salvar",
       "cancel": "Cancelar",
       "submit": "Enviar",
-      "tryAgain": "Tentar novamente"
+      "tryAgain": "Tentar novamente",
+      "close": "Fechar",
+      "dismiss": "Dispensar notificação"
     },
     "labels": {
       "email": "E-mail",
       "password": "Senha",
       "name": "Nome"
+    },
+    "status": {
+      "loading": "Carregando…",
+      "saving": "Salvando…"
+    },
+    "notifications": {
+      "region": "Notificações ({hotkey})",
+      "item": "Notificação"
     }
   },
   "flow": {
@@ -112,8 +152,86 @@
       },
       "a11y": {
         "back": "Voltar",
-        "close": "Fechar"
+        "close": "Fechar",
+        "progress": "Progresso"
       }
+    }
+  },
+  "forms": {
+    "errors": {
+      "required": "Este campo é obrigatório.",
+      "tooLong": "Este valor é muito longo.",
+      "invalid": "Informe um valor válido.",
+      "email": "Informe um e-mail válido.",
+      "integer": "Informe um número inteiro.",
+      "min": "O valor é muito pequeno.",
+      "max": "O valor é muito grande.",
+      "taken": "Este valor já está em uso.",
+      "summary": "Corrija os campos destacados."
+    }
+  },
+  "resources": {
+    "title": "Recursos",
+    "intro": "Uma funcionalidade de referência: listar, filtrar, criar, editar e excluir pelo cliente HTTP, esquemas em tempo de execução e a API simulada.",
+    "filter": {
+      "label": "Status",
+      "all": "Todos",
+      "active": "Ativos",
+      "archived": "Arquivados"
+    },
+    "list": {
+      "label": "Recursos",
+      "loading": "Carregando recursos…",
+      "errorTitle": "Não foi possível carregar os recursos",
+      "emptyTitle": "Nenhum recurso ainda",
+      "emptyFilteredTitle": "Nenhum recurso corresponde a este filtro",
+      "emptyDescription": "Crie um recurso para vê-lo aqui."
+    },
+    "item": {
+      "quantity": "Quantidade: {count}",
+      "updated": "Atualizado em {date}",
+      "featured": "Destaque",
+      "category": {
+        "general": "Geral",
+        "internal": "Interno",
+        "external": "Externo"
+      },
+      "status": {
+        "active": "Ativo",
+        "archived": "Arquivado"
+      }
+    },
+    "actions": {
+      "create": "Novo recurso",
+      "edit": "Editar",
+      "editItem": "Editar {name}",
+      "delete": "Excluir",
+      "deleteItem": "Excluir {name}",
+      "save": "Salvar"
+    },
+    "form": {
+      "createTitle": "Novo recurso",
+      "editTitle": "Editar recurso",
+      "name": "Nome",
+      "nameHint": "Até 60 caracteres. Deve ser único.",
+      "description": "Descrição",
+      "descriptionHint": "Opcional, até 280 caracteres.",
+      "category": "Categoria",
+      "quantity": "Quantidade",
+      "quantityHint": "Um número inteiro de 0 a 9.999.",
+      "status": "Status",
+      "featured": "Destaque",
+      "featuredHint": "Mostrar este recurso primeiro na lista."
+    },
+    "confirmDelete": {
+      "title": "Excluir este recurso?",
+      "description": "\"{name}\" será excluído permanentemente.",
+      "confirm": "Excluir recurso"
+    },
+    "toast": {
+      "created": "Recurso criado",
+      "updated": "Recurso salvo",
+      "deleted": "Recurso excluído"
     }
   }
 }

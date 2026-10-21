@@ -1,16 +1,24 @@
-# Authentication Folder
+# Authentication
 
-## Purpose
-This folder owns the authentication boundary of the application. It abstracts the authentication logic, allowing the rest of the app to interact with user sessions without knowing the underlying implementation.
+The authentication boundary. The rest of the app uses `useAuth()` only.
 
-## Rules
-- **Use `useAuth`**: All components and hooks should interact with authentication via the `useAuth` hook.
-- **Stable Interface**: The `AuthAdapter` interface in `types.ts` must remain stable.
-- **Replaceable Adapters**: Real authentication providers (Auth0, Firebase, etc.) should be implemented as `AuthAdapter` and injected in `AuthProvider.tsx`.
+- `types.ts` — `User` (`userSchema`), the `AuthAdapter` contract (v2:
+  adapters return results, the provider owns state), `AuthError`,
+  `AuthContextValue`.
+- `AuthProvider.tsx` — session state machine (`initializing`,
+  `authenticated`, `unauthenticated`, `error`): serialized operations, late
+  results ignored, recoverable restore errors, `onIdentityChange` for cache
+  isolation.
+- `adapters/session.ts` — reference adapter for an HttpOnly cookie session.
+- The demo adapter lives in `src/demo/auth` (demo builds only).
 
-## Avoid
-- **Direct Storage Access**: Do not read or write tokens directly to `localStorage` or cookies outside of an adapter.
-- **Domain-Specific Logic**: Avoid adding product-specific roles or permissions logic here unless it's truly global.
+Rules:
 
-## Extension guidance
-To add a new authentication method, create a new adapter file (e.g., `realAdapter.ts`) that implements the `AuthAdapter` interface, and update `AuthProvider.tsx` to use it.
+- Adapters are created in the composition root
+  (`src/containers/composition/createAuthAdapter.ts`) from
+  `VITE_AUTH_PROVIDER`; never construct one in a view.
+- Only adapters may touch auth storage; never store tokens in app-readable
+  storage.
+- Client-side auth drives the UI only; the server authorizes requests.
+
+Add a provider: `docs/recipes/real-auth-adapter.md`.

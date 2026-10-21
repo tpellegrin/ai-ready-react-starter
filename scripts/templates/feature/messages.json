@@ -1,0 +1,10 @@
+{
+  "title": "__FeatureTitle__",
+  "list": {
+    "label": "__FeatureTitle__",
+    "loading": "__loading_copy__",
+    "errorTitle": "We couldn't load this list",
+    "emptyTitle": "Nothing here yet",
+    "emptyDescription": "Items you add will appear here."
+  }
+}

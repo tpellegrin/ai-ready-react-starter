@@ -8,8 +8,8 @@ This folder contains **infrastructure shared across all flows** in the app.
 
 ## What belongs here
 
-| File | Purpose |
-|---|---|
+| File           | Purpose                                                                                       |
+| -------------- | --------------------------------------------------------------------------------------------- |
 | `fromPaths.ts` | Path helpers: `getNextStepPath`, `getPrevStepPath`, `getStepIndex`, `parseFlowFromPath`, etc. |
 
 These utilities read from `paths.flow` in `src/globals/paths.ts` and are consumed by `useFlowNav` and `useFlowProgressFromPaths`.

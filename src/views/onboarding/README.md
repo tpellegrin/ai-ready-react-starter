@@ -43,22 +43,14 @@ src/views/onboarding/
 - **`LayoutFooter`** — wraps the Continue/Finish button
 - **i18n** — all copy uses `useI18n()` with keys under `onboarding.*`
 - **Accessible heading** — every screen has a `<Text as="h1">` element
-- **Flow exit** — `Complete` calls `setRouterType(RouterType.user)` to leave onboarding
+- **Flow exit** — `Complete` calls `completeOnboarding()` (via `useAuth`); the user's `needsOnboarding` becomes false and AppRouter mounts the user routes
 
 ## How to trigger onboarding in development
 
-The mock adapter in `src/auth/mockAdapter.ts` creates a user with `needsOnboarding` undefined (falsy) by default. To test onboarding, temporarily set:
-
-```ts
-const MOCK_USER: User = {
-  id: '1',
-  email: 'demo@example.com',
-  name: 'Demo User',
-  needsOnboarding: true,   // ← add this line
-};
-```
-
-Then sign in with any credentials. The app will route to `/flow/onboarding/welcome`.
+Sign in with an email you have not used before: both the demo adapter
+(demo builds) and the mock session backend (`src/mocks/session.ts`) mark the
+first sign-in per email as `needsOnboarding: true`, so the app routes to
+`/flow/onboarding/welcome`. Finishing the flow is remembered for that email.
 
 ## i18n keys
 
