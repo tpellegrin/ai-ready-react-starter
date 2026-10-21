@@ -1,4 +1,4 @@
-import { getSeparators } from 'utils/numberFormat';
+import { getSeparators } from 'i18n/numberFormat';
 
 /**
  * Counts numeric digits before a caret index in a string (ignores separators/currency symbols).
@@ -7,7 +7,7 @@ export const countDigitsBefore = (text: string, caret: number) => {
   let count = 0;
   const end = Math.min(caret, text.length);
   for (let i = 0; i < end; i++) {
-    const ch = text[i];
+    const ch = text.charAt(i);
     if (ch >= '0' && ch <= '9') count++;
   }
   return count;
@@ -20,7 +20,7 @@ export const indexFromDigitCount = (text: string, targetDigits: number) => {
   if (targetDigits <= 0) return 0;
   let digits = 0;
   for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
+    const ch = text.charAt(i);
     if (ch >= '0' && ch <= '9') {
       digits++;
       if (digits >= targetDigits) return i + 1; // caret after that digit
@@ -51,7 +51,7 @@ export const countIntegerDigitsBefore = (
   let count = 0;
 
   for (let i = 0; i < end; i++) {
-    const ch = text[i];
+    const ch = text.charAt(i);
     if (ch >= '0' && ch <= '9') count++;
   }
 
@@ -71,7 +71,7 @@ export const indexFromIntegerDigitCount = (
   const limit = dec === -1 ? text.length : dec; // do not cross into fraction
   let digits = 0;
   for (let i = 0; i < limit; i++) {
-    const ch = text[i];
+    const ch = text.charAt(i);
     if (ch >= '0' && ch <= '9') {
       digits++;
       if (digits >= targetDigits) return i + 1;
@@ -94,7 +94,7 @@ export const countFractionDigitsBefore = (
   const end = Math.min(Math.max(caret, dec + 1), text.length);
   let count = 0;
   for (let i = dec + 1; i < end; i++) {
-    const ch = text[i];
+    const ch = text.charAt(i);
     if (ch >= '0' && ch <= '9') count++;
   }
   return count;
@@ -113,7 +113,7 @@ export const indexFromFractionDigitCount = (
   if (targetDigits <= 0) return dec + 1; // start of the fraction
   let digits = 0;
   for (let i = dec + 1; i < text.length; i++) {
-    const ch = text[i];
+    const ch = text.charAt(i);
     if (ch >= '0' && ch <= '9') {
       digits++;
       if (digits >= targetDigits) return i + 1;
@@ -128,7 +128,7 @@ export const indexFromFractionDigitCount = (
  */
 export const firstDigitIndex = (text: string) => {
   for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
+    const ch = text.charAt(i);
     if (ch >= '0' && ch <= '9') return i;
   }
   return text.length;

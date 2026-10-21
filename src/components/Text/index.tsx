@@ -1,16 +1,18 @@
 import React from 'react';
 
 import { _TextRoot } from './styles';
-import { Props } from './types';
+import { type Props } from './types';
 
 const Text: React.FC<Props> = React.memo(
   ({
     as = 'p',
     children,
     className,
-    variant = 'body',
+    // No variant/color: inherit typography and color from the context
+    // (e.g. a Button label or an InlineAlert tone).
+    variant,
     align,
-    color = 'default',
+    color,
     truncate = false,
     numeric = 'default',
     fontSize = undefined,

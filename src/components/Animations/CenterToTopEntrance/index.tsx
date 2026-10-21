@@ -4,23 +4,22 @@ import React, {
   useRef,
   useState,
   cloneElement,
-  PropsWithChildren,
+  type PropsWithChildren,
 } from 'react';
 
-import { FromBelowReveal } from '@components/Animations/FromBelowReveal';
+import { FromBelowReveal } from 'components/Animations/FromBelowReveal';
 import {
   prefersReducedMotion,
   getAccessibleDuration,
 } from 'utils/transitions/config';
-import { OverlayRoleContext } from 'components/CenterOnlyTransition/OverlayRoleContext';
-import { useNavigation } from 'globals/context/NavigationContext';
+import { OverlayRoleContext } from 'utils/transitions/overlayRole';
 
 import {
   _CenterToTopEntranceRoot,
   _CenterToTopEntranceStatic,
   _CenterToTopEntranceOverlay,
 } from './styles';
-import { Props } from './types';
+import { type Props } from './types';
 
 const useIsoLE =
   typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
@@ -40,15 +39,14 @@ export const CenterToTopEntrance = ({
   const overlayRole = React.useContext(OverlayRoleContext);
   const isExit = overlayRole === 'exit';
   const reduced = prefersReducedMotion();
-  const { scrollRef } = useNavigation();
 
   const [phase, setPhase] = useState<'center' | 'shifting' | 'done'>(() =>
     reduced || isExit || skipHold ? 'done' : 'center',
   );
 
-  // Viewport height = real app scroller; excludes persistent header/footer
+  // Stage height = the given scroller (e.g. a layout's content viewport,
+  // excluding persistent header/footer) or the window.
   const [stageH, setStageH] = useState<number | null>(null);
-  const getViewportEl = () => viewportEl ?? scrollRef?.current ?? null;
 
   useIsoLE(() => {
     if (phase === 'done' || isExit) {
@@ -56,7 +54,7 @@ export const CenterToTopEntrance = ({
       return;
     }
 
-    const vp = getViewportEl();
+    const vp = viewportEl;
     const readH = () => (vp ? vp.clientHeight : window.innerHeight);
 
     let raf = 0;
@@ -84,7 +82,7 @@ export const CenterToTopEntrance = ({
       window.visualViewport?.removeEventListener('resize', onResize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [phase, isExit, viewportEl, scrollRef?.current]);
+  }, [phase, isExit, viewportEl]);
 
   // Hold → animate
   useEffect(() => {

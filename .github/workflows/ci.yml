@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Every job is required; none is allowed to fail. See docs/guardrails.md.
+jobs:
+  validate:
+    name: Validate (format, lint, architecture, types, i18n, unit tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm validate
+
+  audit:
+    name: Production dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      # Runtime dependencies only; dev-tool advisories are triaged in SECURITY.md.
+      - run: pnpm audit --prod --audit-level=high
+
+  coverage:
+    name: Coverage thresholds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm test:cov
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  build:
+    name: Build and inspect artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # CI only verifies that a real build succeeds and passes its budgets.
+      # Deployments provide their own API URL (see docs/configuration.md).
+      VITE_API_BASE_URL: https://api.example.test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - name: Check budgets, code splitting and forbidden content
+        run: pnpm check:build
+      - name: Upload production build
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-build
+          path: |
+            dist/
+            reports/build/
+          retention-days: 7
+      # starter:demo-start
+      - run: pnpm build:demo
+      - name: Check the demo build
+        run: pnpm check:build:demo
+      # starter:demo-end
+
+  storybook:
+    name: Storybook (interaction and accessibility tests, static build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/playwright
+      - run: pnpm test:storybook
+      - run: pnpm storybook:build
+      - name: Upload Storybook
+        uses: actions/upload-artifact@v7
+        with:
+          name: storybook
+          path: storybook-static/
+          retention-days: 7
+
+  e2e:
+    name: End-to-end (built apps, accessibility)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/playwright
+      - run: pnpm test:e2e
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  scaffolding:
+    name: Generator and adoption checks (temporary copies)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm gen:check
+      - run: pnpm adopt:check

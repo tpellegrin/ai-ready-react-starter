@@ -1,84 +1,79 @@
 /**
- * Shared test utilities for the boilerplate test suite.
+ * Shared test utilities.
  *
  * Maintainer/AI note:
- * These helpers exist to reduce provider duplication across tests, NOT to hide
- * important behavior. Keep them small and explicit. Do not add globals here.
+ * These helpers reduce provider duplication; they must not hide behavior.
+ * Keep them small and explicit. For whole-app tests use renderApp
+ * (src/test/app.tsx); for a component, renderWithProviders.
  */
-import React from 'react';
-import { render, RenderOptions } from '@testing-library/react';
-import { ThemeProvider } from 'styled-components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, type RenderOptions } from '@testing-library/react';
+import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from 'styled-components';
+
+import { queryClientDefaults } from 'api/queryClient';
 import { AuthProvider } from 'auth/AuthProvider';
-import { I18nProvider } from 'i18n/provider';
+import type { AuthAdapter } from 'auth/types';
+import { ToastProvider } from 'components/Toast';
 import { NavigationProvider } from 'globals/context/NavigationContext';
+import { I18nProvider } from 'i18n/provider';
 import { base } from 'styles/themes/base';
 
 /**
- * QueryClient configured for tests:
- * - retries disabled so failure paths surface immediately
- * - GC turned off to avoid cross-test cache leakage
+ * QueryClient for tests: app defaults, but no retries (failures surface
+ * immediately) and no garbage-collection timers. Create one per test.
  */
 export const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
-      queries: { retry: false, gcTime: 0, staleTime: 0 },
-      mutations: { retry: false },
+      queries: {
+        ...queryClientDefaults.queries,
+        retry: false,
+        gcTime: Infinity,
+      },
+      mutations: { ...queryClientDefaults.mutations, retry: false },
     },
   });
 
-interface ProvidersOptions {
-  withRouter?: boolean;
-  initialEntries?: string[];
-  withAuth?: boolean;
-  client?: QueryClient;
-}
+type ProvidersOptions = {
+  /** Wrap in a MemoryRouter starting at this path. */
+  route?: string | undefined;
+  /** Wrap in an AuthProvider using this adapter. */
+  authAdapter?: AuthAdapter | undefined;
+  client?: QueryClient | undefined;
+};
 
-export const buildProviders = (options: ProvidersOptions = {}) => {
-  const {
-    withRouter = false,
-    initialEntries = ['/'],
-    withAuth = true,
+export const renderWithProviders = (
+  ui: ReactElement,
+  {
+    route,
+    authAdapter,
     client = createTestQueryClient(),
-  } = options;
-
-  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    let tree: React.ReactNode = children;
-    if (withAuth) tree = <AuthProvider>{tree}</AuthProvider>;
-    tree = <NavigationProvider>{tree}</NavigationProvider>;
-    tree = <I18nProvider>{tree}</I18nProvider>;
-    if (withRouter) {
-      tree = (
-        <MemoryRouter initialEntries={initialEntries}>{tree}</MemoryRouter>
-      );
+    ...renderOptions
+  }: ProvidersOptions & Omit<RenderOptions, 'wrapper'> = {},
+) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => {
+    let tree: ReactNode = <NavigationProvider>{children}</NavigationProvider>;
+    if (authAdapter) {
+      tree = <AuthProvider adapter={authAdapter}>{tree}</AuthProvider>;
+    }
+    if (route !== undefined) {
+      tree = <MemoryRouter initialEntries={[route]}>{tree}</MemoryRouter>;
     }
     return (
       <QueryClientProvider client={client}>
-        <ThemeProvider theme={base}>{tree}</ThemeProvider>
+        <ThemeProvider theme={base}>
+          <I18nProvider>
+            <ToastProvider>{tree}</ToastProvider>
+          </I18nProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     );
   };
 
-  return { Wrapper, client };
-};
-
-export const renderWithProviders = (
-  ui: React.ReactElement,
-  options: ProvidersOptions & Omit<RenderOptions, 'wrapper'> = {},
-) => {
-  const { withRouter, initialEntries, withAuth, client, ...rest } = options;
-  const { Wrapper, client: usedClient } = buildProviders({
-    withRouter,
-    initialEntries,
-    withAuth,
+  return {
+    ...render(ui, { wrapper: Wrapper, ...renderOptions }),
     client,
-  });
-  const utils = render(ui, { wrapper: Wrapper, ...rest });
-  return { ...utils, client: usedClient };
-};
-
-/** Removes any persisted demo auth session. */
-export const clearAuthSession = () => {
-  localStorage.removeItem('boilerplate_auth_session');
+  };
 };

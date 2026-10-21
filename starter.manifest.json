@@ -1,0 +1,41 @@
+{
+  "$comment": "Provenance and adoption map for this starter. `pnpm adopt` reads the groups below and records what it removed under `adoption`. Keep this file in adopted projects: it tells maintainers and AI agents which starter version the code came from.",
+  "starter": {
+    "name": "ai-ready-react-starter",
+    "source": "https://github.com/tpellegrin/ai-ready-react-starter",
+    "version": "1.0.0-rc.1"
+  },
+  "groups": {
+    "demo": {
+      "flag": "--remove-demo",
+      "description": "Starter-only demo: DemoHub start page, demo auth adapter, public onboarding preview, the demo build and its GitHub Pages deployment.",
+      "delete": [
+        "src/demo",
+        ".env.demo",
+        ".github/workflows/deploy-pages.yml",
+        "e2e/demo"
+      ],
+      "packageScripts": ["build:demo", "check:build:demo"],
+      "i18nKeys": ["demoHub", "auth.signIn.demoMessage"]
+    },
+    "reference": {
+      "flag": "--remove-reference",
+      "description": "The Resource reference feature: feature module, route, navigation entry, mock API and copy.",
+      "delete": [
+        "src/features/resources",
+        "src/views/user/Resources",
+        "e2e/demo/resources.spec.ts"
+      ],
+      "packageScripts": [],
+      "i18nKeys": [
+        "resources",
+        "user.nav.resources",
+        "user.dashboard.resourcesTitle",
+        "user.dashboard.resourcesBody",
+        "user.dashboard.resourcesLink",
+        "demoHub.entries.resources"
+      ]
+    }
+  },
+  "adoption": null
+}

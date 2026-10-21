@@ -1,0 +1,11 @@
+# Generated or vendored output (not hand-written source)
+pnpm-lock.yaml
+dist/
+dist-*/
+coverage/
+storybook-static/
+reports/
+playwright-report/
+test-results/
+node_modules/
+src/assets/fonts/

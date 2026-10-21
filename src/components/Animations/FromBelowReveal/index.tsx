@@ -5,10 +5,10 @@ import {
   prefersReducedMotion,
   getAccessibleDuration,
 } from 'utils/transitions/config';
-import { OverlayRoleContext } from 'components/CenterOnlyTransition/OverlayRoleContext';
+import { OverlayRoleContext } from 'utils/transitions/overlayRole';
 
 import { _FromBelowRevealRoot } from './styles';
-import { Props, RevealVars } from './types';
+import { type Props, type RevealVars } from './types';
 
 export const FromBelowReveal: React.FC<Props> = ({
   children,
@@ -114,7 +114,7 @@ export const FromBelowReveal: React.FC<Props> = ({
 
   return (
     <_FromBelowRevealRoot
-      as={as}
+      {...(as ? { as } : {})}
       className={className}
       style={mergedStyle}
       $duration={durationMs}

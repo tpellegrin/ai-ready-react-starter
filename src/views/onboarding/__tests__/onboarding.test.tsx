@@ -10,11 +10,12 @@ import { NavigationProvider } from 'globals/context/NavigationContext';
 import type { ReactElement } from 'react';
 import {
   LayoutChromeContext,
-  LayoutChromeOwnerToken,
-  LayoutChromePayload,
+  type LayoutChromeOwnerToken,
+  type LayoutChromePayload,
 } from 'containers/Layouts/common/LayoutChromeContext';
 import { I18nProvider } from 'i18n/provider';
 import { AuthProvider } from 'auth/AuthProvider';
+import { createFakeAuthAdapter } from 'test/auth';
 import { base } from 'styles/themes/base';
 import { Welcome } from '../Welcome';
 import { Preferences } from '../Preferences';
@@ -96,7 +97,7 @@ const makeWrapper =
       <QueryClientProvider client={client}>
         <ThemeProvider theme={base}>
           <I18nProvider>
-            <AuthProvider>
+            <AuthProvider adapter={createFakeAuthAdapter()}>
               <NavigationProvider>
                 <MemoryRouter initialEntries={[initialPath]}>
                   <TestChromeShell>{children}</TestChromeShell>

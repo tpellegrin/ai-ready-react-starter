@@ -1,18 +1,22 @@
-# API Layer
+# API layer
 
-This directory contains all API-related logic, including:
-- API client functions (fetching data)
-- Query keys for React Query
-- Type definitions for API responses
+Shared HTTP and server-state plumbing. Feature endpoints live in their
+feature (`src/features/<name>/api.ts`), not here.
 
-## Directory Structure
+- `http/` — `createHttpClient` (base URL, JSON, credentials, `AbortSignal`,
+  empty bodies via `emptyResponse`), `ApiError` with kinds `network`,
+  `aborted`, `http`, `parse`, `schema`, `isRetryableError`,
+  `getFieldErrors` (422 field codes) and `getErrorMessageKey` (error → i18n
+  key).
+- `client.ts` — `apiClient`, configured from `appConfig.apiBaseUrl`.
+- `queryClient.ts` — `createQueryClient()` with the app's defaults (bounded
+  retries for retryable errors only, no mutation retries) and
+  `resetSessionCache()` used when the signed-in user changes.
 
-- `demoApi.ts`: Mock API functions for demonstration purposes.
-- `queryKeys.ts`: Centralized query keys to avoid magic strings.
-- `README.md`: This file.
+Rules:
 
-## Best Practices
+- Every request names the Zod schema its response must match.
+- Pass the query's `signal` so cancellation aborts the request.
+- Query keys belong to the feature that owns the data.
 
-- Use the centralized `queryKeys` for all queries and mutations.
-- Keep API functions pure and focused on data fetching/transformation.
-- Use TypeScript interfaces for all request and response data.
+See `docs/recipes/data-and-forms.md` and ADR 0011.

@@ -1,7 +1,7 @@
 import { styled, css } from 'styled-components';
 
 import { from } from 'styles/media';
-import { getSpaceColor } from 'utils/colors';
+import { getSpaceColor } from 'styles/colors';
 
 import type { Props } from './types';
 

@@ -1,83 +1,45 @@
-// DEMO: Replace or remove this view when adopting the boilerplate. See docs/adoption.md.
-import { useQuery } from '@tanstack/react-query';
-import { fetchAppStatus } from 'api/demoApi';
-import { queryKeys } from 'api/queryKeys';
+// DEMO: Replace this view when adopting the starter. See docs/adoption.md.
 import { useAuth } from 'auth/useAuth';
-import { Button } from 'components/Button';
-import { Box } from 'components/Box';
+// starter:reference-start
+import { CardBase } from 'components/CardBase';
+import { LinkBase } from 'components/LinkBase';
+import { paths } from 'globals/paths';
+// starter:reference-end
 import { Flex } from 'components/Flex';
 import { Text } from 'components/Text';
 import { useI18n } from 'i18n/provider';
 
+import { UserPageLayout } from '../common/UserPageLayout';
+
 export function Dashboard() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: queryKeys.appStatus,
-    queryFn: fetchAppStatus,
-  });
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { t } = useI18n();
 
   return (
-    <Box px="xxl" py="xxl" borderColor="transparent">
-      <Flex direction="column" alignItems="flex-start" gap="lg" width="100%">
-        <Flex direction="column" alignItems="flex-start" gap="xs">
-          <Text as="h1" variant="headingLg">
-            {t('user.dashboard.title')}
-          </Text>
-          <Text variant="bodyMd">
-            {t('user.dashboard.welcome', {
-              name: user?.name || user?.email || 'User',
-            })}
-          </Text>
-          <Text variant="bodyMd">{t('user.dashboard.description')}</Text>
-        </Flex>
-
-        <Button label={t('user.dashboard.signOut')} onClick={() => signOut()} />
-
-        <Box
-          px="md"
-          py="md"
-          borderColor="default"
-          borderRadius="sm"
-          backgroundColor="raised"
-          style={{ width: '100%' }}
-        >
-          <Flex direction="column" alignItems="flex-start" gap="md">
-            <Text as="h2" variant="headingMd">
-              {t('user.dashboard.appStatus.title')}
-            </Text>
-            {isLoading && (
-              <Text variant="bodyMd">
-                {t('user.dashboard.appStatus.loading')}
-              </Text>
-            )}
-            {!!error && (
-              <Text variant="bodyMd">
-                {t('user.dashboard.appStatus.error')}
-              </Text>
-            )}
-            {data && (
-              <Box
-                backgroundColor="muted"
-                borderRadius="xs"
-                style={{ width: '100%' }}
-                px="sm"
-                py="sm"
-              >
-                <pre
-                  style={{
-                    margin: 0,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  {JSON.stringify(data, null, 2)}
-                </pre>
-              </Box>
-            )}
-          </Flex>
-        </Box>
+    <UserPageLayout title={t('user.dashboard.title')}>
+      <Flex direction="column" gap="xs">
+        <Text>
+          {t('user.dashboard.welcome', {
+            name: user?.name ?? user?.email ?? '',
+          })}
+        </Text>
+        <Text color="secondary">{t('user.dashboard.description')}</Text>
       </Flex>
-    </Box>
+      {/* starter:reference-start */}
+      <CardBase>
+        <Flex direction="column" gap="xs">
+          <Text as="h2" variant="headingSm">
+            {t('user.dashboard.resourcesTitle')}
+          </Text>
+          <Text color="secondary">{t('user.dashboard.resourcesBody')}</Text>
+          <Text>
+            <LinkBase to={paths.resources}>
+              {t('user.dashboard.resourcesLink')}
+            </LinkBase>
+          </Text>
+        </Flex>
+      </CardBase>
+      {/* starter:reference-end */}
+    </UserPageLayout>
   );
 }

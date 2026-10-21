@@ -10,7 +10,7 @@ export const FontStyles = createGlobalStyle`
       font-family: Inter;
       font-style: normal;
       src: url(${InterRegular});
-      font-display: block;
+      font-display: swap;
   }
   
   @font-face {
@@ -18,7 +18,7 @@ export const FontStyles = createGlobalStyle`
       font-family: Inter;
       font-style: normal;
       src: url(${InterMedium});
-      font-display: block;
+      font-display: swap;
   }
   
   @font-face {
@@ -26,6 +26,6 @@ export const FontStyles = createGlobalStyle`
       font-family: Inter;
       font-style: normal;
       src: url(${InterSemiBold});
-      font-display: block;
+      font-display: swap;
   }
 `;

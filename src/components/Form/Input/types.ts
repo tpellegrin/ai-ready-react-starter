@@ -1,29 +1,60 @@
+import type { InputHTMLAttributes, ReactNode, Ref } from 'react';
+
 import type { ControlSize, ControlStatus } from '../common/Control/styles';
 
-export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  /** Visual size of the control. Defaults to 'medium'. */
-  controlSize?: ControlSize;
-  /** Visual status of the control. Defaults to 'default'. */
-  status?: ControlStatus;
-  /** Optional leading adornment (icon, etc.). Non-interactive by default. */
-  startAdornment?: React.ReactNode;
-  /** Optional trailing adornment (icon, buttons). Wrap interactive elements to re-enable pointer events. */
-  endAdornment?: React.ReactNode;
-  /** Optional suffix displayed after the input value (e.g., units). */
-  valueSuffix?: React.ReactNode;
-  /** Sets data-testid on the root Control container. */
-  dataTestId?: string;
+export type NumberFormatMode = 'currency' | 'number';
 
-  /** Optional locale-aware formatting mode. */
-  format?: 'currency' | 'number';
-  /** Optional currency code used when format is 'currency'. Defaults based on locale when not provided. */
-  currency?: string;
-  /** Maximum fraction digits for number/currency formatting. Defaults to 2 for currency, 0 for numbers. */
-  maximumFractionDigits?: number;
+/** Props consumed by the formatting/caret logic (useInputLogic). */
+export type InputLogicProps = Pick<
+  InputHTMLAttributes<HTMLInputElement>,
+  | 'id'
+  | 'type'
+  | 'inputMode'
+  | 'onChange'
+  | 'onClick'
+  | 'onPointerDown'
+  | 'onBlur'
+  | 'placeholder'
+  | 'disabled'
+> & {
+  /**
+   * Text value, or a number when `format` is set. `null` means "no number"
+   * (empty field) and is preserved as null, never coerced to 0.
+   */
+  value?: string | number | null | undefined;
+  /** Optional locale-aware formatting mode (renders a text input). */
+  format?: NumberFormatMode | undefined;
+  /** Currency code when format is 'currency'. Defaults from the locale. */
+  currency?: string | undefined;
+  /** Maximum fraction digits. Defaults to 2 for currency, 0 for numbers. */
+  maximumFractionDigits?: number | undefined;
   /** Enables/disables thousands grouping. Defaults to true. */
-  useGrouping?: boolean;
-  /** Callback receiving parsed numeric value as the user types (or null for empty/invalid transient states). */
-  onValueChange?: (value: number | null) => void;
-  /** Numeric placeholder to be formatted according to locale and format. */
-  placeholderNumber?: number;
+  useGrouping?: boolean | undefined;
+  /**
+   * Numeric mode: receives the parsed number as the user types, or null for
+   * empty/incomplete input. No synthetic DOM event is involved.
+   */
+  onValueChange?: ((value: number | null) => void) | undefined;
+  /** Numeric placeholder formatted for the current locale. */
+  placeholderNumber?: number | undefined;
 };
+
+export type InputProps = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  keyof InputLogicProps | 'size' | 'children'
+> &
+  InputLogicProps & {
+    ref?: Ref<HTMLInputElement> | undefined;
+    /** Visual size of the control. Defaults to 'medium'. */
+    controlSize?: ControlSize | undefined;
+    /** Visual status. 'error' also sets aria-invalid. Defaults to 'default'. */
+    status?: ControlStatus | undefined;
+    /** Leading adornment (icon, etc.). Non-interactive by default. */
+    startAdornment?: ReactNode;
+    /** Trailing adornment. Interactive children keep their own focus. */
+    endAdornment?: ReactNode;
+    /** Suffix displayed after the value (e.g. units). */
+    valueSuffix?: ReactNode;
+    /** Sets data-testid on the control chrome. */
+    dataTestId?: string | undefined;
+  };

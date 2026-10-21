@@ -4,7 +4,7 @@ import { BaseLayout } from '../common/BaseLayout';
 import { _LayoutTransitionContainerRoot } from '../common/LayoutTransitionContainer/styles';
 import { resolveHeader, resolveFooter } from '../common/helpers';
 
-import { Props } from './types';
+import { type Props } from './types';
 
 export const MainLayout: React.FC<Props> = ({
   children,

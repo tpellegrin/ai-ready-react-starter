@@ -1,73 +1,33 @@
-import React, { forwardRef, useCallback, useRef } from 'react';
-
-import { ensureHttpUrl } from 'utils/links';
-import { assignRef } from 'utils/react';
-
-import { _LinkBaseRoot } from './styles';
+import { _LinkBaseAnchor, _LinkBaseRouterLink } from './styles';
 import type { Props } from './types';
 
-export const LinkBase = forwardRef<HTMLAnchorElement, Props>(
-  (
-    {
-      blurDelay = 0,
-      blurOnClick,
-      disabled,
-      stopPropagation,
-      onClick,
-      isFullWidth,
-      target,
-      rel,
-      href,
-      children,
-      className,
-      ...rest
-    },
-    ref,
-  ) => {
-    const localRef = useRef<HTMLAnchorElement | null>(null);
+export const LinkBase = ({ isFullWidth, target, rel, ...props }: Props) => {
+  const safeRel = target === '_blank' ? (rel ?? 'noreferrer noopener') : rel;
 
-    const handleOnClick = useCallback(
-      (event: React.MouseEvent<HTMLAnchorElement>) => {
-        if (stopPropagation) event.stopPropagation();
-
-        if (blurOnClick) {
-          setTimeout(() => localRef.current?.blur(), blurDelay);
-        }
-
-        if (disabled) {
-          event.preventDefault();
-          event.stopPropagation();
-          return;
-        }
-
-        onClick?.(event);
-      },
-      [stopPropagation, blurOnClick, disabled, onClick, blurDelay],
-    );
-
-    const safeRel = target === '_blank' ? (rel ?? 'noreferrer noopener') : rel;
-
+  if (props.to !== undefined) {
+    const { to, replace, ...rest } = props;
     return (
-      <_LinkBaseRoot
-        ref={(node) => {
-          localRef.current = node;
-          assignRef(ref, node);
-        }}
-        className={className}
-        href={ensureHttpUrl(href)}
+      <_LinkBaseRouterLink
+        {...rest}
+        to={to}
+        replace={replace ?? false}
         target={target}
         rel={safeRel}
-        onClick={handleOnClick}
-        aria-disabled={disabled || undefined}
-        tabIndex={disabled ? -1 : rest.tabIndex}
-        $isDisabled={!!disabled}
         $isFullWidth={isFullWidth}
-        {...rest}
-      >
-        {children}
-      </_LinkBaseRoot>
+      />
     );
-  },
-);
+  }
+
+  return (
+    <_LinkBaseAnchor
+      {...props}
+      target={target}
+      rel={safeRel}
+      $isFullWidth={isFullWidth}
+    />
+  );
+};
 
 LinkBase.displayName = 'LinkBase';
+
+export type { Props as LinkBaseProps } from './types';

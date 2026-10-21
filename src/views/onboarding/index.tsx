@@ -1,4 +1,4 @@
-import { RouteType } from 'globals/types';
+import { type RouteType } from 'globals/types';
 import { paths } from 'globals/paths';
 import { Welcome } from './Welcome';
 import { Preferences } from './Preferences';

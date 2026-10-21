@@ -1,0 +1,57 @@
+# Dependency updates (see SECURITY.md › Dependency policy). Security updates
+# are opened as soon as an advisory is published, independent of this schedule.
+version: 2
+updates:
+  - package-ecosystem: npm # pnpm lockfile
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    # Let new releases settle before proposing them.
+    cooldown:
+      default-days: 14
+    groups:
+      # Packages that must move together.
+      storybook:
+        patterns: ['storybook', '@storybook/*', 'eslint-plugin-storybook']
+      vitest:
+        patterns: ['vitest', '@vitest/*']
+      playwright:
+        patterns: ['playwright', '@playwright/test']
+      lint:
+        patterns:
+          - 'eslint'
+          - 'eslint-*'
+          - '@eslint/*'
+          - 'typescript-eslint'
+          - 'stylelint'
+          - 'stylelint-*'
+          - 'prettier'
+      types:
+        patterns: ['@types/*']
+      radix:
+        patterns: ['@radix-ui/*']
+    ignore:
+      # Majors of the core stack are planned changes (ADR + migration notes),
+      # not routine updates.
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-router-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'vite'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'typescript'
+        update-types:
+          ['version-update:semver-major', 'version-update:semver-minor']
+
+  - package-ecosystem: github-actions
+    directories: ['/', '/.github/actions/*']
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ['*']

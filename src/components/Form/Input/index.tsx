@@ -1,25 +1,57 @@
-import { forwardRef } from 'react';
-
 import { Control } from '../common/Control';
-import type { InputProps } from './types';
+
 import { useInputLogic } from './logic';
+import type { InputProps } from './types';
 
-export const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
-  const {
-    controlSize = 'medium',
-    status = 'default',
-    disabled,
-    startAdornment,
-    endAdornment,
-    valueSuffix,
-    className,
-    dataTestId,
-    'aria-describedby': ariaDescribedBy,
-    'aria-labelledby': ariaLabelledBy,
-    ...rest
-  } = props;
-
-  const { fieldProps } = useInputLogic(props, ref);
+export const Input = ({
+  ref,
+  controlSize = 'medium',
+  status = 'default',
+  startAdornment,
+  endAdornment,
+  valueSuffix,
+  className,
+  dataTestId,
+  // Logic props (never forwarded to the DOM directly)
+  id,
+  type,
+  inputMode,
+  value,
+  onChange,
+  onClick,
+  onPointerDown,
+  onBlur,
+  placeholder,
+  disabled,
+  format,
+  currency,
+  maximumFractionDigits,
+  useGrouping,
+  onValueChange,
+  placeholderNumber,
+  ...nativeProps
+}: InputProps) => {
+  const { fieldProps } = useInputLogic(
+    {
+      id,
+      type,
+      inputMode,
+      value,
+      onChange,
+      onClick,
+      onPointerDown,
+      onBlur,
+      placeholder,
+      disabled,
+      format,
+      currency,
+      maximumFractionDigits,
+      useGrouping,
+      onValueChange,
+      placeholderNumber,
+    },
+    ref,
+  );
 
   return (
     <Control
@@ -29,25 +61,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
       data-testid={dataTestId}
       className={className}
     >
-      {startAdornment && (
-        <Control.Adornment position="start">{startAdornment}</Control.Adornment>
-      )}
+      {startAdornment ? (
+        <Control.Adornment $position="start">
+          {startAdornment}
+        </Control.Adornment>
+      ) : null}
 
-      <Control.Field
-        as="input"
-        aria-describedby={ariaDescribedBy}
-        aria-labelledby={ariaLabelledBy}
-        {...rest}
-        {...fieldProps}
-      />
+      <Control.Field as="input" {...nativeProps} {...fieldProps} />
 
-      {valueSuffix && <Control.Suffix>{valueSuffix}</Control.Suffix>}
+      {valueSuffix ? <Control.Suffix>{valueSuffix}</Control.Suffix> : null}
 
-      {endAdornment && (
-        <Control.Adornment position="end">{endAdornment}</Control.Adornment>
-      )}
+      {endAdornment ? (
+        <Control.Adornment $position="end">{endAdornment}</Control.Adornment>
+      ) : null}
     </Control>
   );
-});
+};
 
 Input.displayName = 'Input';

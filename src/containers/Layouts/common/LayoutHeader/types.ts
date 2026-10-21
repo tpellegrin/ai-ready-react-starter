@@ -1,8 +1,9 @@
-import React, { PropsWithChildren } from 'react';
+import { type PropsWithChildren } from 'react';
+import type React from 'react';
 
 export type Props = PropsWithChildren<{
-  Left?: React.ReactNode;
-  Center?: React.ReactNode;
-  Right?: React.ReactNode;
-  progress?: number;
+  Left?: React.ReactNode | undefined;
+  Center?: React.ReactNode | undefined;
+  Right?: React.ReactNode | undefined;
+  progress?: number | undefined;
 }>;

@@ -1,36 +1,14 @@
-import React from 'react';
+import type { ReactNode, Ref } from 'react';
 
-import { Props as BoxProps } from 'components/Box/types';
+import type { Props as BoxProps } from 'components/Box/types';
 
-export type VariantProps = Pick<
-  BoxProps,
-  'borderColor' | 'backgroundColor' | 'color' | 'gradient'
->;
-
-export const Variant = {
-  base: 'base',
-} as const;
-
-export type CardVariant = keyof typeof Variant;
-
-export type SizeProps = Pick<
-  BoxProps,
-  'borderRadius' | 'px' | 'py' | 'pxDesktop' | 'pyDesktop'
->;
-
-export const Size = {
-  xs: 'xs',
-  sm: 'sm',
-  md: 'md',
-  lg: 'lg',
-} as const;
-
-export type CardSize = keyof typeof Size;
-
+/**
+ * A raised card surface (Box with card radius, padding and muted background).
+ * For other surface variations compose Box directly.
+ */
 export type Props = {
-  children?: React.ReactNode;
-  className?: string;
+  ref?: Ref<HTMLDivElement> | undefined;
+  children?: ReactNode;
+  className?: string | undefined;
   elevation?: BoxProps['elevation'];
-  variant?: CardVariant;
-  size?: CardSize;
 };

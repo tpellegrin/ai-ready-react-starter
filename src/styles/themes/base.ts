@@ -1,4 +1,4 @@
-import { Theme } from './types';
+import { type Theme } from './types';
 import { foundations } from './foundations';
 
 export const base: Theme = {
@@ -94,6 +94,28 @@ export const base: Theme = {
       neutral: foundations.colors.gray100,
       info: foundations.colors.gray100,
     },
+    feedback: {
+      error: {
+        surface: foundations.colors.orange50,
+        border: foundations.colors.orange250,
+        text: foundations.colors.orange250,
+      },
+      success: {
+        surface: foundations.colors.green50,
+        border: foundations.colors.green150,
+        text: foundations.colors.green150,
+      },
+      info: {
+        surface: foundations.colors.purple50,
+        border: foundations.colors.purple250,
+        text: foundations.colors.purple250,
+      },
+      warning: {
+        surface: foundations.colors.yellow50,
+        border: foundations.colors.orange250,
+        text: foundations.colors.gray250,
+      },
+    },
   },
   gradients: {
     successToError: foundations.gradients.successToError,
@@ -160,6 +182,10 @@ export const base: Theme = {
     lg: foundations.spacing.lg,
     xl: foundations.spacing.xl,
     xxl: foundations.spacing.xxl,
+  },
+  focus: {
+    ringWidth: '0.125rem',
+    ringOffset: '0.125rem',
   },
   zIndexes: {
     background: foundations.zIndexes.background,

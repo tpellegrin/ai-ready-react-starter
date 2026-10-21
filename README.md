@@ -1,118 +1,83 @@
-# React 19 + Vite + TypeScript Boilerplate
+# React SPA starter
 
-A professional, high-performance starter kit for React applications. This boilerplate is designed with a focus on architecture, performance, and developer experience.
+A compact, production-oriented foundation for React single-page apps:
+React 19, Vite 7, TypeScript (strict), styled-components, React Router 7,
+TanStack Query, Zod, React Hook Form and Radix primitives — with guardrails
+that fail when the architecture, accessibility or bundle drift.
 
-## Features
+- **Validated configuration** and an explicit composition root; demo and mock
+  code can never reach a real build.
+- **Session-state routing** with protected groups, safe `returnTo` deep links
+  and code-split routes.
+- **Schema-validated HTTP client** + feature-owned server state, mocked with
+  MSW in development, tests and Storybook.
+- **Feature modules** with an enforced import matrix and a generator.
+- **Accessible UI foundation** (forms, dialogs, toasts, feedback states)
+  tested in a real browser with axe.
+- **One removable reference feature** and an adoption command verified in CI.
 
-- **React 19** with Concurrent Mode features.
-- **Vite** for ultra-fast builds and HMR.
-- **TypeScript** for type-safe development.
-- **Styled Components** for modular, themeable styling.
-- **TanStack Query (React Query)** for robust data fetching.
-- **Generic Auth Adapter** for easy integration with any auth provider.
-- **Unified Animation System** based on route transitions and FLIP.
-- **i18n Ready** with Portuguese (BR), Spanish, and English support.
-- **CI/CD Ready** with GitHub Actions.
+## Quick start
 
-## Getting Started
+Requirements: Node 24 LTS (`.nvmrc`) and pnpm 9 via Corepack
+(`corepack enable`).
 
-### Requirements
-- Node.js 20+
-- pnpm 9+ (this repo pins `pnpm@9.15.9` via the `packageManager` field)
-
-### Installation
 ```bash
 pnpm install
+pnpm start          # http://localhost:3000, demo setup with the mock API
 ```
 
-### Environment Setup
-Copy the example environment file and adjust values:
-```bash
-cp .env.example .env
-```
+To run the Storybook and end-to-end suites locally, install Chromium once:
+`pnpm exec playwright install chromium`.
 
-### Development
-```bash
-pnpm start
-```
-The app will be available at `http://localhost:3000`.
+## Commands
 
-## Validation & Tooling
+| Command                                                 | Purpose                                                         |
+| ------------------------------------------------------- | --------------------------------------------------------------- |
+| `pnpm start`                                            | Dev server                                                      |
+| `pnpm validate`                                         | Format, lint, styles, types, i18n, architecture, unit tests     |
+| `pnpm verify`                                           | Everything CI runs, locally                                     |
+| `pnpm test` / `test:run` / `test:cov`                   | Unit tests (watch / once / with coverage floors)                |
+| `pnpm storybook` / `test:storybook` / `storybook:build` | Component catalog, browser tests, static build                  |
+| `pnpm test:e2e`                                         | Playwright against built apps                                   |
+| `pnpm build` + `pnpm check:build`                       | Production build (needs `VITE_API_BASE_URL`) and its inspection |
+| `pnpm build:demo`                                       | Labelled demo build (GitHub Pages preview of the starter)       |
+| `pnpm gen feature <name>`                               | Scaffold a feature (`--dry-run` to preview)                     |
+| `pnpm adopt --remove-demo`                              | Remove starter-only code (`--remove-reference`, `--dry-run`)    |
+| `pnpm i18n:pseudo`                                      | Regenerate the pseudo-locale after copy changes                 |
 
-We maintain high code quality standards through automated checks. Commit messages must be single-line Conventional Commits; commit bodies and footers are disallowed.
+Commit messages are single-line Conventional Commits (enforced).
 
-```bash
-# Run all validation checks (format, lint, typecheck, tests)
-pnpm validate
+## Make it yours
 
-# Individual checks
-pnpm lint          # ESLint (Flat Config)
-pnpm lint:css      # Stylelint for styled-components
-pnpm typecheck     # TypeScript compiler check
-pnpm test:run      # Vitest unit tests
-pnpm format:check  # Prettier check
-pnpm i18n:check    # i18n key consistency check
-```
+Read [docs/adoption.md](docs/adoption.md): remove the demo with
+`pnpm adopt --remove-demo`, point `VITE_API_BASE_URL` at your API, keep or
+replace the cookie-session auth adapter, replace the placeholder screens.
 
-## Adopt this template
+## Documentation
 
-This boilerplate includes reusable infrastructure and a small amount of demo code (auth adapter, API, SignIn / Dashboard / onboarding views).
-Before starting a real app, read **[docs/adoption.md](docs/adoption.md)**. It explains what to preserve, what to replace, and how to remove the demo auth, API, views, and onboarding flow safely.
-
-## Architecture & Documentation
-
-This boilerplate is designed to be **AI-ready** and maintainable. Detailed documentation is available in the `docs/` folder:
-
-- **[Architecture Overview](docs/architecture.md)**: High-level overview of the project's systems.
-- **[AI Agent Instructions](AGENTS.md)**: Critical guidance for AI coding agents.
-- **[AI Change Checklist](docs/ai-change-checklist.md)**: Checklist for ensuring architectural integrity during changes.
-- **[Adoption Guide](docs/adoption.md)**: How to make this boilerplate your own (replace demo auth/API/views/flows).
-- **[How to Extend](docs/how-to-extend.md)**: Step-by-step guides for adding routes, views, components, etc.
-- **[What Not To Do](docs/what-not-to-do.md)**: Common pitfalls and discouraged patterns.
-- **[Architectural Decisions (ADRs)](docs/decisions/)**: Records of key architectural decisions and their rationale.
-
-### Key Systems
-
-#### Auth Adapter
-The authentication layer is abstracted via `AuthAdapter`. To replace the mock implementation with a real one:
-1. Implement the `AuthAdapter` interface in `src/auth/types.ts`.
-2. Update `AuthProvider.tsx` to use your new adapter.
-See **[src/auth/README.md](src/auth/README.md)** for details.
-
-#### API & Data Fetching
-React Query (TanStack Query) is configured in `src/globals/react-query.ts`.
-API functions are centralized in `src/api/`. See the implementation in `src/api/demoApi.ts`.
-
-#### Styling & Theming
-Using `styled-components` with design tokens.
-See **[src/styles/README.md](src/styles/README.md)** for guidance on using themes and tokens.
-
-#### Routing
-App-state-based routing switches between Guest, Onboarding, and User routers.
-See **[src/containers/README.md](src/containers/README.md)** and **[src/views/README.md](src/views/README.md)**.
-
-#### Animation System
-Unified route and reveal animations. See **[docs/animation-system.md](docs/animation-system.md)**.
-
-#### i18n
-Multi-language support with externalized text. See **[src/i18n/README.md](src/i18n/README.md)**.
-
-## Mobile / Capacitor (Optional)
-This project includes `@capacitor/core` for potential mobile wrapper compatibility. It is **not initialized** by default.
-- Documentation: [docs/mobile-capacitor.md](docs/mobile-capacitor.md)
-- If you don't need mobile support, you can remove the Capacitor dependencies and `capacitor.config.ts`.
+| Topic                     | Doc                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| Overview                  | [docs/architecture.md](docs/architecture.md)                                   |
+| Agent instructions        | [AGENTS.md](AGENTS.md) (Claude Code: [CLAUDE.md](CLAUDE.md))                   |
+| Guardrails (rule → check) | [docs/guardrails.md](docs/guardrails.md)                                       |
+| Module boundaries         | [docs/architecture/boundaries.md](docs/architecture/boundaries.md)             |
+| Configuration             | [docs/configuration.md](docs/configuration.md)                                 |
+| Routing                   | [docs/routing.md](docs/routing.md), [docs/flows.md](docs/flows.md)             |
+| UI foundation and forms   | [docs/ui/foundation.md](docs/ui/foundation.md)                                 |
+| Recipes                   | [docs/recipes/](docs/recipes/) — new feature, data and forms, route, real auth |
+| Task template             | [docs/task-template.md](docs/task-template.md)                                 |
+| Animation                 | [docs/animation-system.md](docs/animation-system.md)                           |
+| Decisions                 | [docs/decisions/](docs/decisions/) (ADRs 0001–0016)                            |
+| Migrating older copies    | [docs/migration-notes.md](docs/migration-notes.md)                             |
+| Security and dependencies | [SECURITY.md](SECURITY.md)                                                     |
+| Upgrade plan and log      | [docs/starter-upgrade-plan.md](docs/starter-upgrade-plan.md)                   |
+| Mobile (optional)         | [docs/mobile-capacitor.md](docs/mobile-capacitor.md)                           |
 
 ## Deployment
-The project is configured for static hosting, including built-in support for GitHub Pages project sites.
 
-```bash
-pnpm build
-```
-
-The output will be in the `dist/` directory.
-
-### GitHub Pages
-To deploy to GitHub Pages:
-1. Ensure the `.github/workflows/deploy-pages.yml` workflow is enabled.
-2. The workflow automatically handles the repository base path (e.g., `/<repo-name>/`) by setting `GITHUB_PAGES=true` during the build.
-3. For assets in the `public/` folder, always prefix paths with `import.meta.env.BASE_URL` or use absolute paths that Vite can process. Prefer importing assets from `src/` whenever possible.
+`VITE_API_BASE_URL=https://api.example.com pnpm build` produces static files
+in `dist/`; `pnpm check:build` verifies budgets and that no demo, mock or test
+code shipped. Hash routing works on any static host; for a sub-path set
+`BASE_PATH=/sub/` (GitHub Pages: `GITHUB_PAGES=true`). The included Pages
+workflow publishes the starter's **demo** build only; adopted projects add
+their own deployment.

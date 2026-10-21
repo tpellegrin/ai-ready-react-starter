@@ -167,3 +167,29 @@ export const visuallyHidden = css`
   position: absolute;
   z-index: -9999;
 `;
+
+/**
+ * Visible keyboard focus indicator. Apply inside `&:focus-visible { ... }`.
+ * Solid outline (not a blurred shadow) so it stays visible on any surface.
+ */
+export const focusRing = css`
+  outline: ${({ theme }) => theme.focus.ringWidth} solid
+    ${({ theme }) => theme.colors.border.focus};
+  outline-offset: ${({ theme }) => theme.focus.ringOffset};
+`;
+
+/**
+ * Hide content visually while keeping it available to assistive technology
+ * (e.g. a live-region status message or an extra accessible label).
+ */
+export const srOnly = css`
+  position: absolute;
+  width: 0.0625rem;
+  height: 0.0625rem;
+  padding: 0;
+  margin: -0.0625rem;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+`;

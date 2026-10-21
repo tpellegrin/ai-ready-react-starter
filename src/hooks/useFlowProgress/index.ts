@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { getProgress } from 'globals/context/ProgressBar';
 import { getStepIndex, isFlowId, parseFlowFromPath } from 'flows/fromPaths';
 
-import { Props } from './types';
+import { type Props } from './types';
 
 export const useFlowProgressFromPaths = (): Props => {
   const { pathname } = useLocation();

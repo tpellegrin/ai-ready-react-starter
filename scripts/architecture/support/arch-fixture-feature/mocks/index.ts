@@ -1,0 +1,1 @@
+export { sampleFixtures } from './fixtures';

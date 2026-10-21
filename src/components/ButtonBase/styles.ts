@@ -1,8 +1,9 @@
 import { styled, css } from 'styled-components';
 
+import { focusRing } from 'styles/mixins';
+
 export const _ButtonBaseRoot = styled.button<{
-  $isDisabled?: boolean;
-  $isFullWidth?: boolean;
+  $isFullWidth?: boolean | undefined;
 }>`
   display: inline-flex;
   align-items: unset;
@@ -13,6 +14,7 @@ export const _ButtonBaseRoot = styled.button<{
   outline: none;
   background: transparent;
   color: inherit;
+  font: inherit;
   text-align: unset;
   line-height: inherit;
   -webkit-touch-callout: none;
@@ -20,7 +22,12 @@ export const _ButtonBaseRoot = styled.button<{
   cursor: pointer;
 
   &:focus-visible {
-    outline: none;
+    ${focusRing};
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    cursor: not-allowed;
   }
 
   ${({ $isFullWidth }) =>
@@ -28,12 +35,5 @@ export const _ButtonBaseRoot = styled.button<{
     css`
       width: 100%;
       display: flex;
-    `}
-
-  ${({ $isDisabled }) =>
-    $isDisabled &&
-    css`
-      cursor: not-allowed;
-      pointer-events: none;
     `}
 `;

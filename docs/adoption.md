@@ -1,407 +1,112 @@
-# Adoption Guide
+# Adoption guide
 
-## Purpose
+How to turn the starter into your product. Most of the work is automated
+and verified; the rest is replacing the few screens that are placeholders.
 
-This guide helps you turn the boilerplate into your own application.
-It explains which parts are reusable infrastructure, which parts are demo-only,
-and how to replace the demo content safely without breaking the architecture.
+## What is what
 
-The goal: a new user (human or AI agent) should be able to make this template
-their own in under 15 minutes.
+| Kind                                      | Where                                                                                                                                                                                                                                        | On adoption                                                                  |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Infrastructure**                        | `src/config`, `src/api`, `src/auth`, `src/forms`, `src/components`, `src/styles`, `src/i18n`, `src/hooks`, `src/utils`, `src/globals`, `src/flows`, `src/guards`, `src/containers`, `src/mocks` (session + helpers), `src/test`, scripts, CI | Keep; extend                                                                 |
+| **Demo** (group `demo`)                   | `src/demo` (DemoHub start page, demo auth adapter, public onboarding preview), `.env.demo`, `pnpm build:demo`, the GitHub Pages workflow, `e2e/demo`                                                                                         | `pnpm adopt --remove-demo`                                                   |
+| **Reference feature** (group `reference`) | `src/features/resources`, `src/views/user/Resources`, its route, nav link, Dashboard card, mocks and copy                                                                                                                                    | `pnpm adopt --remove-reference` once your first feature follows its patterns |
+| **Placeholder screens**                   | `views/guest/Welcome`, `views/guest/SignIn`, `views/user/Dashboard`, `views/onboarding/*`                                                                                                                                                    | Replace by hand (below)                                                      |
 
-For deeper architectural context, read alongside:
+The groups are declared in `starter.manifest.json`, which also records the
+starter version your project came from. Keep that file.
 
-- [README.md](../README.md)
-- [AGENTS.md](../AGENTS.md)
-- [.junie/guidelines.md](../.junie/guidelines.md)
-- [docs/architecture.md](architecture.md)
-- [docs/how-to-extend.md](how-to-extend.md)
-- [docs/what-not-to-do.md](what-not-to-do.md)
-
----
-
-## What to preserve
-
-These pieces are reusable infrastructure. You should usually keep them and
-extend them, not delete them.
-
-- **App shell / provider composition** — `src/containers/App.tsx`
-- **App-state-based routing** — `src/containers/AppRouter.tsx`,
-  `src/containers/Router/`
-- **Layouts** — `src/containers/Layouts/MainLayout`,
-  `src/containers/Layouts/FlowLayout`, `src/containers/Layouts/Shells`,
-  `src/containers/Layouts/common`
-- **Auth adapter boundary** — `src/auth/types.ts`, `src/auth/AuthProvider.tsx`,
-  `src/auth/useAuth.ts`
-- **API / query layer** — `src/api/queryKeys.ts`,
-  `src/globals/react-query.ts`, the `src/api/` folder convention
-- **Theme & design tokens** — `src/styles/`
-- **Component primitives** — `src/components/`
-- **i18n setup** — `src/i18n/index.ts`, `src/i18n/provider.tsx`
-- **Flow layout system** — `src/flows/fromPaths.ts`, `src/hooks/useFlowNav`,
-  `src/hooks/useFlowProgress`
-- **Animation system** — see [docs/animation-system.md](animation-system.md)
-- **Route guards / navigation context** — `src/guards/`,
-  `src/globals/context/NavigationContext`
-- **Validation scripts** — `scripts/i18n-check.cjs`, `pnpm validate`
-- **CI workflows** — `.github/` (if present)
-- **AI guardrails / docs** — `AGENTS.md`, `.junie/AGENTS.md`,
-  `.junie/guidelines.md`, `docs/`
-- **Testing setup** — `src/test/`, `vitest.config.ts`
-- **Build & tooling config** — `vite.config.ts`, `tsconfig*.json`,
-  `eslint.config.js`, `commitlint.config.cjs`, `capacitor.config.ts`
-
----
-
-## What is demo-only
-
-These files exist only to demonstrate the architecture. They are safe to
-replace or remove when adopting the boilerplate.
-
-- **Demo auth adapter** — `src/auth/mockAdapter.ts`
-- **Demo API** — `src/api/demoApi.ts`, `src/api/demoApi.test.ts`
-- **Demo SignIn view** — `src/views/guest/SignIn/`
-- **Demo Welcome (guest) view** — `src/views/guest/Welcome/`
-- **Demo Dashboard (authenticated) view** — `src/views/user/Dashboard/`
-- **Demo onboarding flow screens** —
-  `src/views/onboarding/Welcome/`,
-  `src/views/onboarding/Preferences/`,
-  `src/views/onboarding/Complete/`
-- **Demo Hub / Starter Overview** —
-  `src/views/guest/DemoHub/`. Registered as the **default guest index**
-  route (`/`) and also at the alias `/demo` in `src/views/guest/index.tsx`.
-  Path constants live in `src/globals/paths.ts` (`guestPaths.demo`).
-  This is the first screen users see when opening the app locally
-- **Demo i18n keys** — `signIn.*`, `dashboard.*`, `onboarding.*`,
-  `welcome.*`, `demoHub.*`, and `app.welcome.demoHubCta` entries inside
-  `src/i18n/locales/en-US.json`, `es-ES.json`, `pt-BR.json`, `pseudo.json`
-- **Demo tests** — `src/auth/AuthProvider.test.tsx`,
-  `src/views/onboarding/__tests__/`, and any test that asserts demo copy
-
-Do **not** treat the surrounding folders (`src/auth/`, `src/api/`,
-`src/views/`, `src/i18n/`) as disposable. They are infrastructure.
-
----
-
-## Mixed areas
-
-Some files contain both reusable infrastructure and demo wiring. In these,
-keep the structure and replace only the demo-specific bits.
-
-- **`src/auth/AuthProvider.tsx`** — Preserve the provider, context, and
-  adapter boundary. Replace the import that wires `mockAdapter` with your
-  real adapter.
-- **`src/containers/AppRouter.tsx`** — Preserve the Guest/Onboarding/User
-  router switch. Replace the routes inside each router as your views change.
-- **`src/containers/Router/index.tsx`** — Preserve route composition.
-  Update only the route paths/elements that point to demo views.
-- **`src/i18n/locales/*.json`** — Preserve the file format, supported
-  locales, and shared keys (e.g. `common.*`, `errors.*`, layout keys).
-  Remove only demo screen keys and add your own.
-- **`src/views/index.tsx` files (`guest`, `user`, `onboarding`)** — Preserve
-  the barrel/router pattern; swap which views are exported.
-- **`src/flows/fromPaths.ts`** — Preserve the helper. The
-  `onboarding`-specific path list it powers is the demo flow; you can
-  replace its inputs without rewriting the helper.
-- **`README.md`** — Preserve sections about architecture, validation, and
-  tooling. Replace the title, project name, description, and the Features
-  list to match your product.
-- **`.env.example`** — Preserve variable names you reuse; add/remove ones
-  specific to your real backend.
-- **`index.html`** — Preserve the mount point and Vite wiring; replace
-  title and metadata.
-
----
-
-## Make it yours: quick path
-
-A focused checklist. Use exact paths.
-
-1. **Rename the app**
-   - `package.json` → `name`, `description`
-   - `index.html` → `<title>`, meta tags
-   - `README.md` → top heading and intro
-   - `.env.example` → `VITE_APP_NAME`
-2. **Update package metadata** — `package.json` (`version`, `license`,
-   `repository`, `author` if you add one).
-3. **Update `index.html`** — title, description, theme-color, favicon in
-   `public/`.
-4. **Update README project name** — replace
-   "React 19 + Vite + TypeScript Boilerplate" with your app name.
-   Keep the architecture and validation sections.
-5. **Configure `.env`** — `cp .env.example .env`, then set
-   `VITE_API_BASE_URL`, auth variables, and feature flags.
-6. **Replace demo auth adapter** — implement `AuthAdapter` from
-   `src/auth/types.ts` in a new file (e.g. `src/auth/myAdapter.ts`),
-   wire it inside `src/auth/AuthProvider.tsx`, then delete
-   `src/auth/mockAdapter.ts`.
-7. **Replace demo API** — add real modules under `src/api/` and extend
-   `src/api/queryKeys.ts`. Delete `src/api/demoApi.ts` and
-   `src/api/demoApi.test.ts` once nothing imports them.
-8. **Decide whether to keep onboarding/flows** — if not needed, remove
-   `src/views/onboarding/` and the Onboarding branch in
-   `src/containers/AppRouter.tsx`. Keep `src/containers/Layouts/FlowLayout`
-   and `src/flows/fromPaths.ts` for future flows.
-9. **Replace demo views** — replace
-   `src/views/guest/SignIn`, `src/views/guest/Welcome`, and
-   `src/views/user/Dashboard` with your real views. Keep the
-   `src/views/{guest,user}/index.tsx` barrel and the layout wrappers.
-10. **Prune or update i18n keys** — remove demo keys from every file in
-    `src/i18n/locales/` and add your own. Run `pnpm i18n:check`.
-11. **Update theme/branding** — edit tokens in `src/styles/` (theme,
-    colors, typography). Do not hardcode visual values in components.
-12. **Run validation** — `pnpm validate` and `pnpm build`.
-13. **Configure GitHub Pages** (Optional) — If deploying to a GitHub Pages project site (`https://<owner>.github.io/<repo-name>/`), the boilerplate is already hardened for this. Ensure the `deploy-pages.yml` workflow is active. For `public/` assets, use `import.meta.env.BASE_URL` as a prefix.
-
----
-
-## Replace auth
-
-The boilerplate exposes auth through an adapter boundary. Keep it.
-
-**Keep**
-
-- `src/auth/types.ts` — the `AuthAdapter` and `User` contracts.
-- `src/auth/AuthProvider.tsx` — provider + context.
-- `src/auth/useAuth.ts` — the only consumption point for views.
-
-**Replace**
-
-- `src/auth/mockAdapter.ts` with your real adapter (Auth0, Firebase,
-  Cognito, custom backend, etc.). Implement every method from
-  `AuthAdapter`.
-
-**Do not**
-
-- Read tokens directly from `localStorage`/cookies in views.
-- Import your auth SDK outside `src/auth/`.
-- Bypass `useAuth` to access user state.
-- Add a parallel auth provider.
-
-**Validation / tests**
-
-- Update or replace `src/auth/AuthProvider.test.tsx` to use your adapter
-  (or a test double of it).
-- Re-run `pnpm test:run` and `pnpm validate`.
-
----
-
-## Replace API / query
-
-The data layer is centralized so views never call `fetch` directly.
-
-**Where API functions should live**
-
-- All HTTP calls under `src/api/<resource>.ts` (e.g. `src/api/users.ts`).
-- React Query is configured in `src/globals/react-query.ts`. Do not create
-  a second `QueryClient`.
-
-**How query keys should be extended**
-
-- Add new keys to `src/api/queryKeys.ts`. Keep them grouped by resource
-  and namespaced (e.g. `users.list`, `users.detail(id)`).
-
-**How to avoid scattered fetch calls**
-
-- Views call `useQuery`/`useMutation` referencing functions from
-  `src/api/`, never `fetch`/`axios` inline.
-- Shared error handling and retries belong in the query client config or
-  in the API module, not in views.
-
-Once unused, remove `src/api/demoApi.ts` and `src/api/demoApi.test.ts`.
-
----
-
-## Remove or replace onboarding flow
-
-Decide first: do you need a multi-step onboarding?
-
-**Inspect**
-
-- Routes: `src/containers/AppRouter.tsx`, `src/containers/Router/index.tsx`
-- Flow screens: `src/views/onboarding/{Welcome,Preferences,Complete}/`
-- Flow helpers: `src/flows/fromPaths.ts`, `src/hooks/useFlowNav`,
-  `src/hooks/useFlowProgress`
-- Layout: `src/containers/Layouts/FlowLayout`
-
-**Tests to update**
-
-- `src/views/onboarding/__tests__/` — remove if onboarding is gone, or
-  rewrite for your new flow.
-- `src/containers/AppRouter.test.tsx` — update assertions that reference
-  onboarding routes.
-
-**i18n**
-
-- Remove `onboarding.*` keys from every `src/i18n/locales/*.json` file.
-- Run `pnpm i18n:check`.
-
-**Keep regardless** the FlowLayout, `useFlowNav`, `useFlowProgress`, and
-`fromPaths` helpers — they are infrastructure and useful for any future
-multi-step flow.
-
----
-
-## Demo Hub / Starter Overview
-
-The boilerplate ships with a small in-app **Demo Hub** that helps new users
-discover the available demo patterns on first run. It lives at:
-
-- Default guest route: `/` renders the Demo Hub directly so it is the
-  first screen users see when opening the app locally.
-- Alias route: `/demo` (also resolves to the Demo Hub for backward
-  compatibility with existing links/tests).
-- View: `src/views/guest/DemoHub/index.tsx`.
-- Test: `src/views/guest/DemoHub/__tests__/DemoHub.test.tsx` plus the
-  default-route regression in
-  `src/containers/AppRouter.defaultRoute.test.tsx`.
-- Path constant: `guestPaths.demo` in `src/globals/paths.ts`.
-- Route registration: `src/views/guest/index.tsx`.
-- i18n keys: `demoHub.*` in every file under `src/i18n/locales/`.
-
-The page is intentionally lightweight: a heading, a short intro, a few
-cards linking to existing demo routes, and a removal note pointing back
-to this guide. It does not introduce a new layout system, design-system
-gallery, or extra dependency.
-
-### When to remove
-
-Remove the Demo Hub once the demo views it links to are gone, or once
-your real product views have replaced them.
-
-### How to remove
-
-1. Delete the folder `src/views/guest/DemoHub/`.
-2. In `src/views/guest/index.tsx`, point the `paths.index` route to your
-   own landing component (or to `Welcome`) and remove both the `DemoHub`
-   import and the alias route entry that uses `paths.demo`.
-3. In `src/globals/paths.ts`, remove the `demo: '/demo'` entry from
-   `guestPaths`.
-4. Remove the `demoHub.*` block from every file in
-   `src/i18n/locales/`.
-5. Delete `src/containers/AppRouter.defaultRoute.test.tsx` (or rewrite it
-   to assert your own landing page).
-6. Run `pnpm i18n:check` to confirm locale parity, then
-   `pnpm validate` and `pnpm build`.
-
-The Demo Hub is also flagged with `// DEMO:` comments at every touch
-point so AI agents can locate and remove it deterministically.
-
----
-
-## Replace example views
-
-The demo views are SignIn, guest Welcome, user Dashboard, and the three
-onboarding screens.
-
-When replacing them:
-
-- **Keep** the layout wrappers (`MainLayout`, `FlowLayout`, `Shells`),
-  the `views/{guest,user,onboarding}/index.tsx` barrels, and provider
-  access via `useAuth` + React Query.
-- **Replace** the screen components themselves and any demo-specific
-  styled components inside them.
-- **Do not** introduce a second routing system or duplicate provider.
-
-If you remove a view, also remove its route in
-`src/containers/Router/index.tsx` (or the matching sub-router) and its
-i18n keys.
-
----
-
-## Update i18n
-
-- **Source locale**: `en-US` (`src/i18n/locales/en-US.json`).
-- **Supported locales**: `en-US`, `es-ES`, `pt-BR`, plus `pseudo`
-  (for visual i18n debugging).
-- All locales must contain the same keys; add new keys to every file or
-  the i18n check will fail.
-- Use `useTranslation` / `t()` inside views. Do not hardcode user-facing
-  copy.
-- **Check command**: `pnpm i18n:check`.
-
-After deleting demo screens, prune their keys from all locale files and
-re-run the check.
-
----
-
-## Update theme / branding
-
-- App name: `package.json#name`, `index.html` `<title>`,
-  `.env.example` `VITE_APP_NAME`.
-- Colors, typography, spacing, radii: `src/styles/` design tokens and
-  themes.
-- Fonts and global styles: `src/styles/`.
-- Logos / favicons: `public/` and `src/assets/`.
-
-Avoid hardcoded colors, hex values, font sizes, or spacing inside
-components — always go through theme tokens.
-
----
-
-## Optional platform / deployment setup
-
-- Mobile (Capacitor): see [docs/mobile-capacitor.md](mobile-capacitor.md).
-- Animation system: see [docs/animation-system.md](animation-system.md).
-- Architecture & flows: see [docs/architecture.md](architecture.md) and
-  [docs/flows.md](flows.md).
-
-This guide intentionally does not duplicate those documents.
-
----
-
-## Validation checklist
-
-After adoption changes, run:
+## 1. Remove starter-only code
 
 ```bash
+pnpm adopt --remove-demo --dry-run     # shows every file, region, script and i18n key it would touch
+pnpm adopt --remove-demo               # add --remove-reference when you are ready
 pnpm validate
-pnpm build
 ```
 
-`pnpm validate` runs Prettier, ESLint, Stylelint, TypeScript, the i18n
-key check, and Vitest.
+`adopt` deletes the files listed in the manifest, removes package scripts and
+i18n keys, regenerates the pseudo-locale, rewrites the marked regions in
+shared files and formats the result. Marked regions look like this:
 
-When auth, API, or routes change, also run focused tests, e.g.:
-
-```bash
-pnpm test:run src/auth
-pnpm test:run src/api
-pnpm test:run src/containers
+```ts
+// starter:demo-start
+guest: mergeRoutes(GuestRoutes, DEMO_MODE ? createDemoGuestRoutes() : []),
+// starter:demo-else
+// guest: GuestRoutes,
+// starter:demo-end
 ```
 
----
+Lines between `start` and `end` are removed; lines after `else` are
+uncommented instead. Every marker is validated before anything is written,
+so a broken marker stops the command with nothing changed. It works with or
+without git (it reads `git ls-files` when available).
 
-## AI-agent notes
+After `--remove-demo`: the only auth provider is `session`, `pnpm start` uses
+the session adapter against the MSW mock backend (`src/mocks/session.ts`),
+and the guest start page is Welcome.
 
-When an AI agent helps with adoption:
+`pnpm adopt:check` proves all of this on temporary copies (demo only,
+reference only, both) against typecheck, lint, Stylelint, Prettier, i18n,
+architecture fixtures, unit tests with coverage floors, and a production
+build with inspection. Run it after changing demo/reference code.
 
-- Preserve infrastructure (auth provider, API layer, router, theme,
-  layouts, i18n, flow system).
-- Replace demo code through the documented boundaries (`AuthAdapter`,
-  `src/api/` + `queryKeys`, layout wrappers, theme tokens).
-- Do not create parallel auth, API, theme, or router systems.
-- Do not introduce domain-specific examples (e.g. `Order`, `Patient`,
-  `Checkout`) into the boilerplate itself; those belong in the adopted
-  app.
-- Cross-reference [AGENTS.md](../AGENTS.md),
-  [.junie/guidelines.md](../.junie/guidelines.md), and
-  [docs/what-not-to-do.md](what-not-to-do.md) before making changes.
+## 2. Wire the real backend
 
----
+1. **API URL**: set `VITE_API_BASE_URL` in your deployment environment
+   ([configuration](configuration.md)). Production builds fail without it.
+2. **Auth**: keep the cookie-session adapter if your API matches its
+   contract, or add your provider
+   ([recipe](recipes/real-auth-adapter.md)).
+3. **Mocks**: keep MSW handlers in sync with the real API while you develop,
+   or set `VITE_ENABLE_MOCKS=false` in `.env.development` to develop against
+   a running backend.
 
-## Common mistakes
+## 3. Replace the placeholder screens
 
-- Deleting providers (`AuthProvider`, `QueryClientProvider`,
-  `ThemeProvider`, `I18nProvider`) instead of replacing the adapter
-  beneath them.
-- Calling `fetch`/`axios` directly inside views instead of going through
-  `src/api/` + React Query.
-- Hardcoding user-facing copy instead of adding i18n keys.
-- Hardcoding colors, spacing, or font sizes instead of using theme
-  tokens.
-- Removing `FlowLayout` or `useFlowNav` when only the demo onboarding
-  screens should change.
-- Forgetting to update tests and i18n keys after deleting demo routes.
-- Introducing a second router, second `QueryClient`, or second theme
-  source of truth.
+- **Sign in** (`views/guest/SignIn`): keep the form pattern (`logic.ts` with
+  React Hook Form + Zod, `Field`), change fields/copy for your auth.
+- **Welcome** (`views/guest/Welcome`) and **Dashboard**
+  (`views/user/Dashboard`): replace freely; signed-in pages compose
+  `UserPageLayout` (navigation, sign-out, page `h1`).
+- **Onboarding** (`views/onboarding`): replace the steps with yours, keeping
+  the flow contract ([flows.md](flows.md)). If you need no onboarding, keep
+  the group but return users with `needsOnboarding: false` from your adapter
+  (the onboarding group is then never mounted); delete the step views and
+  their copy when nothing links to them.
+- **Features**: add them with `pnpm gen feature <name>`
+  ([recipe](recipes/new-feature.md)); remove the reference feature when it
+  no longer helps.
+
+## 4. Make it look and read like your product
+
+- `VITE_APP_NAME` (title, header, Welcome heading).
+- Theme tokens in `src/styles/themes` (colors, typography, spacing, radii,
+  focus, feedback). Components use tokens only.
+- Fonts in `src/assets/fonts` + `src/styles/fonts.ts`.
+- Locales in `src/i18n/locales` (keep every locale in sync; `pnpm i18n:check`).
+- Capacitor is optional ([mobile-capacitor.md](mobile-capacitor.md)); remove
+  `@capacitor/core` and `capacitor.config.ts` if you do not need it.
+
+## 5. Deploy
+
+`pnpm build` with your environment, then `pnpm check:build` (budgets, no
+demo/mock code). Static hosting works anywhere thanks to hash routing; for a
+sub-path set `BASE_PATH=/sub/`. Add a deployment workflow for your host — the
+removed GitHub Pages workflow only published the starter's demo.
+
+## Checklist
+
+- [ ] `pnpm adopt --remove-demo` (and later `--remove-reference`)
+- [ ] `VITE_API_BASE_URL`, auth provider and session contract confirmed
+- [ ] Placeholder screens replaced, copy translated
+- [ ] Theme, fonts, app name updated; README describes your product
+- [ ] `pnpm verify` passes (or at least `pnpm validate`, `pnpm build`,
+      `pnpm check:build`)
+- [ ] `starter.manifest.json` kept for provenance
+
+## For AI agents
+
+Read `AGENTS.md`. Never delete demo/reference code by hand: use
+`pnpm adopt` so markers, scripts, copy and tests stay consistent. When you
+add code that should disappear with a group, list its files in
+`starter.manifest.json` or wrap its references in markers, then run
+`pnpm adopt:check`.

@@ -1,77 +1,51 @@
-name: Deploy app to GitHub Pages
+# Publishes the starter's live preview: an explicitly labelled DEMO build
+# (demo auth signs in anyone; the API is MSW inside the browser). An adopted
+# product deploys `pnpm build` with its real configuration instead — see
+# docs/adoption.md and docs/configuration.md.
+name: Deploy demo to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
-      GITHUB_PAGES: "true"
+      GITHUB_PAGES: 'true'
       GITHUB_PAGES_REPO: ${{ github.event.repository.name }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run validation
-        run: pnpm validate
-
-      - name: Build
-        run: pnpm build
-
-      - name: Verify static build
-        run: |
-          test -d dist
-          test -f dist/index.html
-          cp dist/index.html dist/404.html
-
-      - name: Inspect built asset paths
-        run: |
-          echo "Repository: ${{ github.repository }}"
-          echo "Repo name: ${{ github.event.repository.name }}"
-          test -f dist/index.html
-          echo "First asset references:"
-          grep -E 'src="/|href="/' dist/index.html | head -20 || true
-          echo "Output root:"
-          ls -la dist
-          echo "Assets:"
-          ls -la dist/assets | head || true
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm validate
+      - name: Build demo (GitHub Pages base path)
+        run: pnpm build:demo
+      - name: Inspect the build (demo profile, base path)
+        run: pnpm check:build:demo --base "/${GITHUB_PAGES_REPO}/"
+      - run: cp dist/index.html dist/404.html
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
   deploy:
-    runs-on: ubuntu-latest
     needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

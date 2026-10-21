@@ -1,9 +1,7 @@
-import { ReactNode } from 'react';
-import { SpaceColorKeys } from 'utils/colors';
-import { Theme } from 'styles/themes/types';
+import { type ReactNode } from 'react';
 
-import { Props as LayoutHeaderProps } from '../common/LayoutHeader/types';
-import { Props as LayoutFooterProps } from '../common/LayoutFooter/types';
+import { type Props as LayoutHeaderProps } from '../common/LayoutHeader/types';
+import { type Props as LayoutFooterProps } from '../common/LayoutFooter/types';
 import type { FlowLayoutHeaderProps } from './FlowLayoutHeader';
 import type { Props as FlexProps } from 'components/Flex/types';
 
@@ -15,21 +13,16 @@ export type FooterProp = LayoutFooterProps | React.ReactElement;
 
 export type Props = {
   children: ReactNode;
-  banner?: ReactNode;
-  header?: HeaderProp;
-  footer?: FooterProp;
-  showHeader?: boolean;
-  showFooter?: boolean;
-  backgroundColor?: SpaceColorKeys<'surface'>;
-  gradient?: keyof Theme['gradients'];
-  maxWidth?: number;
-  paddingBlock?: string;
-  paddingInline?: string;
-  contentInnerClassName?: string; // applies to the inner padded wrapper (LayoutTransitionContainer)
-  fixedFooter?: boolean;
-  stickyHeader?: boolean;
-  contentFlexProps?: Omit<FlexProps, 'children'>;
-  contentRef?: React.Ref<HTMLDivElement>;
-  scrollLockForMs?: number;
-  scrollInitiallyLocked?: boolean;
+  banner?: ReactNode | undefined;
+  header?: HeaderProp | undefined;
+  footer?: FooterProp | undefined;
+  showHeader?: boolean | undefined;
+  showFooter?: boolean | undefined;
+  paddingBlock?: string | undefined;
+  paddingInline?: string | undefined;
+  contentInnerClassName?: string | undefined; // applies to the inner padded wrapper (LayoutTransitionContainer)
+  contentFlexProps?: Omit<FlexProps, 'children'> | undefined;
+  contentRef?: React.Ref<HTMLDivElement> | undefined;
+  scrollLockForMs?: number | undefined;
+  scrollInitiallyLocked?: boolean | undefined;
 };

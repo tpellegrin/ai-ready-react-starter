@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 import { useNavigation } from 'globals/context/NavigationContext';
-import { TransitionType } from 'containers/Layouts/common/LayoutTransitionContainer/types';
+import { type TransitionType } from 'utils/transitions/config';
 import { prefersReducedMotion } from 'utils/transitions/config';
 
 /**

@@ -2,7 +2,7 @@ import React from 'react';
 
 import { getAccessibleDuration } from 'utils/transitions/config';
 import { useFlipLayout } from 'hooks/useFlipLayout';
-import { UseFlipLayoutOptions } from 'hooks/useFlipLayout/types';
+import { type UseFlipLayoutOptions } from 'hooks/useFlipLayout/types';
 
 import { _LayoutPositionAnimatorRoot } from './styles';
 import type { Props } from './types';

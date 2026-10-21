@@ -1,7 +1,7 @@
 {
   "app": {
     "welcome": {
-      "title": "Bienvenido a React Boilerplate",
+      "title": "Bienvenido a {name}",
       "body": "Esta es una plantilla limpia para su próximo proyecto.",
       "cta": "Comenzar",
       "demoHubCta": "Ver resumen del starter"
@@ -27,6 +27,10 @@
       "onboarding": {
         "title": "Flujo de onboarding",
         "description": "Layout de flujo multi-paso con progreso y navegación atrás/adelante."
+      },
+      "resources": {
+        "title": "Funcionalidad de referencia: Recursos",
+        "description": "Ruta protegida, consultas y mutaciones, formularios validados, diálogos y notificaciones. Al iniciar sesión vuelves a esta página."
       }
     },
     "removal": {
@@ -66,12 +70,16 @@
       "title": "Panel",
       "welcome": "¡Bienvenido, {name}!",
       "description": "Este es un panel de usuario protegido.",
+      "resourcesTitle": "Funcionalidad de referencia",
+      "resourcesBody": "Explora la funcionalidad Recursos para ver el recorrido completo de datos y formularios.",
+      "resourcesLink": "Abrir recursos"
+    },
+    "nav": {
+      "label": "Principal",
+      "dashboard": "Panel",
+      "resources": "Recursos",
       "signOut": "Cerrar sesión",
-      "appStatus": {
-        "title": "Estado de la aplicación (ejemplo de React Query)",
-        "loading": "Cargando estado...",
-        "error": "Error al cargar el estado."
-      }
+      "language": "Idioma"
     }
   },
   "errors": {
@@ -83,8 +91,30 @@
       "title": "Página no encontrada",
       "description": "No pudimos encontrar la página que solicitó."
     },
+    "outdated": {
+      "title": "Hay una versión más reciente",
+      "description": "No se pudo cargar una parte de la aplicación. Recarga la página para obtener la versión más reciente."
+    },
     "actions": {
-      "goHome": "Volver al inicio"
+      "goHome": "Volver al inicio",
+      "reload": "Recargar página"
+    },
+    "session": {
+      "title": "No pudimos comprobar tu sesión",
+      "description": "Revisa tu conexión e inténtalo de nuevo."
+    },
+    "startup": "No se pudo iniciar la aplicación. Recarga la página o contacta con soporte.",
+    "api": {
+      "network": "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+      "aborted": "La solicitud se canceló.",
+      "unexpectedResponse": "El servidor envió una respuesta que no pudimos leer. Inténtalo más tarde.",
+      "unauthorized": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
+      "forbidden": "No tienes permiso para hacer eso.",
+      "notFound": "No encontramos lo que buscabas.",
+      "conflict": "Otra persona cambió esto. Actualiza e inténtalo de nuevo.",
+      "validation": "Algunos datos requieren tu atención.",
+      "rateLimited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "server": "Algo salió mal por nuestra parte. Inténtalo de nuevo."
     }
   },
   "common": {
@@ -94,12 +124,22 @@
       "save": "Guardar",
       "cancel": "Cancelar",
       "submit": "Enviar",
-      "tryAgain": "Intentar de nuevo"
+      "tryAgain": "Intentar de nuevo",
+      "close": "Cerrar",
+      "dismiss": "Descartar notificación"
     },
     "labels": {
       "email": "Correo electrónico",
       "password": "Contraseña",
       "name": "Nombre"
+    },
+    "status": {
+      "loading": "Cargando…",
+      "saving": "Guardando…"
+    },
+    "notifications": {
+      "region": "Notificaciones ({hotkey})",
+      "item": "Notificación"
     }
   },
   "flow": {
@@ -112,8 +152,86 @@
       },
       "a11y": {
         "back": "Volver",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "progress": "Progreso"
       }
+    }
+  },
+  "forms": {
+    "errors": {
+      "required": "Este campo es obligatorio.",
+      "tooLong": "Es demasiado largo.",
+      "invalid": "Introduce un valor válido.",
+      "email": "Introduce un correo electrónico válido.",
+      "integer": "Introduce un número entero.",
+      "min": "El valor es demasiado pequeño.",
+      "max": "El valor es demasiado grande.",
+      "taken": "Ya está en uso.",
+      "summary": "Corrige los campos resaltados."
+    }
+  },
+  "resources": {
+    "title": "Recursos",
+    "intro": "Una funcionalidad de referencia: listar, filtrar, crear, editar y eliminar mediante el cliente HTTP, esquemas en tiempo de ejecución y la API simulada.",
+    "filter": {
+      "label": "Estado",
+      "all": "Todos",
+      "active": "Activos",
+      "archived": "Archivados"
+    },
+    "list": {
+      "label": "Recursos",
+      "loading": "Cargando recursos…",
+      "errorTitle": "No pudimos cargar los recursos",
+      "emptyTitle": "Todavía no hay recursos",
+      "emptyFilteredTitle": "Ningún recurso coincide con este filtro",
+      "emptyDescription": "Crea un recurso para verlo aquí."
+    },
+    "item": {
+      "quantity": "Cantidad: {count}",
+      "updated": "Actualizado el {date}",
+      "featured": "Destacado",
+      "category": {
+        "general": "General",
+        "internal": "Interno",
+        "external": "Externo"
+      },
+      "status": {
+        "active": "Activo",
+        "archived": "Archivado"
+      }
+    },
+    "actions": {
+      "create": "Nuevo recurso",
+      "edit": "Editar",
+      "editItem": "Editar {name}",
+      "delete": "Eliminar",
+      "deleteItem": "Eliminar {name}",
+      "save": "Guardar"
+    },
+    "form": {
+      "createTitle": "Nuevo recurso",
+      "editTitle": "Editar recurso",
+      "name": "Nombre",
+      "nameHint": "Hasta 60 caracteres. Debe ser único.",
+      "description": "Descripción",
+      "descriptionHint": "Opcional, hasta 280 caracteres.",
+      "category": "Categoría",
+      "quantity": "Cantidad",
+      "quantityHint": "Un número entero de 0 a 9.999.",
+      "status": "Estado",
+      "featured": "Destacado",
+      "featuredHint": "Mostrar este recurso primero en la lista."
+    },
+    "confirmDelete": {
+      "title": "¿Eliminar este recurso?",
+      "description": "\"{name}\" se eliminará de forma permanente.",
+      "confirm": "Eliminar recurso"
+    },
+    "toast": {
+      "created": "Recurso creado",
+      "updated": "Recurso guardado",
+      "deleted": "Recurso eliminado"
     }
   }
 }

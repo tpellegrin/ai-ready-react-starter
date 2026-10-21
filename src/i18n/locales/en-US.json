@@ -1,7 +1,7 @@
 {
   "app": {
     "welcome": {
-      "title": "Welcome to React Boilerplate",
+      "title": "Welcome to {name}",
       "body": "This is a clean starter template for your next project.",
       "cta": "Get Started",
       "demoHubCta": "View starter overview"
@@ -27,6 +27,10 @@
       "onboarding": {
         "title": "Onboarding Flow",
         "description": "Multi-step flow layout with progress and back/next behavior."
+      },
+      "resources": {
+        "title": "Reference feature: Resources",
+        "description": "Protected route, query/mutation layer, validated forms, dialogs and toasts. Sign-in keeps you on this page."
       }
     },
     "removal": {
@@ -66,12 +70,16 @@
       "title": "Dashboard",
       "welcome": "Welcome, {name}!",
       "description": "This is a protected user dashboard.",
-      "signOut": "Sign Out",
-      "appStatus": {
-        "title": "App Status (React Query Example)",
-        "loading": "Loading status...",
-        "error": "Error loading status."
-      }
+      "resourcesTitle": "Reference feature",
+      "resourcesBody": "Browse the Resource feature to see the full data and form path.",
+      "resourcesLink": "Open resources"
+    },
+    "nav": {
+      "label": "Main",
+      "dashboard": "Dashboard",
+      "resources": "Resources",
+      "signOut": "Sign out",
+      "language": "Language"
     }
   },
   "errors": {
@@ -83,8 +91,30 @@
       "title": "Page not found",
       "description": "We couldn’t find the page you requested."
     },
+    "outdated": {
+      "title": "A newer version is available",
+      "description": "Part of the application could not be loaded. Reload the page to get the latest version."
+    },
     "actions": {
-      "goHome": "Go back home"
+      "goHome": "Go back home",
+      "reload": "Reload page"
+    },
+    "session": {
+      "title": "We couldn't check your session",
+      "description": "Check your connection and try again."
+    },
+    "startup": "The application could not start. Please reload the page or contact support.",
+    "api": {
+      "network": "We couldn't reach the server. Check your connection and try again.",
+      "aborted": "The request was cancelled.",
+      "unexpectedResponse": "The server sent a response we could not read. Please try again later.",
+      "unauthorized": "Your session has expired. Please sign in again.",
+      "forbidden": "You don't have permission to do that.",
+      "notFound": "We couldn't find what you were looking for.",
+      "conflict": "Someone else changed this. Refresh and try again.",
+      "validation": "Some details need your attention.",
+      "rateLimited": "Too many requests. Please wait a moment and try again.",
+      "server": "Something went wrong on our side. Please try again."
     }
   },
   "common": {
@@ -94,12 +124,22 @@
       "save": "Save",
       "cancel": "Cancel",
       "submit": "Submit",
-      "tryAgain": "Try again"
+      "tryAgain": "Try again",
+      "close": "Close",
+      "dismiss": "Dismiss notification"
     },
     "labels": {
       "email": "Email",
       "password": "Password",
       "name": "Name"
+    },
+    "status": {
+      "loading": "Loading…",
+      "saving": "Saving…"
+    },
+    "notifications": {
+      "region": "Notifications ({hotkey})",
+      "item": "Notification"
     }
   },
   "flow": {
@@ -112,8 +152,86 @@
       },
       "a11y": {
         "back": "Go back",
-        "close": "Close"
+        "close": "Close",
+        "progress": "Progress"
       }
+    }
+  },
+  "forms": {
+    "errors": {
+      "required": "This field is required.",
+      "tooLong": "This is too long.",
+      "invalid": "Enter a valid value.",
+      "email": "Enter a valid email address.",
+      "integer": "Enter a whole number.",
+      "min": "The value is too small.",
+      "max": "The value is too large.",
+      "taken": "This is already in use.",
+      "summary": "Please fix the highlighted fields."
+    }
+  },
+  "resources": {
+    "title": "Resources",
+    "intro": "A reference feature: list, filter, create, edit and delete through the HTTP client, runtime schemas and the mock API.",
+    "filter": {
+      "label": "Status",
+      "all": "All",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "list": {
+      "label": "Resources",
+      "loading": "Loading resources…",
+      "errorTitle": "We couldn't load resources",
+      "emptyTitle": "No resources yet",
+      "emptyFilteredTitle": "No resources match this filter",
+      "emptyDescription": "Create a resource to see it here."
+    },
+    "item": {
+      "quantity": "Quantity: {count}",
+      "updated": "Updated {date}",
+      "featured": "Featured",
+      "category": {
+        "general": "General",
+        "internal": "Internal",
+        "external": "External"
+      },
+      "status": {
+        "active": "Active",
+        "archived": "Archived"
+      }
+    },
+    "actions": {
+      "create": "New resource",
+      "edit": "Edit",
+      "editItem": "Edit {name}",
+      "delete": "Delete",
+      "deleteItem": "Delete {name}",
+      "save": "Save"
+    },
+    "form": {
+      "createTitle": "New resource",
+      "editTitle": "Edit resource",
+      "name": "Name",
+      "nameHint": "Up to 60 characters. Must be unique.",
+      "description": "Description",
+      "descriptionHint": "Optional, up to 280 characters.",
+      "category": "Category",
+      "quantity": "Quantity",
+      "quantityHint": "A whole number from 0 to 9,999.",
+      "status": "Status",
+      "featured": "Featured",
+      "featuredHint": "Show this resource first in the list."
+    },
+    "confirmDelete": {
+      "title": "Delete this resource?",
+      "description": "\"{name}\" will be permanently deleted.",
+      "confirm": "Delete resource"
+    },
+    "toast": {
+      "created": "Resource created",
+      "updated": "Resource saved",
+      "deleted": "Resource deleted"
     }
   }
 }

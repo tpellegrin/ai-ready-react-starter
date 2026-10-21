@@ -13,25 +13,17 @@
  * - This component is presentation-only; it does not manage routing or data.
  */
 
-import { ReactNode } from 'react';
-import { SpaceColorKeys } from 'utils/colors';
-import { Theme } from 'styles/themes/types';
+import { type ReactNode } from 'react';
+import { type SpaceColorKeys } from 'styles/colors';
+import { type Theme } from 'styles/themes/types';
 
 export interface Props {
   children: ReactNode;
-  backgroundColor?: SpaceColorKeys<'surface'>;
-  gradient?: keyof Theme['gradients'];
-  header?: ReactNode;
-  footer?: ReactNode;
-  stickyHeader?: boolean;
-  fixedFooter?: boolean;
-  /**
-   * @deprecated Apply paddings on the inner wrapper (LayoutTransitionContainer) using scrollerInner.
-   */
-  paddingBlock?: string;
-  /**
-   * @deprecated Apply paddings on the inner wrapper (LayoutTransitionContainer) using scrollerInner.
-   */
-  paddingInline?: string;
-  contentClassName?: string;
+  backgroundColor?: SpaceColorKeys<'surface'> | undefined;
+  gradient?: keyof Theme['gradients'] | undefined;
+  header?: ReactNode | undefined;
+  footer?: ReactNode | undefined;
+  stickyHeader?: boolean | undefined;
+  fixedFooter?: boolean | undefined;
+  contentClassName?: string | undefined;
 }

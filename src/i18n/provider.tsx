@@ -1,5 +1,11 @@
 import React from 'react';
-import { setLocale as setI18nLocale, t as baseT, type Locale } from 'i18n';
+import {
+  setLocale as setI18nLocale,
+  translate,
+  type I18nKey,
+  type Locale,
+  type TranslationParams,
+} from 'i18n';
 
 // Single source of truth key for persistence
 const LANG_KEY = 'app.lang';
@@ -11,7 +17,8 @@ const SUPPORTED: Locale[] = ['en-US', 'pt-BR', 'es-ES'];
 export type I18nContext = {
   lang: Locale;
   setLang: (l: Locale) => void;
-  t: typeof baseT;
+  /** Bound to `lang`: a new function per locale, so memoized copy updates. */
+  t: (key: I18nKey, params?: TranslationParams) => string;
 };
 
 const Ctx = React.createContext<I18nContext | null>(null);
@@ -21,7 +28,9 @@ function detectInitial(): Locale {
   try {
     const saved = localStorage.getItem(LANG_KEY) as Locale | null;
     if (saved && SUPPORTED.includes(saved)) return saved;
-  } catch {}
+  } catch {
+    // Storage can be unavailable (privacy modes, blocked cookies): fall through.
+  }
 
   // 2) Optional: navigator hint
   if (typeof navigator !== 'undefined') {
@@ -47,11 +56,14 @@ function detectInitial(): Locale {
  * User-facing copy should always be accessed via the `t` function provided here.
  * Avoid hardcoding strings in JSX; always add them to the locale JSON files.
  */
-export const I18nProvider: React.FC<React.PropsWithChildren> = ({
-  children,
-}) => {
+export const I18nProvider: React.FC<
+  React.PropsWithChildren<{
+    /** Start in this locale (stories, tests) instead of detecting it. */
+    initialLocale?: Locale | undefined;
+  }>
+> = ({ children, initialLocale }) => {
   const [lang, setLangState] = React.useState<Locale>(() => {
-    const initial = detectInitial();
+    const initial = initialLocale ?? detectInitial();
     setI18nLocale(initial);
     return initial;
   });
@@ -65,24 +77,28 @@ export const I18nProvider: React.FC<React.PropsWithChildren> = ({
     // Persist to storage
     try {
       localStorage.setItem(LANG_KEY, lang);
-    } catch {}
+    } catch {
+      // Storage unavailable: the choice still applies for this session.
+    }
 
     // Mirror to cookie for future SSR compatibility
     try {
       document.cookie = `lang=${lang}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`;
-    } catch {}
+    } catch {
+      // Cookies can be blocked; the cookie is only a hint for future SSR.
+    }
 
     // Update document language metadata
-    try {
-      document.documentElement.lang = lang;
-      document.documentElement.setAttribute('data-lang', lang);
-    } catch {}
+    document.documentElement.lang = lang;
+    document.documentElement.setAttribute('data-lang', lang);
   }, [lang]);
 
-  const value = React.useMemo(
-    () => ({ lang, setLang, t: baseT }),
-    [lang, setLang],
+  const t = React.useCallback(
+    (key: I18nKey, params?: TranslationParams) => translate(lang, key, params),
+    [lang],
   );
+
+  const value = React.useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };

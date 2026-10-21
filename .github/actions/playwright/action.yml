@@ -1,0 +1,16 @@
+name: Set up Playwright Chromium
+description: Restores the browser cache for the locked Playwright version and installs Chromium with its system dependencies.
+runs:
+  using: composite
+  steps:
+    - name: Read Playwright version
+      id: version
+      shell: bash
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v6
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.version.outputs.version }}
+    - name: Install Chromium
+      shell: bash
+      run: pnpm exec playwright install --with-deps chromium

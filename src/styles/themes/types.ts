@@ -121,6 +121,17 @@ export type ColorsStatus = {
   neutral: string;
 };
 
+/**
+ * Feedback colors with verified contrast (see docs/ui/foundation.md):
+ * - `text` is for messages on base/raised surfaces (≥ 4.5:1), e.g. field errors.
+ * - `surface` + `border` style alerts; their body text uses text.primary.
+ * - `border` meets 3:1 against base/raised surfaces and the matching `surface`.
+ */
+export type ColorsFeedback = Record<
+  'error' | 'success' | 'info' | 'warning',
+  { surface: string; border: string; text: string }
+>;
+
 export type Colors = {
   text: ColorsText;
   surface: ColorsSurface;
@@ -130,6 +141,7 @@ export type Colors = {
   accent: ColorsAccent;
   transparent: ColorsTransparent;
   status: ColorsStatus;
+  feedback: ColorsFeedback;
 };
 
 export type Theme = {
@@ -199,6 +211,11 @@ export type Theme = {
     lg: string;
     xl: string;
     xxl: string;
+  };
+  /** Keyboard focus indicator (WCAG 2.4.7). Use via the `focusRing` mixin. */
+  focus: {
+    ringWidth: string;
+    ringOffset: string;
   };
   zIndexes: ZIndexes;
 };

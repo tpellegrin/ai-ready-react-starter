@@ -1,4 +1,4 @@
-import { paths } from 'globals/paths';
+import { flowPaths } from 'globals/paths';
 
 // Reserved keys that should not be treated as step keys inside a flow object
 const RESERVED_KEYS = new Set<string>(['_meta', '__order']);
@@ -6,33 +6,31 @@ const RESERVED_KEYS = new Set<string>(['_meta', '__order']);
 // Generic Flow Definition based on paths
 // Note: This expects a 'flow' object in paths if you want to use these helpers
 export type FlowId = string;
-type FlowDef = Record<string, string | string[]>;
+type FlowDef = Readonly<Record<string, string | readonly string[]>>;
 type FlowStepKey = string;
+
+const FLOWS: Readonly<Record<FlowId, FlowDef>> = flowPaths;
 
 const isFlowStepKey = (key: string): key is FlowStepKey =>
   !RESERVED_KEYS.has(key);
 
-const getFlowDef = (flowId: FlowId): FlowDef => {
-  const flow = (paths as unknown as { flow: Record<string, FlowDef> }).flow;
-  return flow ? flow[flowId] : {};
-};
+const getFlowDef = (flowId: FlowId): FlowDef => FLOWS[flowId] ?? {};
 
 export const isFlowId = (value: string): value is FlowId =>
-  !!(paths as unknown as { flow?: Record<string, unknown> }).flow?.[value];
+  Object.hasOwn(FLOWS, value);
 
 /**
  * Parse the current pathname into flowId and step SEGMENT as it appears in the URL.
  * Expected shape: /flow/:flowId/:step
  */
 export function parseFlowFromPath(pathname: string): {
-  flowId?: string;
-  step?: string;
+  flowId?: string | undefined;
+  step?: string | undefined;
 } {
-  const parts = pathname.split('/').filter(Boolean);
-  if (parts[0] !== 'flow' || parts.length < 3)
+  const [prefix, flowId, step] = pathname.split('/').filter(Boolean);
+  if (prefix !== 'flow' || !flowId || !step) {
     return { flowId: undefined, step: undefined };
-  const flowId = parts[1];
-  const step = parts[2];
+  }
   return { flowId, step };
 }
 
@@ -41,8 +39,8 @@ export function parseFlowFromPath(pathname: string): {
  */
 export function getOrderedStepKeys(flowId: FlowId): FlowStepKey[] {
   const def = getFlowDef(flowId);
-  const explicit = def.__order as string[];
-  if (explicit?.length) return [...explicit];
+  const explicit = def.__order;
+  if (typeof explicit !== 'string' && explicit?.length) return [...explicit];
   return Object.keys(def).filter(isFlowStepKey);
 }
 
@@ -66,10 +64,7 @@ function getKeyByPathSegment(
 /**
  * Normalize a provided step segment to a step KEY.
  */
-function ensureStepKey(
-  flowId: FlowId,
-  stepOrSegment: string,
-): FlowStepKey | string {
+function ensureStepKey(flowId: FlowId, stepOrSegment: string): FlowStepKey {
   const steps = getOrderedStepKeys(flowId);
   if (steps.includes(stepOrSegment)) {
     return stepOrSegment;
@@ -101,6 +96,7 @@ export function getPrevStepPath(flowId: FlowId, step: string): string | null {
   const { steps, idx } = getStepIndex(flowId, step);
   if (idx <= 0) return null;
   const prevKey = steps[idx - 1];
+  if (!prevKey) return null;
   const def = getFlowDef(flowId);
   const path = def[prevKey];
   return typeof path === 'string' ? path : null;
@@ -125,8 +121,7 @@ export function getNextApplicableStepPath<T = unknown>(
   if (idx < 0) return null;
   const def = getFlowDef(flowId);
 
-  for (let i = idx + 1; i < steps.length; i++) {
-    const key = steps[i];
+  for (const key of steps.slice(idx + 1)) {
     const guard = guards?.[key];
     if (guard && state && !guard(state)) continue;
     const path = def[key];
