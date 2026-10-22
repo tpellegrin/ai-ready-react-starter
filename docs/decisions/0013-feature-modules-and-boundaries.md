@@ -33,3 +33,14 @@ Without enforcement, shared components imported app containers and the
 
 See `docs/architecture/boundaries.md`. Change the matrix together with a
 fixture that proves the new rule.
+
+## Amendment (2026-10): component elements and browser APIs
+
+- Shared components and layouts are boundary elements of their own (one per
+  folder with an index); from outside, only the index may be imported. Why:
+  components reached into each other's styles and helpers, so internals
+  could not change safely.
+- `auth` may import `i18n` (error messages), like `data`.
+- Network and storage APIs are allow-listed (`eslint.config.js`), and
+  protected rules cannot be disabled inline (`starter/no-protected-suppression`,
+  re-checked by `arch:check` with inline config off).

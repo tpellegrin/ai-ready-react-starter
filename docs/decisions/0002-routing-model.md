@@ -33,3 +33,12 @@ Add new routes to the appropriate route array in `src/views/guest/index.tsx`, `s
 - Lazy routes carry their error boundary in the loaded module; failed chunk
   loads offer a reload.
 - Details: `docs/routing.md`.
+
+## Amendment (2026-10): routing waits for the session; destinations
+
+- Nothing is routed until the session is known; a failed start shows
+  `SessionUnavailable` and a retry keeps the current router.
+- A destination behind required onboarding is kept (validated against the
+  user routes) and opened when onboarding completes
+  (`src/containers/routing/routerSession.ts`); the hash router factory
+  applies a start path that differs from the URL.

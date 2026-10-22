@@ -14,11 +14,23 @@ session state**. See ADR [0002](decisions/0002-routing-model.md).
 | `user`       | signed in and onboarded                    | `src/views/user/index.tsx`       |
 
 The group is **derived during render** from auth state (`deriveRouterType`);
-nothing calls "switch router" imperatively. When the session changes (sign
-in, sign out, onboarding completed, session expired), the next group's
-router starts at the path where the previous one ended, so destinations
-survive the swap. `src/containers/routing/routeTable.ts` assembles the
-groups (plus demo routes in demo builds).
+nothing calls "switch router" imperatively. Nothing is routed until the
+session is known: while it is restored the app shows `AppLoading`, and if
+the check fails, `SessionUnavailable` with a retry (a retry keeps the current
+router instead of swapping groups). When the session changes (sign in, sign
+out, onboarding completed, session expired), the next group's router starts
+at the path where the previous one ended, so destinations survive the swap.
+`src/containers/routing/routeTable.ts` assembles the groups (plus demo routes
+in demo builds); the swap rules are a pure function,
+`src/containers/routing/routerSession.ts`.
+
+**Destinations behind required onboarding.** When signing in (or restoring
+a session) leads to the onboarding group, the user's destination — a safe
+`returnTo` for a user route, or the protected path that was opened — is kept
+aside; onboarding starts at its first step, and completing it opens that
+destination, query included. Unsafe or unknown destinations are dropped
+(home instead); signing out discards it. It lives in memory, so a full
+reload during onboarding falls back to home afterwards.
 
 Because a group simply does not contain other groups' routes, guests cannot
 render user routes at all: route-level protection is structural. It is still
@@ -38,7 +50,7 @@ policy (`containers/routing/unknownRoutePolicy.ts`):
 `returnTo` is validated against the target group's own route patterns
 (`globals/navigation/returnTo.ts`): absolute, protocol-relative and
 backslash URLs and unknown paths are ignored, so it is not an open redirect.
-Example: a guest opens `/#/resources?status=archived`, signs in, and lands on
+Example: a guest opens `/#/items?status=archived`, signs in, and lands on
 exactly that URL; signing out on a protected page leads to sign-in for that
 page.
 
@@ -81,8 +93,10 @@ export const UserRoutes: RouteType[] = [
 `createHashRouter` keeps routing independent of the server: any static host
 works, including GitHub Pages sub-paths, with no rewrite rules. Only asset
 URLs depend on the base path ([configuration.md](configuration.md#base-path)).
-If you move to path-based URLs, configure your host to serve `index.html`
-for unknown paths and replace `hashRouterFactory` in `AppRouter` — the route
+`hashRouterFactory` moves the URL to a group's start path when it differs
+(a kept destination). If you move to path-based URLs, configure your host to
+serve `index.html` for unknown paths and replace `hashRouterFactory` in
+`AppRouter` with a factory that honors `initialPath` the same way — the route
 tables do not change.
 
 ## Tests
@@ -93,11 +107,13 @@ and an injected auth adapter:
 ```tsx
 renderApp({
   routes,
-  initialPath: '/resources',
+  initialPath: '/items',
   adapter: createFakeAuthAdapter({ user: testUser }),
 });
 ```
 
 Routing behavior is covered by `src/containers/*.test.tsx`,
-`src/containers/routing/*.test.tsx`, `src/guards/RequireAuth.test.tsx` and the
-Playwright suite (deep links, refresh, back/forward, protected-route denial).
+`src/containers/routing/*.test.tsx` (including the flow contract and the
+router-session rules), `src/guards/RequireAuth.test.tsx` and the Playwright
+suite (deep links, refresh, destinations through onboarding,
+protected-route denial).

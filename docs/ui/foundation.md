@@ -1,10 +1,48 @@
 # UI foundation
 
-A small set of domain-neutral primitives in `src/components/`, styled with
-theme tokens (`src/styles/themes`). Every interactive primitive has stories
-with interaction and axe checks (`pnpm test:storybook`); browse them with
-`pnpm storybook`. Primitives receive data through props — they never fetch
-(lint-enforced).
+A small set of opinionated, domain-neutral building blocks in
+`src/components/` (plus the layouts in `src/containers/Layouts`), styled with
+theme tokens (`src/styles/themes`). Applications are composed from them.
+Interactive components have stories with interaction and axe checks in
+Chromium and WebKit (`pnpm test:storybook`); browse them with
+`pnpm storybook`, or list the public APIs with `pnpm catalog`. Building
+blocks receive data through props — they never fetch (lint-enforced).
+
+## Public components and internals
+
+There are two levels, and the `_` prefix tells them apart at a glance:
+
+| Level                       | Example                                               | Where                              | Who uses it                                                          |
+| --------------------------- | ----------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------- |
+| **Public component**        | `Button`, `Text`, `Field`, `MainLayout`, `ButtonBase` | the component folder's `index.tsx` | anyone: `import { Button } from 'components/Button'`                 |
+| **Internal styled element** | `_ButtonRoot`, `_ButtonLabel`                         | that folder's `styles.ts`          | only the owning component (`import { _ButtonRoot } from './styles'`) |
+
+Rules (enforced: `pnpm lint`, fixtures in `pnpm arch:check`):
+
+- A component folder's **index is its public API**. Export there,
+  explicitly, what other code may use — components, their prop types
+  (`export type { BoxProps }`), and deliberate shared pieces (the dialog
+  family exports `useReturnFocus` and its surface styles for
+  `ConfirmDialog`). Everything else in the folder is private: `styles.ts`,
+  `logic.ts`, helpers, `types.ts`.
+- **Internal styled elements** are named `_<Component><Part>` after the
+  folder (`_ButtonRoot` in `Button/styles.ts`), live in `styles.ts`, and are
+  imported by name from `./styles` — never as a namespace, never from
+  another folder, never re-exported. A `_` element that others need should
+  become a public component with its own folder.
+- **Compose, don't reach in.** To change how another component looks in
+  your context, extend its public component (`styled(Text)` as
+  `_ButtonLabel` in your own `styles.ts`) or use its props — do not target
+  its internals.
+- **Local wrappers are fine** for structure or layout that existing
+  components do not express: a `_<YourComponent>Grid` in your own
+  `styles.ts`, on theme tokens. Do not rebuild existing controls (buttons,
+  fields, dialogs) — you would lose their accessibility, states and
+  behavior.
+
+Before adding a building block: `pnpm catalog <name or prop>` lists what
+exists (props, stories, usages). See [Adding a building
+block](#adding-a-building-block).
 
 ## Inventory
 
@@ -32,9 +70,8 @@ with interaction and axe checks (`pnpm test:storybook`); browse them with
 Every region that loads data renders exactly one of: **loading**
 (`LoadingState`, optionally `Skeleton`), **error** (`ErrorState` with retry),
 **empty** (`EmptyState` with a next step) or **content**. Derive the state
-during render from the query (see
-`features/resources/components/ResourceCatalog/logic.ts`); do not mirror it
-into component state.
+during render from the query (see the `logic.ts` of any generated
+`<Feature>Panel`); do not mirror it into component state.
 
 ## Forms
 
@@ -63,8 +100,15 @@ React Hook Form + Zod, with fields composed through `Field`:
 - Validate on submit, focus the first invalid field, keep `Button isPending`
   focusable while saving, and never clear user input on failure.
 
-`features/resources/components/ResourceForm` is the complete example
-(client and server validation, numeric input, radio group, checkbox).
+`src/views/guest/SignIn` is the minimal example (schema, `logic.ts`,
+form-level errors).
+
+<!-- starter:reference-start -->
+
+`ResourceForm` in the reference feature is the complete one (client and
+server validation, numeric input, radio group, checkbox).
+
+<!-- starter:reference-end -->
 
 ## Accessibility rules
 
@@ -82,9 +126,20 @@ React Hook Form + Zod, with fields composed through `Field`:
 These are checked by axe in story tests and e2e tests; the rest (focus
 order, announcements) is covered by interaction tests.
 
-## Adding a primitive
+## Adding a building block
 
-Only when two features need it and no existing primitive fits. Put it in
-`src/components/<Name>/` (`index.tsx`, `styles.ts`, `types.ts`, plus
-`logic.ts` if it has meaningful logic), keep it domain-neutral, use theme
-tokens, add a story with a play function, and a unit test for any logic.
+Only when the need is real and nothing fits: check `pnpm catalog`, the
+inventory above, and whether a variant or composition of an existing
+component would do. Then:
+
+- **Shared** (used, or clearly reusable, across features):
+  `pnpm gen component <Name>` → `src/components/<Name>` with `index.tsx`,
+  `styles.ts` and a story with a play function (axe runs on it). Keep it
+  domain-neutral.
+- **For one feature:** `pnpm gen component <Name> --feature <name>` → inside
+  the feature, with a unit test; it is exported from the feature's
+  `index.ts` only if views need it.
+- Add `--logic` when it has meaningful state, derived values or handlers
+  (`logic.ts` + a unit test); simple presentational components have none.
+
+The generator refuses a name that already exists in `src/components`.
