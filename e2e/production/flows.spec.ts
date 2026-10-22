@@ -109,7 +109,7 @@ test('a failed sign-out keeps the (still valid) session and explains; retrying s
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Welcome to React Starter' }),
+    page.getByRole('heading', { level: 1, name: /^Welcome to / }),
   ).toBeVisible();
   expect(api.calls.signOut).toBe(2);
 });

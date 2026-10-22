@@ -39,7 +39,6 @@ const projectRoot = path.resolve(
 );
 const manifestPath = path.join(projectRoot, 'starter.manifest.json');
 const localesDir = path.join(projectRoot, 'src/i18n/locales');
-// Markdown is excluded on purpose: docs describe the markers.
 const TEXT_FILE =
   /\.(?:[cm]?[jt]sx?|json|ya?ml|html|css)$|(?:^|\/)\.env(?:\.[\w.-]+)?$/;
 
@@ -89,13 +88,20 @@ const isDeleted = (/** @type {string} */ file) =>
 
 // --- Plan marker edits (validate everything before writing) -------------
 const MARKER = /starter:([a-z]+)-(start|else|end)\b/;
+/**
+ * In Markdown only whole-line HTML comments are markers
+ * (`<!-- starter:reference-start -->` … `<!-- starter:reference-end -->`,
+ * no else branch), so docs can show the code markers as examples.
+ */
+const MARKDOWN_MARKER = /^\s*<!--\s*starter:([a-z]+)-(start|end)\s*-->\s*$/;
 
 /**
  * @param {string} file
  * @param {string} text
+ * @param {RegExp} marker
  * @returns {{ text: string, regions: number }}
  */
-const applyMarkers = (file, text) => {
+const applyMarkers = (file, text, marker) => {
   const lines = text.split('\n');
   /** @type {string[]} */
   const output = [];
@@ -104,7 +110,7 @@ const applyMarkers = (file, text) => {
   let regions = 0;
 
   lines.forEach((line, index) => {
-    const match = MARKER.exec(line);
+    const match = marker.exec(line);
     const where = `${file}:${index + 1}`;
     if (match) {
       const [, group = '', phase] = match;
@@ -163,11 +169,16 @@ const applyMarkers = (file, text) => {
 /** @type {Array<{ file: string, text: string, regions: number }>} */
 const edits = [];
 for (const file of trackedFiles) {
-  if (isDeleted(file) || !TEXT_FILE.test(file) || file === 'scripts/adopt.mjs')
+  const markdown = file.endsWith('.md');
+  if (
+    isDeleted(file) ||
+    (!markdown && !TEXT_FILE.test(file)) ||
+    file === 'scripts/adopt.mjs'
+  )
     continue;
   const text = fs.readFileSync(path.join(projectRoot, file), 'utf8');
   if (!text.includes('starter:')) continue;
-  const result = applyMarkers(file, text);
+  const result = applyMarkers(file, text, markdown ? MARKDOWN_MARKER : MARKER);
   if (result.regions) edits.push({ file, ...result });
 }
 
