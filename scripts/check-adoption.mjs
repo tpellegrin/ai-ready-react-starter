@@ -10,6 +10,11 @@
  * continued with the product's own code from scripts/adoption/product: a
  * create form and a browser journey through the generated page (loading,
  * content, empty and error states; validation, a failed save, a retry).
+ * `design` proves image-guided composition after both removals: two pages
+ * built from reference images (scripts/adoption/design), their plans,
+ * captures, regression baselines and a deliberate regression
+ * (scripts/lib/design/proof.mjs); its evidence is copied to
+ * reports/adoption/design/<time>/.
  * For each scenario it checks that:
  *
  * - --dry-run writes nothing, and the real run leaves no markers or paths of
@@ -21,7 +26,7 @@
  *   tests and the generator check. The nested verify skips its own adoption
  *   check (and the dependency audit), so verification never recurses.
  *
- *   node scripts/check-adoption.mjs [--scenario demo|reference|all|product] [--keep]
+ *   node scripts/check-adoption.mjs [--scenario demo|reference|all|product|design] [--keep]
  */
 import {
   copyFileSync,
@@ -34,6 +39,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { runDesignProof } from './lib/design/proof.mjs';
 import { copyConflicts, listFiles, mergeCopy } from './lib/generator.mjs';
 import { createReport, createWorkspace } from './lib/workspace.mjs';
 
@@ -108,12 +114,24 @@ const PRODUCT_OVERLAY = path.join(projectRoot, 'scripts/adoption/product');
 /** The generated page, kept out of the initial bundle by `check:build`. */
 const PRODUCT_LAZY_MODULE = 'src/views/user/Invoices/index.tsx';
 
-/** @type {Record<string, { flags: string[], product?: boolean }>} */
+/**
+ * `design` is the image-guided composition proof (scripts/lib/design/
+ * proof.mjs): both groups removed, two pages built from reference images.
+ * Its nested verify skips what it cannot affect and the other scenarios
+ * already run (the Storybook suites, the generator check), so the browser
+ * matrix is not repeated for nothing.
+ * @type {Record<string, { flags: string[], product?: boolean, design?: boolean, skip?: string[] }>}
+ */
 const SCENARIOS = {
   demo: { flags: ['--remove-demo'] },
   reference: { flags: ['--remove-reference'] },
   all: { flags: ['--remove-demo', '--remove-reference'] },
   product: { flags: ['--remove-demo', '--remove-reference'], product: true },
+  design: {
+    flags: ['--remove-demo', '--remove-reference'],
+    design: true,
+    skip: ['storybook', 'storybook-build', 'generator'],
+  },
 };
 const selected = values.scenario?.length
   ? values.scenario
@@ -127,6 +145,27 @@ const manifest =
   );
 
 const report = createReport('adopt:check');
+
+/**
+ * Branding: every environment names the product.
+ * @param {ReturnType<typeof createWorkspace>} workspace
+ */
+const brand = (workspace) => {
+  for (const file of [
+    '.env.development',
+    '.env.production',
+    '.env.test',
+    '.env.storybook',
+    '.env.example',
+  ]) {
+    const target = path.join(workspace.dir, file);
+    const text = readFileSync(target, 'utf8');
+    writeFileSync(
+      target,
+      text.replace(/^VITE_APP_NAME=.*$/m, `VITE_APP_NAME=${PRODUCT_NAME}`),
+    );
+  }
+};
 
 /**
  * Applies PRODUCT_OVERLAY to an adopted copy whose generators have run.
@@ -293,25 +332,20 @@ for (const name of selected) {
       JSON.stringify(adoption),
     );
 
+    if (scenario.product || scenario.design) brand(workspace);
+    if (scenario.design) {
+      const { evidence } = runDesignProof({
+        projectRoot,
+        workspace,
+        report,
+        name,
+      });
+      console.log(`[adopt:check] ${name}: evidence copied to ${evidence}`);
+    }
     if (scenario.product) {
       for (const [label, command, args] of PRODUCT_STEPS) {
         const result = workspace.run(command, args, { quiet: true });
         report.step(`${name}: ${label}`, result.status === 0, result.output);
-      }
-      // Branding: every environment names the product.
-      for (const file of [
-        '.env.development',
-        '.env.production',
-        '.env.test',
-        '.env.storybook',
-        '.env.example',
-      ]) {
-        const target = path.join(workspace.dir, file);
-        const text = readFileSync(target, 'utf8');
-        writeFileSync(
-          target,
-          text.replace(/^VITE_APP_NAME=.*$/m, `VITE_APP_NAME=${PRODUCT_NAME}`),
-        );
       }
       applyProductOverlay(workspace, name);
       report.step(
@@ -335,10 +369,17 @@ for (const name of selected) {
     // check itself (STARTER_NESTED_VERIFY) — never verify → adopt:check →
     // verify.
     console.log(`[adopt:check] ${name}: running the adopted project's verify…`);
-    const verified = workspace.run('node', ['scripts/verify.mjs'], {
-      quiet: true,
-      env: { STARTER_NESTED_VERIFY: '1' },
-    });
+    const verified = workspace.run(
+      'node',
+      [
+        'scripts/verify.mjs',
+        ...(scenario.skip ?? []).flatMap((id) => ['--skip', id]),
+      ],
+      {
+        quiet: true,
+        env: { STARTER_NESTED_VERIFY: '1' },
+      },
+    );
     const summary = verified.output.slice(
       verified.output.lastIndexOf('[verify]'),
     );

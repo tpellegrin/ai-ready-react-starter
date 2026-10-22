@@ -1,0 +1,100 @@
+{
+  "expenses": {
+    "summary": {
+      "label": "Resumen",
+      "total": "Total",
+      "pending": "Pendientes",
+      "approved": "Aprobados"
+    },
+    "filter": {
+      "label": "Estado",
+      "all": "Todos",
+      "pending": "Pendientes",
+      "approved": "Aprobados"
+    },
+    "list": {
+      "emptyTitle": "Aún no hay gastos",
+      "emptyDescription": "Los gastos que añadas aparecen aquí.",
+      "filteredTitle": "No hay gastos con este estado",
+      "filteredDescription": "Elige otro estado para ver más."
+    },
+    "actions": {
+      "add": "Añadir gasto"
+    },
+    "item": {
+      "meta": "{category} · {date}"
+    },
+    "category": {
+      "meals": "Comidas",
+      "travel": "Viajes",
+      "software": "Software",
+      "other": "Otros"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "approved": "Aprobado"
+    },
+    "form": {
+      "title": "Añadir gasto",
+      "description": "Descripción",
+      "amount": "Importe",
+      "category": "Categoría",
+      "save": "Guardar",
+      "created": "Gasto añadido"
+    }
+  },
+  "user": {
+    "expenses": {
+      "intro": "Controla y aprueba lo que gasta el equipo."
+    }
+  },
+  "guest": {
+    "pricing": {
+      "title": "Precios sencillos para equipos que crecen",
+      "intro": "Envía facturas, controla los gastos y cobra antes. Cambia o cancela tu plan cuando quieras.",
+      "signIn": "Iniciar sesión",
+      "billing": {
+        "legend": "Periodo de facturación",
+        "monthly": "Mensual",
+        "yearly": "Anual",
+        "yearlyHint": "2 meses gratis"
+      },
+      "plans": {
+        "label": "Planes",
+        "popular": "El más popular",
+        "perMonth": "/ mes",
+        "perUserMonth": "/ usuario / mes",
+        "free": "Gratis para siempre",
+        "billedMonthly": "Facturación mensual",
+        "billedYearly": "Facturación anual: {total} por usuario",
+        "starter": {
+          "name": "Starter",
+          "description": "Para autónomos que envían sus primeras facturas.",
+          "cta": "Empezar gratis",
+          "feature1": "5 facturas al mes",
+          "feature2": "1 usuario",
+          "feature3": "Soporte por correo"
+        },
+        "team": {
+          "name": "Team",
+          "description": "Para equipos pequeños que facturan y gastan juntos.",
+          "cta": "Empezar la prueba gratis",
+          "feature1": "Facturas ilimitadas",
+          "feature2": "Hasta 10 usuarios",
+          "feature3": "Control de gastos",
+          "feature4": "Soporte prioritario"
+        },
+        "business": {
+          "name": "Business",
+          "description": "Para empresas con aprobaciones y muchas personas.",
+          "cta": "Contactar con ventas",
+          "feature1": "Todo lo de Team",
+          "feature2": "Usuarios ilimitados",
+          "feature3": "Flujos de aprobación",
+          "feature4": "Gestor de cuenta dedicado"
+        }
+      },
+      "footnote": "Precios sin IVA. Los planes anuales se facturan una vez al año."
+    }
+  }
+}

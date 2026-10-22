@@ -1,0 +1,295 @@
+<!doctype html>
+<!--
+  High-fidelity mock of a public pricing page, as a designer might hand it
+  over: its own type, colors and controls, not the app's theme. Original
+  work for this repository (MIT). Rendered at 1280 px (scale 1) and 390 px
+  (scale 2); the detail crop is the "Team" card at scale 2.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pricing mock</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f5f6fa;
+        color: #111827;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 72px;
+        padding: 0 64px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .mark {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: #3056d3;
+      }
+      .nav a {
+        color: #3056d3;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .hero {
+        max-width: 760px;
+        margin: 48px auto 0;
+        padding: 0 24px;
+        text-align: center;
+      }
+      h1 {
+        margin: 0;
+        font-size: 44px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+      .lead {
+        margin: 16px 0 0;
+        color: #4b5563;
+        font-size: 18px;
+        line-height: 1.5;
+      }
+      .toggle {
+        display: flex;
+        width: max-content;
+        margin: 36px auto 0;
+        padding: 4px;
+        border-radius: 999px;
+        background: #e5e7eb;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .toggle span {
+        padding: 10px 22px;
+        border-radius: 999px;
+        color: #4b5563;
+      }
+      .toggle .on {
+        background: #fff;
+        box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+        color: #111827;
+      }
+      .toggle small {
+        color: #15803d;
+        font-weight: 600;
+      }
+      .plans {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 32px;
+        max-width: 1080px;
+        margin: 48px auto 0;
+        padding: 0 24px;
+      }
+      .card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 32px;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        background: #fff;
+      }
+      .card.popular {
+        border: 2px solid #3056d3;
+        box-shadow: 0 12px 32px rgb(48 86 211 / 14%);
+      }
+      .badge {
+        position: absolute;
+        top: -14px;
+        left: 32px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: #3056d3;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .desc {
+        min-height: 44px;
+        margin: 8px 0 0;
+        color: #6b7280;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+      .price {
+        margin: 24px 0 0;
+        font-size: 44px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .price small {
+        color: #6b7280;
+        font-size: 16px;
+        font-weight: 400;
+        letter-spacing: 0;
+      }
+      .billing {
+        min-height: 20px;
+        margin: 4px 0 0;
+        color: #6b7280;
+        font-size: 14px;
+      }
+      .cta {
+        display: block;
+        margin-top: 24px;
+        padding: 13px 0;
+        border: 1px solid #c7cdd8;
+        border-radius: 10px;
+        color: #111827;
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+      }
+      .popular .cta {
+        border-color: #3056d3;
+        background: #3056d3;
+        color: #fff;
+      }
+      ul {
+        margin: 24px 0 0;
+        padding: 24px 0 0;
+        border-top: 1px solid #eef0f4;
+        list-style: none;
+      }
+      li {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+        color: #374151;
+        font-size: 15px;
+      }
+      li::before {
+        content: '✓';
+        color: #3056d3;
+        font-weight: 700;
+      }
+      .note {
+        margin: 40px auto 64px;
+        color: #6b7280;
+        font-size: 14px;
+        text-align: center;
+      }
+      @media (max-width: 600px) {
+        .nav {
+          height: 60px;
+          padding: 0 20px;
+        }
+        .hero {
+          margin-top: 28px;
+          padding: 0 20px;
+        }
+        h1 {
+          font-size: 32px;
+        }
+        .lead {
+          font-size: 16px;
+        }
+        .toggle {
+          width: calc(100% - 40px);
+          justify-content: center;
+        }
+        .toggle span {
+          flex: 1;
+          text-align: center;
+        }
+        .plans {
+          grid-template-columns: 1fr;
+          gap: 28px;
+          margin-top: 36px;
+          padding: 0 20px;
+        }
+        .card {
+          padding: 24px;
+        }
+        .badge {
+          left: 24px;
+        }
+        .desc {
+          min-height: 0;
+        }
+        .note {
+          padding: 0 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="brand"><span class="mark"></span>Ledgerly</div>
+      <a href="#">Sign in</a>
+    </header>
+    <section class="hero">
+      <h1>Simple pricing for growing teams</h1>
+      <p class="lead">
+        Send invoices, track expenses and get paid faster. Change or cancel your
+        plan at any time.
+      </p>
+    </section>
+    <div class="toggle">
+      <span class="on">Monthly</span>
+      <span>Yearly <small>2 months free</small></span>
+    </div>
+    <section class="plans">
+      <article class="card">
+        <h2>Starter</h2>
+        <p class="desc">For freelancers sending their first invoices.</p>
+        <p class="price">€0 <small>/ month</small></p>
+        <p class="billing">Free forever</p>
+        <span class="cta">Start for free</span>
+        <ul>
+          <li>5 invoices a month</li>
+          <li>1 user</li>
+          <li>Email support</li>
+        </ul>
+      </article>
+      <article class="card popular">
+        <span class="badge">Most popular</span>
+        <h2>Team</h2>
+        <p class="desc">For small teams that invoice and spend together.</p>
+        <p class="price">€12 <small>/ user / month</small></p>
+        <p class="billing">Billed monthly</p>
+        <span class="cta">Start free trial</span>
+        <ul>
+          <li>Unlimited invoices</li>
+          <li>Up to 10 users</li>
+          <li>Expense tracking</li>
+          <li>Priority support</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h2>Business</h2>
+        <p class="desc">For companies with approvals and many people.</p>
+        <p class="price">€29 <small>/ user / month</small></p>
+        <p class="billing">Billed monthly</p>
+        <span class="cta">Contact sales</span>
+        <ul>
+          <li>Everything in Team</li>
+          <li>Unlimited users</li>
+          <li>Approval workflows</li>
+          <li>Dedicated account manager</li>
+        </ul>
+      </article>
+    </section>
+    <p class="note">Prices exclude VAT. Yearly plans are billed once a year.</p>
+  </body>
+</html>
