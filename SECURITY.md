@@ -29,6 +29,13 @@ projects own their copy and should apply the same policy).
   anyone, so it requires `VITE_DEMO_MODE=true`, which production builds of a
   product must not set. `pnpm check:build` fails a production build that
   contains demo, mock, MSW, test or story code, or source maps.
+- **Design references and plans stay out of builds.** Screenshots in
+  `design/<task>/references` can contain private data: keep such images out
+  of git (or the task folder out of the repository) and remember that
+  capture reports copy them into `reports/design/`. `pnpm check:build`
+  fails a build that includes anything from `design/` or `reports/`, and
+  composition plans are data: no field is executed, and reports escape
+  their text.
 - **Untrusted input is parsed, not cast:** API responses (Zod schemas in the
   HTTP client), redirect targets (`returnTo` allow-list against known
   routes) and storage reads.

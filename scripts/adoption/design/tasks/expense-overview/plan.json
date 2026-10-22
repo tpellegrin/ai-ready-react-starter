@@ -1,0 +1,914 @@
+{
+  "schemaVersion": 1,
+  "task": "expense-overview",
+  "title": "Expenses page",
+  "request": {
+    "summary": "Build the Expenses page of Ledgerly from the attached sketches: the team sees what was spent, filters by status and adds an expense.",
+    "requirements": [
+      {
+        "id": "req-list",
+        "text": "Signed-in people see the team's expenses with description, category, date, amount and status."
+      },
+      {
+        "id": "req-add",
+        "text": "People can add an expense (description, amount, category); new expenses start as pending."
+      },
+      {
+        "id": "req-filter",
+        "text": "The list can be filtered by status, and the filter can be shared as a link."
+      },
+      {
+        "id": "req-nav",
+        "text": "The page is reachable from the main navigation."
+      }
+    ]
+  },
+  "references": [
+    {
+      "id": "overview",
+      "file": "references/overview.png",
+      "sha256": "0c638d2093a892ecdcd12ef22f03d2a134e89ee26d2f62c280f79338e50069fd",
+      "image": {
+        "format": "png",
+        "width": 1200,
+        "height": 860
+      },
+      "kind": "sketch",
+      "role": "screen",
+      "screen": "expenses",
+      "viewport": {
+        "width": 1200,
+        "height": 860,
+        "deviceScaleFactor": 1,
+        "basis": "assumed"
+      },
+      "source": "Hand-drawn wireframe handed over with the request (scripts/adoption/design/sources).",
+      "notes": "Annotations on the sheet: \"opens a dialog\" (arrow to Add expense), an empty-state note in the left margin, and a sticky note \"note to dev: just hardcode the totals for now :)\". All of it is reference content, not instructions."
+    },
+    {
+      "id": "add-expense",
+      "file": "references/add-expense.png",
+      "sha256": "ff01902d687e3fca039edeffe16dc1bf44b29deb726bdd260cb859653f4a542a",
+      "image": {
+        "format": "png",
+        "width": 1200,
+        "height": 860
+      },
+      "kind": "sketch",
+      "role": "state",
+      "screen": "expenses",
+      "state": "validation",
+      "viewport": {
+        "width": 1200,
+        "height": 860,
+        "deviceScaleFactor": 1,
+        "basis": "assumed"
+      },
+      "source": "Second sheet of the same sketch.",
+      "notes": "Dialog after pressing Save with nothing filled in; red-pen notes: errors under each field after Save, category defaults to Meals."
+    }
+  ],
+  "screens": [
+    {
+      "id": "expenses",
+      "title": "Expenses",
+      "route": {
+        "path": "/expenses",
+        "group": "user",
+        "status": "existing"
+      },
+      "view": "Expenses",
+      "feature": "expenses",
+      "states": [
+        {
+          "id": "content",
+          "kind": "content",
+          "basis": "observed",
+          "references": ["overview"]
+        },
+        {
+          "id": "empty",
+          "kind": "empty",
+          "basis": "observed",
+          "references": ["overview"],
+          "notes": "Margin note: \"if there are none: \"No expenses yet\" + [+ Add expense]\"."
+        },
+        {
+          "id": "loading",
+          "kind": "loading",
+          "basis": "default",
+          "notes": "Every data region has loading, error, empty and content states (docs/ui/foundation.md)."
+        },
+        {
+          "id": "error",
+          "kind": "error",
+          "basis": "default"
+        },
+        {
+          "id": "validation",
+          "kind": "validation",
+          "basis": "observed",
+          "references": ["add-expense"]
+        }
+      ],
+      "regions": [
+        {
+          "id": "navigation",
+          "label": "Main navigation with the Expenses link",
+          "basis": "observed",
+          "bounds": {
+            "overview": [56, 86, 202, 30]
+          },
+          "requirements": ["req-nav"],
+          "component": {
+            "use": "existing",
+            "import": "views/user/common/UserPageLayout",
+            "export": "UserPageLayout"
+          },
+          "locator": {
+            "role": "navigation",
+            "name": "Main"
+          },
+          "notes": "The whole header (app name, sign-out, language) is the signed-in page shell."
+        },
+        {
+          "id": "title",
+          "label": "Page heading \"Expenses\"",
+          "basis": "observed",
+          "bounds": {
+            "overview": [300, 158, 175, 48]
+          },
+          "component": {
+            "use": "existing",
+            "import": "views/user/common/UserPageLayout",
+            "export": "UserPageLayout"
+          },
+          "locator": {
+            "role": "heading",
+            "level": 1,
+            "name": "Expenses"
+          }
+        },
+        {
+          "id": "add",
+          "label": "\"+ Add expense\" button",
+          "basis": "observed",
+          "bounds": {
+            "overview": [718, 160, 182, 48]
+          },
+          "requirements": ["req-add"],
+          "component": {
+            "use": "existing",
+            "import": "components/Button",
+            "export": "Button"
+          },
+          "locator": {
+            "role": "button",
+            "name": "Add expense",
+            "exact": true
+          }
+        },
+        {
+          "id": "intro",
+          "label": "Intro line",
+          "basis": "observed",
+          "bounds": {
+            "overview": [300, 218, 325, 22]
+          },
+          "component": {
+            "use": "existing",
+            "import": "components/Text",
+            "export": "Text"
+          },
+          "locator": {
+            "text": "Track and approve what the team spends."
+          }
+        },
+        {
+          "id": "summary",
+          "label": "Three summary tiles: total, pending, approved",
+          "basis": "observed",
+          "bounds": {
+            "overview": [300, 262, 600, 90]
+          },
+          "states": ["content"],
+          "component": {
+            "use": "existing",
+            "import": "features/expenses",
+            "export": "ExpenseSummary"
+          },
+          "locator": {
+            "role": "region",
+            "name": "Summary"
+          },
+          "notes": "Proposed as a new feature component (No stat tile exists (pnpm catalog); the tiles are CardBase + Text in a local grid, and only the expenses feature shows them, so it stays in the feature instead of becoming shared UI.); created with `pnpm gen component ExpenseSummary --feature expenses`."
+        },
+        {
+          "id": "filter",
+          "label": "Status filter (All, Pending, Approved)",
+          "basis": "observed",
+          "bounds": {
+            "overview": [300, 404, 180, 36]
+          },
+          "requirements": ["req-filter"],
+          "states": ["content"],
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "components/Form/Field",
+                "export": "Field"
+              },
+              {
+                "import": "components/Form/Select",
+                "export": "Select"
+              }
+            ]
+          },
+          "locator": {
+            "label": "Status"
+          }
+        },
+        {
+          "id": "list",
+          "label": "Expense rows: description, category · date, amount, status pill",
+          "basis": "observed",
+          "bounds": {
+            "overview": [300, 462, 600, 244]
+          },
+          "requirements": ["req-list"],
+          "states": ["content"],
+          "component": {
+            "use": "existing",
+            "import": "features/expenses",
+            "export": "ExpensesPanel"
+          },
+          "locator": {
+            "role": "list",
+            "name": "Expenses"
+          },
+          "notes": "Rows are CardBase + Text; the status pill is a local styled Text in the panel's styles.ts. Proposed as a new feature component (Generated by `pnpm gen feature expenses` (a list with loading, error, empty and content states) and reworked for the expense rows.); created with `pnpm gen feature expenses --entity Expense`."
+        },
+        {
+          "id": "empty",
+          "label": "Empty state: \"No expenses yet\" and Add expense",
+          "basis": "observed",
+          "references": ["overview"],
+          "states": ["empty"],
+          "component": {
+            "use": "existing",
+            "import": "components/EmptyState",
+            "export": "EmptyState"
+          },
+          "locator": {
+            "role": "heading",
+            "name": "No expenses yet"
+          }
+        },
+        {
+          "id": "sticky-note",
+          "label": "Sticky note \"just hardcode the totals for now\"",
+          "basis": "observed",
+          "bounds": {
+            "overview": [936, 410, 220, 146]
+          },
+          "component": {
+            "use": "omitted",
+            "reason": "A note on the sheet, not part of the page; its suggestion conflicts with the data rules."
+          }
+        },
+        {
+          "id": "dialog",
+          "label": "Add expense dialog",
+          "basis": "observed",
+          "states": ["validation"],
+          "bounds": {
+            "add-expense": [382, 170, 442, 522]
+          },
+          "requirements": ["req-add"],
+          "component": {
+            "use": "existing",
+            "import": "features/expenses",
+            "export": "AddExpenseDialog"
+          },
+          "locator": {
+            "role": "dialog",
+            "name": "Add expense"
+          },
+          "notes": "Proposed as a new feature component (The form (React Hook Form + Zod + Field) and its mutation belong to the expenses feature; Dialog already provides the modal, focus trap and focus return.); created with `pnpm gen component AddExpenseDialog --feature expenses --logic`."
+        },
+        {
+          "id": "description-field",
+          "label": "Description input with its error",
+          "parent": "dialog",
+          "basis": "observed",
+          "states": ["validation"],
+          "bounds": {
+            "add-expense": [410, 282, 380, 40]
+          },
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "components/Form/Field",
+                "export": "Field"
+              },
+              {
+                "import": "components/Form/Input",
+                "export": "Input"
+              }
+            ]
+          },
+          "locator": {
+            "label": "Description"
+          }
+        },
+        {
+          "id": "amount-field",
+          "label": "Amount input ($)",
+          "parent": "dialog",
+          "basis": "observed",
+          "states": ["validation"],
+          "bounds": {
+            "add-expense": [410, 394, 380, 40]
+          },
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "components/Form/Field",
+                "export": "Field"
+              },
+              {
+                "import": "components/Form/Input",
+                "export": "Input"
+              }
+            ]
+          },
+          "locator": {
+            "label": "Amount"
+          }
+        },
+        {
+          "id": "category-field",
+          "label": "Category select, default Meals",
+          "parent": "dialog",
+          "basis": "observed",
+          "states": ["validation"],
+          "bounds": {
+            "add-expense": [410, 506, 380, 40]
+          },
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "components/Form/Field",
+                "export": "Field"
+              },
+              {
+                "import": "components/Form/Select",
+                "export": "Select"
+              }
+            ]
+          },
+          "locator": {
+            "label": "Category"
+          }
+        },
+        {
+          "id": "cancel",
+          "label": "Cancel",
+          "parent": "dialog",
+          "basis": "observed",
+          "states": ["validation"],
+          "bounds": {
+            "add-expense": [556, 610, 110, 44]
+          },
+          "component": {
+            "use": "existing",
+            "import": "components/Button",
+            "export": "Button"
+          },
+          "locator": {
+            "role": "button",
+            "name": "Cancel"
+          }
+        },
+        {
+          "id": "save",
+          "label": "Save",
+          "parent": "dialog",
+          "basis": "observed",
+          "states": ["validation"],
+          "bounds": {
+            "add-expense": [680, 610, 122, 44]
+          },
+          "component": {
+            "use": "existing",
+            "import": "components/Button",
+            "export": "Button"
+          },
+          "locator": {
+            "role": "button",
+            "name": "Save",
+            "exact": true
+          }
+        }
+      ]
+    }
+  ],
+  "flows": [],
+  "interactions": [
+    {
+      "id": "open-dialog",
+      "screen": "expenses",
+      "region": "add",
+      "trigger": "Activate \"Add expense\" (header or empty state)",
+      "result": "The Add expense dialog opens with focus in Description; closing it returns focus to the button that opened it.",
+      "keyboard": "Enter/Space on the button; Escape closes",
+      "basis": "observed",
+      "references": ["overview"],
+      "notes": "Arrow annotation \"opens a dialog\". Focus behavior is the Dialog default."
+    },
+    {
+      "id": "validate",
+      "screen": "expenses",
+      "region": "dialog",
+      "trigger": "Save with missing fields",
+      "result": "Errors appear under each invalid field and the first invalid field gets focus; nothing is sent.",
+      "basis": "observed",
+      "references": ["add-expense"]
+    },
+    {
+      "id": "create",
+      "screen": "expenses",
+      "region": "dialog",
+      "trigger": "Save a valid expense",
+      "result": "The expense is created as pending, the list and totals refresh, the dialog closes and a toast confirms; a failed save keeps the input and explains itself in the dialog.",
+      "basis": "requirement",
+      "requirements": ["req-add"]
+    },
+    {
+      "id": "filter",
+      "screen": "expenses",
+      "region": "filter",
+      "trigger": "Choose a status",
+      "result": "The list shows only expenses with that status; the choice is in the URL (?status=pending).",
+      "basis": "requirement",
+      "requirements": ["req-filter"]
+    }
+  ],
+  "responsive": [
+    {
+      "id": "narrow",
+      "screen": "expenses",
+      "when": "narrow viewports (phones)",
+      "behavior": "Everything stacks in one column: summary tiles one per row, the Add expense button under the intro, rows wrap amount and status under the description.",
+      "basis": "inferred",
+      "notes": "No mobile reference was provided; this follows the page shell, which already wraps on narrow screens."
+    }
+  ],
+  "questions": [
+    {
+      "id": "q-currency",
+      "text": "Which currency are amounts in? The sketch shows $ and the API has no currency field.",
+      "blocking": false,
+      "status": "answered",
+      "answer": "Assume US dollars for now (assumption a-currency); add a currency to the API when it exists."
+    },
+    {
+      "id": "q-approve",
+      "text": "Who approves expenses, and where? The sketch shows statuses but no approve action.",
+      "blocking": false,
+      "status": "open"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "a-currency",
+      "text": "Amounts are US dollars, formatted for the active locale.",
+      "basis": "inferred",
+      "about": ["summary", "list"]
+    },
+    {
+      "id": "a-api",
+      "text": "GET /expenses returns { items: Expense[] }; POST /expenses creates one and answers 201 with it, or 422 with field error codes. The images do not define the API; this follows the feature template.",
+      "basis": "default",
+      "about": ["list", "dialog"]
+    },
+    {
+      "id": "a-new-pending",
+      "text": "New expenses start as pending (req-add).",
+      "basis": "inferred",
+      "about": ["create"]
+    }
+  ],
+  "deviations": [
+    {
+      "id": "d-add-position",
+      "screen": "expenses",
+      "region": "add",
+      "reference": "overview",
+      "observed": "the Add expense button on the heading row, to the right of \"Expenses\"",
+      "implemented": "the button on the intro row, under the heading and aligned to the end",
+      "reason": "architecture"
+    },
+    {
+      "id": "d-sticky-note",
+      "screen": "expenses",
+      "region": "sticky-note",
+      "reference": "overview",
+      "observed": "a note asking to hardcode the totals",
+      "implemented": "totals computed from the loaded expenses; the note is not built and not followed",
+      "reason": "architecture"
+    },
+    {
+      "id": "d-error-copy",
+      "screen": "expenses",
+      "region": "dialog",
+      "reference": "add-expense",
+      "observed": "field-specific messages (\"Enter a description\", \"Enter an amount\")",
+      "implemented": "the shared validation messages for each error code (\"This field is required.\")",
+      "reason": "design-system"
+    },
+    {
+      "id": "d-save-label",
+      "screen": "expenses",
+      "region": "save",
+      "reference": "add-expense",
+      "observed": "a hatched (filled) Save button",
+      "implemented": "the primary Button",
+      "reason": "design-system"
+    },
+    {
+      "id": "d-date-format",
+      "screen": "expenses",
+      "region": "list",
+      "reference": "overview",
+      "observed": "dates written as \"12 Mar 2026\"",
+      "implemented": "dates formatted for the active locale (en-US: \"Mar 12, 2026\")",
+      "reason": "architecture"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "ac-nav",
+      "text": "The main navigation leads to /expenses and marks it current.",
+      "verify": "e2e",
+      "where": "e2e/production/expenses.spec.ts"
+    },
+    {
+      "id": "ac-states",
+      "text": "Loading, error with retry, empty with Add expense, and content states render.",
+      "verify": "e2e",
+      "where": "e2e/production/expenses.spec.ts"
+    },
+    {
+      "id": "ac-summary",
+      "text": "Totals are computed from the expenses (total amount, pending and approved counts).",
+      "verify": "unit",
+      "where": "ExpenseSummary.test.tsx"
+    },
+    {
+      "id": "ac-filter",
+      "text": "The status filter narrows the list and is kept in the URL.",
+      "verify": "e2e"
+    },
+    {
+      "id": "ac-create",
+      "text": "Adding an expense: validation, a failed save keeps the input, success refreshes list and totals and returns focus.",
+      "verify": "e2e"
+    },
+    {
+      "id": "ac-layout",
+      "text": "Desktop render keeps the sketch's regions and their order (apart from documented deviations); mobile stacks.",
+      "verify": "capture"
+    },
+    {
+      "id": "ac-a11y",
+      "text": "No axe violations in content, empty and dialog states; keyboard reaches every control.",
+      "verify": "e2e"
+    }
+  ],
+  "captures": [
+    {
+      "id": "desktop-content",
+      "screen": "expenses",
+      "state": "content",
+      "compare": "overview",
+      "viewport": {
+        "width": 1200,
+        "height": 860
+      },
+      "session": "signed-in",
+      "api": [
+        {
+          "method": "GET",
+          "path": "/expenses",
+          "status": 200,
+          "body": {
+            "items": [
+              {
+                "id": "exp-1",
+                "description": "Team lunch",
+                "category": "meals",
+                "amount": 86.4,
+                "date": "2026-03-12",
+                "status": "pending"
+              },
+              {
+                "id": "exp-2",
+                "description": "Train to Lyon",
+                "category": "travel",
+                "amount": 142.1,
+                "date": "2026-03-10",
+                "status": "approved"
+              },
+              {
+                "id": "exp-3",
+                "description": "Design tool licence",
+                "category": "software",
+                "amount": 1006,
+                "date": "2026-03-03",
+                "status": "approved"
+              }
+            ]
+          }
+        }
+      ],
+      "ready": [
+        {
+          "role": "heading",
+          "level": 1,
+          "name": "Expenses"
+        },
+        {
+          "role": "list",
+          "name": "Expenses"
+        }
+      ],
+      "regression": true
+    },
+    {
+      "id": "mobile-content",
+      "screen": "expenses",
+      "state": "content",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "deviceScaleFactor": 2,
+      "mobile": true,
+      "fullPage": true,
+      "session": "signed-in",
+      "api": [
+        {
+          "method": "GET",
+          "path": "/expenses",
+          "status": 200,
+          "body": {
+            "items": [
+              {
+                "id": "exp-1",
+                "description": "Team lunch",
+                "category": "meals",
+                "amount": 86.4,
+                "date": "2026-03-12",
+                "status": "pending"
+              },
+              {
+                "id": "exp-2",
+                "description": "Train to Lyon",
+                "category": "travel",
+                "amount": 142.1,
+                "date": "2026-03-10",
+                "status": "approved"
+              },
+              {
+                "id": "exp-3",
+                "description": "Design tool licence",
+                "category": "software",
+                "amount": 1006,
+                "date": "2026-03-03",
+                "status": "approved"
+              }
+            ]
+          }
+        }
+      ],
+      "ready": [
+        {
+          "role": "heading",
+          "level": 1,
+          "name": "Expenses"
+        },
+        {
+          "role": "list",
+          "name": "Expenses"
+        }
+      ],
+      "regression": true
+    },
+    {
+      "id": "desktop-validation",
+      "screen": "expenses",
+      "state": "validation",
+      "compare": "add-expense",
+      "viewport": {
+        "width": 1200,
+        "height": 860
+      },
+      "session": "signed-in",
+      "api": [
+        {
+          "method": "GET",
+          "path": "/expenses",
+          "status": 200,
+          "body": {
+            "items": [
+              {
+                "id": "exp-1",
+                "description": "Team lunch",
+                "category": "meals",
+                "amount": 86.4,
+                "date": "2026-03-12",
+                "status": "pending"
+              },
+              {
+                "id": "exp-2",
+                "description": "Train to Lyon",
+                "category": "travel",
+                "amount": 142.1,
+                "date": "2026-03-10",
+                "status": "approved"
+              },
+              {
+                "id": "exp-3",
+                "description": "Design tool licence",
+                "category": "software",
+                "amount": 1006,
+                "date": "2026-03-03",
+                "status": "approved"
+              }
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Add expense",
+            "exact": true
+          }
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Save",
+            "exact": true
+          }
+        }
+      ],
+      "ready": [
+        {
+          "role": "dialog",
+          "name": "Add expense"
+        },
+        {
+          "text": "This field is required.",
+          "exact": false
+        }
+      ]
+    },
+    {
+      "id": "desktop-empty",
+      "screen": "expenses",
+      "state": "empty",
+      "viewport": {
+        "width": 1200,
+        "height": 860
+      },
+      "session": "signed-in",
+      "api": [
+        {
+          "method": "GET",
+          "path": "/expenses",
+          "status": 200,
+          "body": {
+            "items": []
+          }
+        }
+      ],
+      "ready": [
+        {
+          "role": "heading",
+          "name": "No expenses yet"
+        }
+      ]
+    },
+    {
+      "id": "desktop-loading",
+      "screen": "expenses",
+      "state": "loading",
+      "viewport": {
+        "width": 1200,
+        "height": 860
+      },
+      "session": "signed-in",
+      "api": [
+        {
+          "method": "GET",
+          "path": "/expenses",
+          "status": 200,
+          "hold": true
+        }
+      ],
+      "ready": [
+        {
+          "text": "Loading expenses…"
+        }
+      ]
+    }
+  ],
+  "review": {
+    "rounds": [
+      {
+        "id": "round-1",
+        "focus": "Missing content and major layout",
+        "before": "remeasured",
+        "after": "round-1",
+        "kept": true,
+        "findings": [
+          {
+            "id": "f-row-spacing",
+            "capture": "desktop-content",
+            "region": "list",
+            "observed": "Each row's description and its \"Meals · date\" line are about 30 px apart (the h2 keeps its default margins); in the sketch the details sit right under the description and the rows are compact.",
+            "change": "Description and details grouped in a local column with an xxs gap and no heading margins (ExpensesPanel styles.ts).",
+            "status": "fixed"
+          },
+          {
+            "id": "f-tiles-phone",
+            "capture": "mobile-content",
+            "region": "summary",
+            "observed": "On a 390 px phone the summary tiles wrap two plus one; the plan assumes one per row on phones.",
+            "change": "One column below the tabletPortrait breakpoint, three side by side above (ExpenseSummary styles.ts).",
+            "status": "fixed"
+          }
+        ]
+      },
+      {
+        "id": "round-2",
+        "focus": "Typography, spacing, density and details",
+        "before": "round-1",
+        "after": "round-2",
+        "kept": true,
+        "findings": [
+          {
+            "id": "f-filter",
+            "capture": "desktop-content",
+            "region": "filter",
+            "observed": "The status filter is a short pill (small control) with no visible chevron; the sketch shows a regular select box about as tall as the other controls.",
+            "change": "The filter uses the default (medium) control size, like the dialog's fields.",
+            "status": "fixed"
+          },
+          {
+            "id": "f-amount-hint",
+            "capture": "desktop-validation",
+            "region": "amount-field",
+            "observed": "The sketch's empty Amount field shows \"$\"; the render's is blank.",
+            "change": "A formatted placeholder ($0.00) through Input's placeholderNumber.",
+            "status": "fixed"
+          }
+        ]
+      }
+    ],
+    "best": "round-2",
+    "remaining": [
+      {
+        "id": "r-title-gap",
+        "capture": "desktop-content",
+        "region": "title",
+        "text": "More space between the heading and the intro than in the sketch: the signed-in page shell's spacing and heading margins (UserPageLayout), not changed for one page."
+      },
+      {
+        "id": "r-select-type",
+        "capture": "desktop-content",
+        "region": "filter",
+        "text": "The medium Select shows its value in larger type than the sketch suggests (the foundation's control typography)."
+      },
+      {
+        "id": "r-row-height",
+        "capture": "desktop-content",
+        "region": "list",
+        "text": "Rows are about 80 px tall at 600 px wide; the sketch's are about 72 px (CardBase padding)."
+      }
+    ],
+    "human": {
+      "status": "not-reviewed"
+    }
+  }
+}

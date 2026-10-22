@@ -11,6 +11,8 @@
  *   entry never imports statically.
  * - Production profile: no demo, mock, MSW, test or story code, no
  *   mockServiceWorker.js and no source maps in the output.
+ * - Any profile: nothing from design/ (reference images, plans) or
+ *   reports/ (evidence).
  * - Demo profile: the MSW worker is emitted and demo code stays lazy.
  * - Base path: index.html references assets under the expected base.
  *
@@ -79,6 +81,11 @@ const PRODUCTION_FORBIDDEN_MODULES = [
 const ALWAYS_FORBIDDEN_MODULES = [
   { pattern: /^src\/test\//, reason: 'test utilities' },
   { pattern: /\.(test|stories)\.tsx?$/, reason: 'tests or stories' },
+  // Reference images can be private; plans and evidence are task artifacts.
+  {
+    pattern: /^(design|reports)\//,
+    reason: 'design references, plans or evidence',
+  },
 ];
 
 const { values } = parseArgs({

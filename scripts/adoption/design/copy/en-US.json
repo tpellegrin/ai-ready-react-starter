@@ -1,0 +1,100 @@
+{
+  "expenses": {
+    "summary": {
+      "label": "Summary",
+      "total": "Total",
+      "pending": "Pending",
+      "approved": "Approved"
+    },
+    "filter": {
+      "label": "Status",
+      "all": "All",
+      "pending": "Pending",
+      "approved": "Approved"
+    },
+    "list": {
+      "emptyTitle": "No expenses yet",
+      "emptyDescription": "Expenses you add appear here.",
+      "filteredTitle": "No expenses with this status",
+      "filteredDescription": "Choose another status to see more."
+    },
+    "actions": {
+      "add": "Add expense"
+    },
+    "item": {
+      "meta": "{category} · {date}"
+    },
+    "category": {
+      "meals": "Meals",
+      "travel": "Travel",
+      "software": "Software",
+      "other": "Other"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved"
+    },
+    "form": {
+      "title": "Add expense",
+      "description": "Description",
+      "amount": "Amount",
+      "category": "Category",
+      "save": "Save",
+      "created": "Expense added"
+    }
+  },
+  "user": {
+    "expenses": {
+      "intro": "Track and approve what the team spends."
+    }
+  },
+  "guest": {
+    "pricing": {
+      "title": "Simple pricing for growing teams",
+      "intro": "Send invoices, track expenses and get paid faster. Change or cancel your plan at any time.",
+      "signIn": "Sign in",
+      "billing": {
+        "legend": "Billing period",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "yearlyHint": "2 months free"
+      },
+      "plans": {
+        "label": "Plans",
+        "popular": "Most popular",
+        "perMonth": "/ month",
+        "perUserMonth": "/ user / month",
+        "free": "Free forever",
+        "billedMonthly": "Billed monthly",
+        "billedYearly": "Billed yearly: {total} per user",
+        "starter": {
+          "name": "Starter",
+          "description": "For freelancers sending their first invoices.",
+          "cta": "Start for free",
+          "feature1": "5 invoices a month",
+          "feature2": "1 user",
+          "feature3": "Email support"
+        },
+        "team": {
+          "name": "Team",
+          "description": "For small teams that invoice and spend together.",
+          "cta": "Start free trial",
+          "feature1": "Unlimited invoices",
+          "feature2": "Up to 10 users",
+          "feature3": "Expense tracking",
+          "feature4": "Priority support"
+        },
+        "business": {
+          "name": "Business",
+          "description": "For companies with approvals and many people.",
+          "cta": "Contact sales",
+          "feature1": "Everything in Team",
+          "feature2": "Unlimited users",
+          "feature3": "Approval workflows",
+          "feature4": "Dedicated account manager"
+        }
+      },
+      "footnote": "Prices exclude VAT. Yearly plans are billed once a year."
+    }
+  }
+}

@@ -10,6 +10,7 @@ const steps = [
   'i18n',
   'docs',
   'architecture',
+  'design',
   'tooling',
   'unit',
   'audit',
@@ -19,6 +20,7 @@ const steps = [
   'storybook',
   'storybook-build',
   'e2e',
+  'design-regression',
   'generator',
   'adoption',
 ].map((id) => ({ id }));
@@ -46,6 +48,7 @@ describe('selectAffected', () => {
     '.github/workflows/ci.yml',
     'src/test/setup.ts',
     'vite.config.ts',
+    'playwright.design.config.ts',
   ])(
     'selects everything when tooling or configuration changes (%s)',
     (file) => {
@@ -264,6 +267,54 @@ describe('selectAffected', () => {
       '--ignore-unknown',
       'src/features/notes/schema.ts',
     ]);
+  });
+
+  it('checks a changed plan and its renders, formatting the JSON only', () => {
+    const selection = selectAffected(
+      changes([
+        ['M', 'design/expense-overview/plan.json'],
+        ['A', 'design/expense-overview/references/overview.png'],
+        ['M', 'design/expense-overview/baselines/desktop-chromium-linux.png'],
+      ]),
+      steps,
+      always,
+    );
+    const byId = Object.fromEntries(selection.selected.map((s) => [s.id, s]));
+    expect(selection.full).toBe(false);
+    expect(ids(selection.selected)).toEqual([
+      'format',
+      'docs',
+      'design',
+      'design-regression',
+    ]);
+    expect(byId.format?.argv).toEqual([
+      'exec',
+      'prettier',
+      '--check',
+      '--ignore-unknown',
+      'design/expense-overview/plan.json',
+    ]);
+  });
+
+  it('re-checks plans and renders when production code changes', () => {
+    const selection = selectAffected(
+      changes([['M', 'src/components/Button/index.tsx']]),
+      steps,
+      always,
+    );
+    expect(ids(selection.selected)).toEqual(
+      expect.arrayContaining(['design', 'design-regression']),
+    );
+  });
+
+  it.each([
+    'design/expense-overview/notes.txt',
+    'design/expense-overview/references/overview.svg',
+    'design/plan.json',
+  ])('selects everything for other files under design/ (%s)', (file) => {
+    const selection = selectAffected(changes([['A', file]]), steps, always);
+    expect(selection.full).toBe(true);
+    expect(selection.reasons[0]).toContain('unknown');
   });
 
   it('checks only formatting and docs for a docs change', () => {

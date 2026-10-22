@@ -104,6 +104,9 @@ jobs:
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/playwright
       - run: pnpm test:e2e
+      # Composition plans' reviewed baselines (design/<task>/baselines);
+      # a missing one fails, nothing is written (docs/recipes/compose-from-images.md).
+      - run: pnpm design:regress
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
@@ -112,6 +115,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            reports/design/
           retention-days: 7
 
   generator:
@@ -132,9 +136,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [demo, reference, all, product]
+        scenario: [demo, reference, all, product, design]
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/playwright
       - run: pnpm adopt:check --scenario ${{ matrix.scenario }}
+      - name: Upload design evidence
+        if: ${{ !cancelled() && matrix.scenario == 'design' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: design-evidence
+          path: reports/adoption/design/
+          if-no-files-found: ignore
+          retention-days: 7

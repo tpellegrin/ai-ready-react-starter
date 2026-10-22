@@ -170,3 +170,19 @@ For copies taken from the first version of the foundation (commit
   `src/mocks/handlers.ts`.
 - Flow step headings can use `flow.common.step` (`Step {current} of
 {total}`).
+
+## Image-guided composition [0017]
+
+For projects that already have the 2026-10 foundation:
+
+- New command `pnpm design` (`init`, `check`, `capture`, `regress`) and
+  scripts `design:check` and `design:regress`, both in `pnpm verify`
+  (`design` is part of `pnpm validate`); CI's e2e job runs
+  `pnpm design:regress`. Without `design/<task>/plan.json` files both pass
+  at once.
+- `pnpm catalog` also lists view-group page shells
+  (`src/views/<group>/common`, e.g. `UserPageLayout`) as layouts.
+- `pnpm check:build` fails when a build contains anything from `design/` or
+  `reports/`.
+- `e2e/fixtures.ts` exports `axeViolations(page)`;
+  `expectNoA11yViolations` is unchanged.

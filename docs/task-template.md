@@ -13,6 +13,7 @@ specific beats long and vague.
 - Feature/area: <src/features/... or view>
 - Related docs: <docs/routing.md, docs/recipes/..., ADR>
 - Constraints: <must keep X; must not add dependencies; copy in all locales>
+- References (optional): <design/<task>/references/\*.png, with their roles; follow docs/recipes/compose-from-images.md>
 
 ## Acceptance
 

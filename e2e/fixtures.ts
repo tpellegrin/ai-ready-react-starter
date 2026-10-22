@@ -38,10 +38,10 @@ export const settleMotion = (page: Page) =>
   });
 
 /**
- * WCAG 2.2 A/AA plus axe best practices; any violation fails the test.
- * Measured once motion has settled: mid-fade text fails contrast.
+ * axe violations of WCAG 2.2 A/AA plus axe best practices, measured once
+ * motion has settled (mid-fade text fails contrast).
  */
-export const expectNoA11yViolations = async (page: Page) => {
+export const axeViolations = async (page: Page) => {
   await settleMotion(page);
   const results = await new AxeBuilder({ page })
     .withTags([
@@ -53,7 +53,13 @@ export const expectNoA11yViolations = async (page: Page) => {
       'best-practice',
     ])
     .analyze();
-  const summary = results.violations.map(
+  return results.violations;
+};
+
+/** Any axe violation (see axeViolations) fails the test. */
+export const expectNoA11yViolations = async (page: Page) => {
+  const violations = await axeViolations(page);
+  const summary = violations.map(
     (violation) =>
       `${violation.id} (${violation.impact ?? 'n/a'}): ${violation.help}\n    ${violation.nodes
         .slice(0, 3)
@@ -63,7 +69,7 @@ export const expectNoA11yViolations = async (page: Page) => {
   // The ids lead the message: `pnpm verify` reports its first line.
   expect(
     summary,
-    `accessibility violations: ${results.violations.map((v) => v.id).join(', ')}`,
+    `accessibility violations: ${violations.map((v) => v.id).join(', ')}`,
   ).toEqual([]);
 };
 
