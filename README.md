@@ -48,6 +48,7 @@ For the Storybook and end-to-end suites, install the browsers once:
 | `pnpm verify --affected`                                | A conservative subset for your current diff (iteration, not merging)      |
 | `pnpm gen feature\|component\|view\|flow …`             | Scaffold code that follows the conventions (`--dry-run` to preview)       |
 | `pnpm catalog [name\|prop]`                             | Find existing components, layouts and feature APIs before adding one      |
+| `pnpm design init\|check\|capture\|regress …`           | Build pages from screenshots or sketches: plan checks, browser evidence   |
 | `pnpm test` / `test:run` / `test:cov`                   | Unit tests (watch / once / with coverage floors)                          |
 | `pnpm storybook` / `test:storybook` / `storybook:build` | Component catalog, browser tests, static build                            |
 | `pnpm test:e2e`                                         | Playwright against built apps and the dev server                          |
@@ -73,24 +74,25 @@ adapter, replace the placeholder screens, and build features with
 
 ## Documentation
 
-| Topic                     | Doc                                                                |
-| ------------------------- | ------------------------------------------------------------------ |
-| Agent instructions        | [AGENTS.md](AGENTS.md) (Claude Code: [CLAUDE.md](CLAUDE.md))       |
-| Recipes and generators    | [docs/recipes/README.md](docs/recipes/README.md)                   |
-| Overview                  | [docs/architecture.md](docs/architecture.md)                       |
-| Guardrails (rule → check) | [docs/guardrails.md](docs/guardrails.md)                           |
-| Module boundaries         | [docs/architecture/boundaries.md](docs/architecture/boundaries.md) |
-| UI foundation and forms   | [docs/ui/foundation.md](docs/ui/foundation.md)                     |
-| Session lifecycle         | [docs/session-lifecycle.md](docs/session-lifecycle.md)             |
-| Routing and flows         | [docs/routing.md](docs/routing.md), [docs/flows.md](docs/flows.md) |
-| Configuration             | [docs/configuration.md](docs/configuration.md)                     |
-| Animation                 | [docs/animation-system.md](docs/animation-system.md)               |
-| Adoption                  | [docs/adoption.md](docs/adoption.md)                               |
-| Decisions                 | [docs/decisions/](docs/decisions/README.md)                        |
-| Migrating older copies    | [docs/migration-notes.md](docs/migration-notes.md)                 |
-| Task template             | [docs/task-template.md](docs/task-template.md)                     |
-| Security and dependencies | [SECURITY.md](SECURITY.md)                                         |
-| Mobile (optional)         | [docs/mobile-capacitor.md](docs/mobile-capacitor.md)               |
+| Topic                     | Doc                                                                        |
+| ------------------------- | -------------------------------------------------------------------------- |
+| Agent instructions        | [AGENTS.md](AGENTS.md) (Claude Code: [CLAUDE.md](CLAUDE.md))               |
+| Recipes and generators    | [docs/recipes/README.md](docs/recipes/README.md)                           |
+| Pages from images         | [docs/recipes/compose-from-images.md](docs/recipes/compose-from-images.md) |
+| Overview                  | [docs/architecture.md](docs/architecture.md)                               |
+| Guardrails (rule → check) | [docs/guardrails.md](docs/guardrails.md)                                   |
+| Module boundaries         | [docs/architecture/boundaries.md](docs/architecture/boundaries.md)         |
+| UI foundation and forms   | [docs/ui/foundation.md](docs/ui/foundation.md)                             |
+| Session lifecycle         | [docs/session-lifecycle.md](docs/session-lifecycle.md)                     |
+| Routing and flows         | [docs/routing.md](docs/routing.md), [docs/flows.md](docs/flows.md)         |
+| Configuration             | [docs/configuration.md](docs/configuration.md)                             |
+| Animation                 | [docs/animation-system.md](docs/animation-system.md)                       |
+| Adoption                  | [docs/adoption.md](docs/adoption.md)                                       |
+| Decisions                 | [docs/decisions/](docs/decisions/README.md)                                |
+| Migrating older copies    | [docs/migration-notes.md](docs/migration-notes.md)                         |
+| Task template             | [docs/task-template.md](docs/task-template.md)                             |
+| Security and dependencies | [SECURITY.md](SECURITY.md)                                                 |
+| Mobile (optional)         | [docs/mobile-capacitor.md](docs/mobile-capacitor.md)                       |
 
 ## Deployment
 
