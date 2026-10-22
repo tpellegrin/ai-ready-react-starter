@@ -44,7 +44,7 @@
 /** Edges closer than this share of the frame width count as touching. */
 const TOLERANCE = 0.02;
 /** Size differences above this share of the frame width are pointed out. */
-export const SIZE_NOTE_THRESHOLD = 0.08;
+const SIZE_NOTE_THRESHOLD = 0.08;
 
 /**
  * Where `a` is relative to `b`: above or below when one ends before the

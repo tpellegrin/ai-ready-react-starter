@@ -28,10 +28,10 @@ export const SCHEMA_VERSION = 1;
 
 /** Folder of design tasks and of their evidence, relative to the project. */
 export const DESIGN_DIR = 'design';
-export const EVIDENCE_DIR = 'reports/design';
+const EVIDENCE_DIR = 'reports/design';
 export const PLAN_FILE = 'plan.json';
 export const REFERENCES_DIR = 'references';
-export const BASELINES_DIR = 'baselines';
+const BASELINES_DIR = 'baselines';
 
 export const KEBAB = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const PASCAL = /^[A-Z][A-Za-z0-9]*$/;
@@ -87,7 +87,7 @@ const nameWithRole = (locator) =>
 const ONE_QUERY = 'use exactly one of role, label, text or testId';
 const NAME_WITH_ROLE = 'name and level only go with role';
 
-export const locatorSchema = z
+const locatorSchema = z
   .strictObject(locatorShape)
   .refine(oneQuery, ONE_QUERY)
   .refine(nameWithRole, NAME_WITH_ROLE);
@@ -327,7 +327,7 @@ const readySchema = z
   .refine(oneQuery, ONE_QUERY)
   .refine(nameWithRole, NAME_WITH_ROLE);
 
-export const runLabel = z
+const runLabel = z
   .string()
   .regex(
     /^[a-z0-9][a-z0-9-]{0,40}$/,

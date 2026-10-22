@@ -6,7 +6,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { classifyRegression, runScenarios } from './capture.mjs';
 import { compareGeometry, sides } from './geometry.mjs';
 import { parsePlan } from './plan.mjs';
-import { escapeHtml, planSummary, runReportHtml } from './report.mjs';
+import {
+  escapeHtml,
+  planSummary,
+  runReportHtml,
+  runSummaryMarkdown,
+} from './report.mjs';
 import {
   completePlan,
   makePng,
@@ -169,6 +174,30 @@ describe('reports', () => {
     expect(summary).not.toMatch(/<script>|<b>/);
     expect(summary).toContain('Add \\| &lt;b&gt;note&lt;/b&gt;');
     expect(summary).toContain('Human review: **not-reviewed**');
+  });
+
+  it('lists remaining differences one per line in the pull-request summary', () => {
+    const summary = runSummaryMarkdown(
+      {
+        task: 'notes-page',
+        title: 'Notes',
+        label: 'run-1',
+        mode: 'capture',
+        createdAt: '2026-10-22T10:00:00.000Z',
+        revision: { commit: 'abc', uncommittedChanges: false },
+        planSha256: 'f'.repeat(64),
+        ok: true,
+        scenarios: [],
+        observations: [],
+        remaining: ['Rows are taller.', 'Type | size <differs>.'],
+        deviations: [],
+        human: { status: 'not-reviewed' },
+      },
+      'reports/design/notes-page/run-1/report.html',
+    );
+    expect(summary).toContain(
+      '- Agent observations: 0 (plan review); remaining differences: 2\n  - Rows are taller.\n  - Type \\| size &lt;differs&gt;.\n',
+    );
   });
 
   it('keeps mechanical results, agent observations and human review apart', () => {

@@ -45,7 +45,7 @@ export const escapeHtml = (value) =>
  * Text for a Markdown line or table cell: no HTML (tags, entities), no
  * pipes, code spans, links or line breaks.
  */
-export const escapeMarkdown = (/** @type {unknown} */ value) =>
+const escapeMarkdown = (/** @type {unknown} */ value) =>
   toText(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -692,7 +692,8 @@ export const runSummaryMarkdown = (run, reportPath) => {
     }),
     '',
     `- Mechanical checks: ${run.ok ? 'passed' : 'failed'}.`,
-    `- Agent observations: ${run.observations.length} (plan review); remaining differences: ${run.remaining.length ? run.remaining.map(m).join('; ') : 'none recorded'}.`,
+    `- Agent observations: ${run.observations.length} (plan review); remaining differences: ${run.remaining.length || 'none recorded'}`,
+    ...run.remaining.map((text) => `  - ${m(text)}`),
     `- Human review: ${m(run.human.status)}.`,
   ];
   return `${lines.join('\n')}\n`;
