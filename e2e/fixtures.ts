@@ -11,8 +11,38 @@ export const gotoApp = (page: Page, path = '/') =>
 export const currentAppPath = (page: Page) =>
   new URL(page.url()).hash.replace(/^#/, '') || '/';
 
-/** WCAG 2.2 A/AA plus axe best practices; any violation fails the test. */
+/**
+ * Resolves once the page's motion has finished: two frames first (motion
+ * started on mount), then every running animation or transition that has
+ * an end, again until none are left (a reveal can start another).
+ * Infinite ones (spinners) and paused ones are not waited for.
+ */
+export const settleMotion = (page: Page) =>
+  page.evaluate(async () => {
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    for (let round = 0; round < 10; round += 1) {
+      const running = document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.playState === 'running' &&
+            animation.effect?.getComputedTiming().endTime !== Infinity,
+        );
+      if (!running.length) return;
+      await Promise.all(
+        running.map((animation) => animation.finished.catch(() => undefined)),
+      );
+    }
+  });
+
+/**
+ * WCAG 2.2 A/AA plus axe best practices; any violation fails the test.
+ * Measured once motion has settled: mid-fade text fails contrast.
+ */
 export const expectNoA11yViolations = async (page: Page) => {
+  await settleMotion(page);
   const results = await new AxeBuilder({ page })
     .withTags([
       'wcag2a',
