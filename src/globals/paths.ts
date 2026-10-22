@@ -7,6 +7,7 @@ export const guestPaths = {
   // Starter overview alias (src/demo). Removed by `pnpm adopt --remove-demo`.
   demo: '/demo',
   // starter:demo-end
+  // starter:gen guest-paths (`pnpm gen view --group guest` adds paths above)
 } as const;
 
 /**
@@ -25,6 +26,7 @@ export const flowPaths = {
     preferences: '/flow/onboarding/preferences',
     complete: '/flow/onboarding/complete',
   },
+  // starter:gen flow-paths (`pnpm gen flow` adds flows above)
 } as const;
 
 export const userPaths = {
@@ -33,6 +35,7 @@ export const userPaths = {
   // Resource reference feature. Removed by `pnpm adopt --remove-reference`.
   resources: '/resources',
   // starter:reference-end
+  // starter:gen user-paths (`pnpm gen view --group user` adds paths above)
 } as const;
 
 export const paths = {

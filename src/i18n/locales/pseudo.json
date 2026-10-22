@@ -163,7 +163,9 @@
         "back": "ꞨǤØ βÅĈĶꞨ",
         "close": "ꞨĈĻØŜĘꞨ",
         "progress": "ꞨƤŘØǤŘĘŜŜꞨ"
-      }
+      },
+      "step": "ꞨŜŦĘƤ {current} ØF {total}Ꞩ",
+      "finish": "ꞨFĮƝĮŜĦꞨ"
     }
   },
   "forms": {

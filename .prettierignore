@@ -9,3 +9,5 @@ playwright-report/
 test-results/
 node_modules/
 src/assets/fonts/
+# Generator templates contain placeholders; generated files are formatted.
+scripts/templates/

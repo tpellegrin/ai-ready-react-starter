@@ -163,7 +163,9 @@
         "back": "Voltar",
         "close": "Fechar",
         "progress": "Progresso"
-      }
+      },
+      "step": "Passo {current} de {total}",
+      "finish": "Concluir"
     }
   },
   "forms": {
