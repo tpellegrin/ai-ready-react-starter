@@ -1,0 +1,12 @@
+{
+  "invoices": {
+    "form": {
+      "title": "New invoice",
+      "customer": "Customer",
+      "amount": "Amount",
+      "submit": "Create invoice",
+      "submitting": "Creating…",
+      "created": "Invoice created"
+    }
+  }
+}

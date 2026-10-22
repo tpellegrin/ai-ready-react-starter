@@ -7,16 +7,16 @@ required. `pnpm docs:check` fails when the two drift apart.
 
 ## Commands
 
-| Command                                        | Runs                                                                                                                                    | CI job                        |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `pnpm validate`                                | format, lint (ESLint + boundaries + project rules), Stylelint, types, translations, docs, architecture fixtures, tooling and unit tests | `validate`                    |
-| `pnpm audit --prod --audit-level=high`         | advisories in runtime dependencies                                                                                                      | `audit`                       |
-| `pnpm test:cov`                                | unit tests with coverage floors                                                                                                         | `coverage`                    |
-| `pnpm build` + `pnpm check:build`              | real build; budgets, lazy routes, no demo/mock/test code or source maps, base path                                                      | `build`                       |
-| `pnpm test:storybook` + `pnpm storybook:build` | every story in Chromium and WebKit (play functions, axe); static catalog                                                                | `storybook`                   |
-| `pnpm test:e2e`                                | built apps in desktop Chromium and mobile WebKit, the dev server under Strict Mode (and the starter's demo builds)                      | `e2e`                         |
-| `pnpm gen:check`                               | every generator: refusals, dry runs, registrations, generated code passes the gates (temporary copy)                                    | `generator`                   |
-| `pnpm adopt:check`                             | adoption scenarios, each followed by the adopted project's own `pnpm verify` (temporary copies)                                         | `adoption` (one per scenario) |
+| Command                                        | Runs                                                                                                                                                           | CI job                        |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `pnpm validate`                                | format, lint (ESLint + boundaries + project rules), Stylelint, types, translations, docs, architecture fixtures, tooling and unit tests                        | `validate`                    |
+| `pnpm audit --prod --audit-level=high`         | advisories in runtime dependencies                                                                                                                             | `audit`                       |
+| `pnpm test:cov`                                | unit tests with coverage floors                                                                                                                                | `coverage`                    |
+| `pnpm build` + `pnpm check:build`              | real build; budgets, lazy routes, no demo/mock/test code or source maps, base path                                                                             | `build`                       |
+| `pnpm test:storybook` + `pnpm storybook:build` | every story in Chromium and WebKit (play functions, axe); static catalog                                                                                       | `storybook`                   |
+| `pnpm test:e2e`                                | built apps in desktop Chromium and mobile WebKit, the dev server under Strict Mode (and the starter's demo builds)                                             | `e2e`                         |
+| `pnpm gen:check`                               | every generator: refusals, dry runs, registrations, generated code passes the gates (temporary copy)                                                           | `generator`                   |
+| `pnpm adopt:check`                             | adoption scenarios, each followed by the adopted project's own `pnpm verify` (temporary copies); `product` adds a form and a browser journey to generated code | `adoption` (one per scenario) |
 
 `pnpm verify` runs them all and prints one line per check; failures show
 their problems as `file:line rule message` with the full log path, and
