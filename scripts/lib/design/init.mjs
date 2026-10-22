@@ -31,7 +31,7 @@ import {
 /** @typedef {import('./plan.mjs').Reference} Reference */
 
 /** "Home Screen (1).PNG" → "home-screen-1.png" */
-export const fileNameFor = (/** @type {string} */ file) => {
+const fileNameFor = (/** @type {string} */ file) => {
   const ext = path.extname(file).toLowerCase().replace('.jpeg', '.jpg');
   const stem = path
     .basename(file, path.extname(file))

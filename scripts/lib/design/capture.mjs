@@ -56,16 +56,13 @@ import { taskPaths } from './plan.mjs';
  * @typedef {(command: string, args: string[], options: { cwd: string, env: NodeJS.ProcessEnv, encoding: 'utf8', maxBuffer: number }) => SpawnResult} Spawn
  */
 
-export const CONFIG_FILE = 'playwright.design.config.ts';
+const CONFIG_FILE = 'playwright.design.config.ts';
 
 /** Node's spawnSync, typed as the subset used here. */
 const defaultSpawn = /** @type {Spawn} */ (/** @type {unknown} */ (spawnSync));
 
 /** The commit evidence was produced from, and whether the tree was dirty. */
-export const revisionOf = (
-  /** @type {string} */ root,
-  spawn = defaultSpawn,
-) => {
+const revisionOf = (/** @type {string} */ root, spawn = defaultSpawn) => {
   const git = (/** @type {string[]} */ args) =>
     spawn('git', args, {
       cwd: root,
@@ -87,7 +84,7 @@ export const revisionOf = (
  * @param {{ plan: Plan, captures: Capture[], runDir: string, mode: Mode }} input
  * @returns {ManifestScenario[]}
  */
-export const manifestScenarios = ({ plan, captures, runDir, mode }) =>
+const manifestScenarios = ({ plan, captures, runDir, mode }) =>
   captures.map((capture) => {
     const screen = plan.screens.find((s) => s.id === capture.screen);
     if (!screen) throw new Error(`capture ${capture.id}: unknown screen`);
@@ -259,7 +256,7 @@ const comparisonImages = (runDir, scenario) => {
  * @param {{ plan: Plan, scenario: ManifestScenario, result: SpecResult | null, runDir: string, mode: Mode, playwright: { output: string, startError: string | null } }} input
  * @returns {ScenarioResult}
  */
-export const scenarioResult = ({
+const scenarioResult = ({
   plan,
   scenario,
   result,
