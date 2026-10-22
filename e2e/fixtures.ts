@@ -38,6 +38,17 @@ export const expectNoA11yViolations = async (page: Page) => {
 };
 
 /**
+ * Engine notices about deliberate markup, logged as errors on every page.
+ * Exact messages only: anything else still fails the test.
+ * - `interactive-widget` (index.html viewport): Chromium and Firefox on
+ *   Android resize the layout for the on-screen keyboard with it; WebKit
+ *   (Linux builds, iOS Safari) does not support it and says so.
+ */
+const ENGINE_NOTICES = [
+  /^Viewport argument key "interactive-widget" not recognized and ignored\.$/,
+];
+
+/**
  * Every test fails on uncaught page errors and console errors, so runtime
  * problems cannot hide behind a passing assertion. Tests that provoke HTTP
  * errors on purpose allow Chromium's matching "Failed to load resource" logs
@@ -58,7 +69,9 @@ export const test = base.extend<{
         const text = message.text();
         if (
           message.type() === 'error' &&
-          !allowedConsoleErrors.some((pattern) => pattern.test(text))
+          ![...ENGINE_NOTICES, ...allowedConsoleErrors].some((pattern) =>
+            pattern.test(text),
+          )
         ) {
           errors.push(`console: ${text}`);
         }
