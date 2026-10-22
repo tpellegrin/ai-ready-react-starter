@@ -21,10 +21,12 @@
  *   --dry-run prints the plan and writes nothing.
  *
  * Safety: names and paths are validated, existing files are never
- * overwritten, existing copy keys are never replaced, and every edit is
- * checked before the first write (scripts/lib/generator.mjs). Registrations
- * use `starter:gen` markers in the existing registries; when a marker was
- * removed (e.g. a replaced placeholder), the step is reported as manual.
+ * overwritten, existing translations are never replaced or reshaped (a
+ * text never becomes a group, or the reverse), and every edit is checked
+ * before the first write (scripts/lib/generator.mjs); --dry-run runs the
+ * same checks. Registrations use `starter:gen` markers in the existing
+ * registries; when a marker was removed (e.g. a replaced placeholder), the
+ * step is reported as manual.
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
