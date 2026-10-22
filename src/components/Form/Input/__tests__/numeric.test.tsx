@@ -180,6 +180,59 @@ describe('Input (numeric mode)', () => {
     expect(onValueChange).toHaveBeenLastCalledWith(12);
   });
 
+  describe('currency', () => {
+    const CurrencyInput = ({
+      onValueChange,
+    }: {
+      onValueChange: (value: number | null) => void;
+    }) => {
+      const [value, setValue] = useState<number | null>(null);
+      return (
+        <Input
+          aria-label="Price"
+          format="currency"
+          currency="USD"
+          value={value}
+          onValueChange={(next) => {
+            setValue(next);
+            onValueChange(next);
+          }}
+        />
+      );
+    };
+
+    it('accepts decimals typed character by character', async () => {
+      const user = userEvent.setup();
+      const onValueChange = vi.fn();
+      renderWithProviders(<CurrencyInput onValueChange={onValueChange} />);
+      const input = screen.getByRole('textbox', { name: 'Price' });
+
+      await user.type(input, '1980.');
+      expect(input).toHaveValue('$1,980.');
+      await user.type(input, '25');
+      expect(input).toHaveValue('$1,980.25');
+      expect(onValueChange).toHaveBeenLastCalledWith(1980.25);
+
+      await user.tab();
+      expect(input).toHaveValue('$1,980.25');
+    });
+
+    it('uses the locale’s separators and currency (pt-BR)', async () => {
+      const user = userEvent.setup();
+      const onValueChange = vi.fn();
+      renderWithProviders(
+        <I18nProvider initialLocale="pt-BR">
+          <CurrencyInput onValueChange={onValueChange} />
+        </I18nProvider>,
+      );
+      const input = screen.getByRole('textbox', { name: 'Price' });
+
+      await user.type(input, '1980,5');
+      expect(onValueChange).toHaveBeenLastCalledWith(1980.5);
+      expect(input).toHaveValue('US$\u00a01.980,5');
+    });
+  });
+
   describe('after editing, follows locale and formatting changes', () => {
     const setup = async (typed: string) => {
       const user = userEvent.setup();

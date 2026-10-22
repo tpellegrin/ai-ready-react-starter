@@ -94,7 +94,12 @@ export const parseTypedNumber = (
   maximumFractionDigits: number,
 ): TypedNumber => {
   const { decimal } = getSeparators(locale);
-  const index = maximumFractionDigits > 0 ? text.indexOf(decimal) : -1;
+  // After the first digit: a currency symbol such as "kr." is not a decimal.
+  const firstDigit = text.search(/\d/);
+  const index =
+    maximumFractionDigits > 0 && firstDigit !== -1
+      ? text.indexOf(decimal, firstDigit)
+      : -1;
   if (index === -1) {
     const integerPart =
       maximumFractionDigits > 0 ? text : (text.split(decimal)[0] ?? '');
@@ -116,16 +121,21 @@ export const parseTypedNumber = (
   };
 };
 
-/** Formats in-progress input, keeping a typed separator and trailing zeros. */
+/**
+ * Formats in-progress input, keeping a typed separator and trailing zeros.
+ * With `currency`, the amount keeps its currency symbol ("$1,980.").
+ */
 export const formatTypedNumber = (
   typed: TypedNumber & { value: number },
   opts: {
     locale: string;
     maximumFractionDigits: number;
     useGrouping?: boolean | undefined;
+    currency?: string | undefined;
   },
 ): string => {
   const parts = new Intl.NumberFormat(opts.locale, {
+    ...(opts.currency ? { style: 'currency', currency: opts.currency } : {}),
     minimumFractionDigits: typed.hasDecimal
       ? Math.max(typed.fractionDigits, 1)
       : 0,
