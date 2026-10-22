@@ -112,7 +112,7 @@ const policies = [
   },
   {
     from: { element: { type: 'auth' } },
-    allow: toTypes('utils', 'config', 'data'),
+    allow: toTypes('utils', 'config', 'i18n', 'data'),
   },
   {
     from: { element: { type: 'forms' } },

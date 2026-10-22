@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ThemeProvider } from 'styled-components';
@@ -15,7 +15,8 @@ import {
 } from 'containers/Layouts/common/LayoutChromeContext';
 import { I18nProvider } from 'i18n/provider';
 import { AuthProvider } from 'auth/AuthProvider';
-import { createFakeAuthAdapter } from 'test/auth';
+import { ApiError } from 'api/http';
+import { createFakeAuthAdapter, testUser } from 'test/auth';
 import { base } from 'styles/themes/base';
 import { Welcome } from '../Welcome';
 import { Preferences } from '../Preferences';
@@ -90,14 +91,14 @@ const TestChromeShell: React.FC<{ children: React.ReactNode }> = ({
  * can parse the step position from the URL.
  */
 const makeWrapper =
-  (initialPath: string) =>
+  (initialPath: string, adapter = createFakeAuthAdapter()) =>
   ({ children }: { children: React.ReactNode }) => {
     const client = createClient();
     return (
       <QueryClientProvider client={client}>
         <ThemeProvider theme={base}>
           <I18nProvider>
-            <AuthProvider adapter={createFakeAuthAdapter()}>
+            <AuthProvider adapter={adapter}>
               <NavigationProvider>
                 <MemoryRouter initialEntries={[initialPath]}>
                   <TestChromeShell>{children}</TestChromeShell>
@@ -228,5 +229,31 @@ describe('Onboarding: Complete screen', () => {
     await user.click(cta);
     // The screen must still expose its accessible heading after click
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+  });
+
+  it('shows progress, then the reason, when completing fails; the button retries', async () => {
+    const user = userEvent.setup();
+    const adapter = createFakeAuthAdapter({
+      user: { ...testUser, needsOnboarding: true },
+    });
+    adapter.completeOnboarding.mockRejectedValueOnce(
+      new ApiError({ kind: 'timeout', method: 'POST', url: '/api/session' }),
+    );
+    render(<Complete />, {
+      wrapper: makeWrapper('/flow/onboarding/complete', adapter),
+    });
+    await waitFor(() => expect(adapter.restoreSession).toHaveBeenCalled());
+
+    await user.click(
+      await screen.findByRole('button', { name: /go to dashboard/i }),
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The server took too long to respond',
+    );
+    await user.click(screen.getByRole('button', { name: /go to dashboard/i }));
+    await waitFor(() =>
+      expect(adapter.completeOnboarding).toHaveBeenCalledTimes(2),
+    );
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   RouterProvider,
   createHashRouter,
@@ -13,6 +13,7 @@ import { AppLoading } from 'views/system/AppLoading';
 import { SessionUnavailable } from 'views/system/SessionUnavailable';
 
 import { buildRouteObjects } from './routing/buildRouteObjects';
+import { nextRouterSession, type RouterSession } from './routing/routerSession';
 import { routeTable } from './routing/routeTable';
 import { UnknownRoute } from './routing/UnknownRoute';
 import { createUnknownRoutePolicy } from './routing/unknownRoutePolicy';
@@ -34,11 +35,19 @@ export const deriveRouterType = ({
   return user?.needsOnboarding ? RouterType.onboarding : RouterType.user;
 };
 
-/** Production default: hash URLs (static hosting, GitHub Pages subpaths). */
-export const hashRouterFactory: RouterFactory = (routes) =>
-  createHashRouter(routes);
-
 const currentHashPath = () => window.location.hash.replace(/^#/, '') || '/';
+
+/**
+ * Production default: hash URLs (static hosting, GitHub Pages subpaths). The
+ * router reads window.location, so a start path that differs from the URL (a
+ * destination kept through onboarding) is applied to the URL first.
+ */
+export const hashRouterFactory: RouterFactory = (routes, { initialPath }) => {
+  if (currentHashPath() !== initialPath) {
+    window.history.replaceState(null, '', `#${initialPath}`);
+  }
+  return createHashRouter(routes);
+};
 
 type AppRouterProps = {
   routes?: RouteTable | undefined;
@@ -51,6 +60,13 @@ type AppRouterProps = {
 /**
  * AppRouter selects the Guest, Onboarding or User router from auth state.
  *
+ * - Nothing is routed until the session is known: while restoring it shows
+ *   AppLoading, after a failed start SessionUnavailable (retry). A retry
+ *   keeps the current router instead of swapping groups.
+ * - When the group changes, the next router starts where the previous one
+ *   ended, and a destination behind required onboarding is kept for the user
+ *   group (routing/routerSession.ts, docs/routing.md).
+ *
  * Maintainer/AI note:
  * Do not bypass these boundaries by adding protected routes to the Guest
  * router. Client routing is a UX boundary only; the server must authorize
@@ -61,30 +77,69 @@ export const AppRouter = ({
   createRouter = hashRouterFactory,
   initialPath,
 }: AppRouterProps) => {
-  const { status, user, restoreSession } = useAuth();
+  const { status, user, error, restoreSession } = useAuth();
   const routerType = deriveRouterType({
     isAuthenticated: status === 'authenticated',
     user,
   });
+  const isSettled = status === 'authenticated' || status === 'unauthenticated';
 
-  // Where the previous router ended up, so the next one starts there.
+  // Where the current router is, so the next one can start there.
   const lastPathRef = useRef(initialPath ?? currentHashPath());
+  const [session, setSession] = useState<RouterSession>(() => ({
+    group: null,
+    startPath: lastPathRef.current,
+    pendingDestination: null,
+  }));
+  let current = session;
+  if (isSettled && session.group !== routerType) {
+    // Adjusting state during render (React's pattern for deriving from
+    // changed inputs): pure, so Strict Mode's double render is harmless.
+    current = nextRouterSession(
+      session,
+      routerType,
+      lastPathRef.current,
+      routes,
+    );
+    setSession(current);
+  }
 
-  const router = useMemo(
-    () =>
-      createRouter(
+  // One router per group swap, created lazily during render and keyed by
+  // value: Strict Mode renders twice (and runs useMemo twice), which would
+  // otherwise leave a second hash router listening to history.
+  const routerRef = useRef<{
+    key: string;
+    routes: RouteTable;
+    createRouter: RouterFactory;
+    router: DataRouter;
+  } | null>(null);
+  const group = current.group;
+  const routerKey = `${group ?? ''}\n${current.startPath}`;
+  if (
+    group !== null &&
+    (routerRef.current?.key !== routerKey ||
+      routerRef.current.routes !== routes ||
+      routerRef.current.createRouter !== createRouter)
+  ) {
+    routerRef.current = {
+      key: routerKey,
+      routes,
+      createRouter,
+      router: createRouter(
         buildRouteObjects(
-          routes[routerType],
+          routes[group],
           <UnknownRoute
-            policy={createUnknownRoutePolicy(routerType, routes, paths.signIn)}
+            policy={createUnknownRoutePolicy(group, routes, paths.signIn)}
           />,
         ),
-        { initialPath: lastPathRef.current },
+        { initialPath: current.startPath },
       ),
-    [createRouter, routes, routerType],
-  );
+    };
+  }
+  const router = group === null ? null : (routerRef.current?.router ?? null);
 
   useEffect(() => {
+    if (!router) return;
     const remember = ({ pathname, search }: Location) => {
       lastPathRef.current = `${pathname}${search}`;
     };
@@ -103,11 +158,16 @@ export const AppRouter = ({
     previousRouterRef.current = router;
   }, [router]);
 
-  if (status === 'initializing') return <AppLoading />;
   if (status === 'error') {
-    return <SessionUnavailable onRetry={() => runDetached(restoreSession())} />;
+    return (
+      <SessionUnavailable
+        error={error}
+        onRetry={() => runDetached(restoreSession())}
+      />
+    );
   }
+  if (!isSettled || !router) return <AppLoading />;
 
   // Keyed by group so swapping routers fully remounts the provider subtree.
-  return <RouterProvider key={routerType} router={router} />;
+  return <RouterProvider key={group} router={router} />;
 };

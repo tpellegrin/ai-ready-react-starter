@@ -17,7 +17,9 @@ export const testUser: User = {
 
 /**
  * In-memory AuthAdapter for tests. Starts signed out unless `user` is given.
- * Password "wrong" is rejected as invalid credentials.
+ * Password "wrong" is rejected as invalid credentials. Calls ignore their
+ * AbortSignal; override a method (`mockReturnValueOnce`) to test hangs,
+ * failures or cancellation.
  */
 export const createFakeAuthAdapter = ({
   user = null,
@@ -29,18 +31,20 @@ export const createFakeAuthAdapter = ({
   let current: User | null = user;
   return {
     restoreSession: vi.fn((_signal: AbortSignal) => Promise.resolve(current)),
-    signIn: vi.fn(({ email, password }: SignInCredentials) => {
-      if (password === 'wrong') {
-        return Promise.reject(new AuthError('invalid_credentials'));
-      }
-      current = { id: `user:${email}`, email, needsOnboarding };
-      return Promise.resolve(current);
-    }),
-    signOut: vi.fn(() => {
+    signIn: vi.fn(
+      ({ email, password }: SignInCredentials, _signal: AbortSignal) => {
+        if (password === 'wrong') {
+          return Promise.reject(new AuthError('invalid_credentials'));
+        }
+        current = { id: `user:${email}`, email, needsOnboarding };
+        return Promise.resolve(current);
+      },
+    ),
+    signOut: vi.fn((_signal: AbortSignal) => {
       current = null;
       return Promise.resolve();
     }),
-    completeOnboarding: vi.fn(() => {
+    completeOnboarding: vi.fn((_signal: AbortSignal) => {
       if (!current) return Promise.reject(new AuthError('unauthenticated'));
       current = { ...current, needsOnboarding: false };
       return Promise.resolve(current);
@@ -61,11 +65,13 @@ export const createAuthValue = (
     status,
     user: null,
     error: null,
+    sessionEndReason: null,
     isAuthenticated: status === 'authenticated',
     isInitialized: status !== 'initializing',
     signIn: vi.fn(() => Promise.resolve()),
     signOut: vi.fn(() => Promise.resolve()),
     restoreSession: vi.fn(() => Promise.resolve()),
+    verifySession: vi.fn(() => Promise.resolve()),
     completeOnboarding: vi.fn(() => Promise.resolve()),
     ...overrides,
   };

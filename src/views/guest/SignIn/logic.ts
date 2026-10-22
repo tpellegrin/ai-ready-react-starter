@@ -3,8 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { getErrorMessageKey } from 'api/http';
-import { AuthError } from 'auth/types';
+import { getAuthErrorMessageKey } from 'auth/messages';
 import { useAuth } from 'auth/useAuth';
 import type { I18nKey } from 'i18n';
 import { runDetached } from 'utils/async';
@@ -17,7 +16,7 @@ export const signInSchema = z.object({
 export type SignInValues = z.infer<typeof signInSchema>;
 
 export const useSignInForm = () => {
-  const { signIn } = useAuth();
+  const { signIn, sessionEndReason } = useAuth();
   const [formErrorKey, setFormErrorKey] = useState<I18nKey | null>(null);
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -30,17 +29,16 @@ export const useSignInForm = () => {
       // On success AppRouter swaps to the next route group; nothing else to do.
       await signIn(values);
     } catch (error) {
-      setFormErrorKey(
-        error instanceof AuthError && error.code === 'invalid_credentials'
-          ? 'auth.signIn.error'
-          : getErrorMessageKey(error),
-      );
+      setFormErrorKey(getAuthErrorMessageKey(error));
     }
   });
 
   return {
     form,
     formErrorKey,
+    // Why the user is here again (their session expired on the server).
+    noticeKey:
+      sessionEndReason === 'expired' ? ('auth.session.expired' as const) : null,
     isSubmitting: form.formState.isSubmitting,
     onSubmit: (event: FormEvent<HTMLFormElement>) => runDetached(submit(event)),
   };

@@ -15,7 +15,8 @@ import { _SignInForm, _SignInRoot } from './styles';
 export function SignIn() {
   const { t } = useI18n();
   const fieldError = useFieldErrorMessage();
-  const { form, formErrorKey, isSubmitting, onSubmit } = useSignInForm();
+  const { form, formErrorKey, noticeKey, isSubmitting, onSubmit } =
+    useSignInForm();
   const { errors } = form.formState;
 
   return (
@@ -28,6 +29,7 @@ export function SignIn() {
         <Text variant="bodyMd">{t('auth.signIn.demoMessage')}</Text>
       ) : null}
       {/* starter:demo-end */}
+      {noticeKey ? <InlineAlert tone="info">{t(noticeKey)}</InlineAlert> : null}
 
       <_SignInForm noValidate onSubmit={onSubmit}>
         <Field
