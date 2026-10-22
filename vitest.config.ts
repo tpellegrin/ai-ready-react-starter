@@ -1,6 +1,9 @@
+import { existsSync, realpathSync } from 'node:fs';
+
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
 import { msw } from 'msw/vite';
+import { searchForWorkspaceRoot } from 'vite';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
 import { createViteConfig } from './vite.config';
@@ -14,6 +17,17 @@ import { createViteConfig } from './vite.config';
  * - tooling: Node tests for the repository's own checks and generators
  *   (`*.test.mjs` files under scripts/, `pnpm test:tooling`).
  */
+/**
+ * The browser runner may only serve files under the project. pnpm's store
+ * can live elsewhere behind a symlink (the adoption check's temporary copies
+ * link to the checkout's), so allow it where it really is.
+ */
+const PNPM_STORE = 'node_modules/.pnpm';
+const servedRoots = [
+  searchForWorkspaceRoot(process.cwd()),
+  ...(existsSync(PNPM_STORE) ? [realpathSync(PNPM_STORE)] : []),
+];
+
 export default defineConfig((env) =>
   mergeConfig(createViteConfig(env), {
     test: {
@@ -61,6 +75,7 @@ export default defineConfig((env) =>
               'zod',
             ],
           },
+          server: { fs: { allow: servedRoots } },
           test: {
             name: 'storybook',
             browser: {
