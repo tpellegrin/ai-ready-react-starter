@@ -27,10 +27,11 @@ specific beats long and vague.
 
 ## Verification
 
-- [ ] `pnpm validate`
-- [ ] <extra: pnpm test:storybook / pnpm test:e2e / pnpm check:build>
+- [ ] `pnpm validate` (and `pnpm verify` for routing, session or UI behavior)
+- [ ] Scaffolded with `pnpm gen …` where it applies; checked `pnpm catalog` before adding components
 - [ ] Docs updated if a pattern changed
 ```
 
-For agents: read `AGENTS.md` first, follow the closest recipe in
-`docs/recipes/`, and report exactly which commands ran and their results.
+For agents: read `AGENTS.md` first (check the mode: starter or product),
+follow the closest recipe in `docs/recipes/README.md`, and report exactly
+which commands ran and their results.

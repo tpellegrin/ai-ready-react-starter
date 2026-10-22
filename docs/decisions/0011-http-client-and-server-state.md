@@ -34,3 +34,16 @@ feedback; cached data from one user must not render for the next.
 
 Follow `docs/recipes/data-and-forms.md`. Keep business mapping in feature
 `model.ts`/`api.ts`, not in the client.
+
+## Amendment (2026-10): timeouts, 401 policy, CSRF
+
+- Requests time out (`timeoutMs`; the app client uses 15 s) with a distinct
+  `timeout` kind; the caller's signal still yields `aborted`. Timeouts are
+  not retried automatically. Why: a hung request left the UI loading forever.
+- The `headers` hook receives `{ method, path }`; the app client uses it to
+  send the session's CSRF token on unsafe methods (`src/api/csrf.ts`).
+- A 401 from a query or mutation triggers a session check instead of a
+  logout (`isUnauthenticatedError`, `SessionMonitor`); the HTTP layer stays
+  free of React and session state.
+- Raw `fetch` (and XHR, WebSocket, EventSource, `sendBeacon`) outside
+  `src/api/http` is a lint error.

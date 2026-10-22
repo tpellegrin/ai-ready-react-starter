@@ -1,78 +1,153 @@
-# AI Agent Instructions
+# AI agent instructions
 
-## Project identity
+The entry point for any coding agent (Claude Code reads it through
+`CLAUDE.md`). It says what you are building, where code goes, which example
+to follow and which checks to run. Details live in the linked docs; the
+checks fail with a message that names the approved alternative.
 
-A reusable React 19 + Vite + TypeScript + styled-components SPA foundation,
-not a product. Keep examples neutral, replaceable and easy to remove.
-Adopting it: [`docs/adoption.md`](docs/adoption.md) (`pnpm adopt`).
+## First: which mode are you in?
 
-## Prime directive
+Look at `starter.manifest.json` → `adoption`.
 
-Preserve the existing architecture. Prefer small, incremental changes that
-follow existing patterns. Do not rewrite, flatten or replace systems unless
-explicitly asked. Never weaken a guardrail (thresholds, budgets, lint rules,
-skipped tests) to make a change pass.
+- **`null` — maintaining the starter.** This repository is a reusable React
+  SPA foundation, not a product. Infrastructure and examples stay
+  domain-neutral (`Item`, `Resource`, `Profile`), replaceable, and removable
+  with `pnpm adopt` (`docs/adoption.md`).
+- **Set — building the product** adopted from the starter. Use the
+  product's real terms (`Invoice`, `Patient`, `Checkout`) and business rules
+  in features, views, copy and tests. Architecture rules still apply;
+  starter-only rules do not:
 
-## Systems to preserve (and where they are documented)
+| Rule                                                                    | Starter                   | Product                                                    |
+| ----------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------- |
+| Domain-neutral names                                                    | Everywhere                | Shared layers (`src/components`, `src/api`, …) only        |
+| Demo and reference code                                                 | Keep removable (manifest) | Removed; remove leftovers with `pnpm adopt`                |
+| `starter:demo-*` / `starter:reference-*` markers                        | Keep balanced             | Gone (`starter:gen` markers stay: the generators use them) |
+| Layers, component APIs, data, forms, session, i18n, a11y, tests, checks | Apply                     | Apply                                                      |
 
-| System                                        | Location                                                       | Docs                                  |
-| --------------------------------------------- | -------------------------------------------------------------- | ------------------------------------- |
-| Composition root + app shell                  | `src/main.tsx`, `src/containers/App.tsx`                       | `docs/architecture.md`, ADR 0001/0010 |
-| Validated config (`VITE_*`, public)           | `src/config`                                                   | `docs/configuration.md`               |
-| Session-state routing (guest/onboarding/user) | `src/containers/AppRouter.tsx`, `containers/routing`           | `docs/routing.md`                     |
-| Auth adapter boundary                         | `src/auth`                                                     | `docs/recipes/real-auth-adapter.md`   |
-| HTTP client + TanStack Query                  | `src/api`; per feature `api.ts`/`queries.ts`                   | `docs/recipes/data-and-forms.md`      |
-| Feature modules + import boundaries           | `src/features/<name>`, `eslint/boundaries.js`                  | `docs/architecture/boundaries.md`     |
-| Reference feature (canonical example)         | `src/features/resources`                                       | `docs/recipes/new-feature.md`         |
-| UI primitives, forms                          | `src/components`, `src/forms`                                  | `docs/ui/foundation.md`               |
-| Styling (theme tokens)                        | `src/styles`                                                   | ADR 0005                              |
-| Animation system                              | `src/containers/RouteTransitions`, `src/components/Animations` | `docs/animation-system.md`            |
-| Flow navigation contract                      | `src/flows/fromPaths.ts`, `paths.flow`                         | `docs/flows.md`                       |
-| i18n                                          | `src/i18n`                                                     | `src/i18n/README.md`                  |
-| Mock API (MSW)                                | `src/mocks`, feature `mocks/`                                  | ADR 0015                              |
+## Stack and map
+
+React 19, Vite 7, TypeScript (strict), styled-components, React Router 7
+(hash URLs), TanStack Query, Zod, React Hook Form, Radix. Overview:
+`docs/architecture.md`; who may import whom: `docs/architecture/boundaries.md`.
+
+| You need                        | It goes in                                                  | Start with                                             |
+| ------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------ |
+| A product capability (data, UI) | `src/features/<name>` (public API: `index.ts`)              | `pnpm gen feature <name>`                              |
+| A page and its route            | `src/views/<group>/<Page>` + `src/views/<group>/index.tsx`  | `pnpm gen view <Page> --group user\|guest`             |
+| A multi-step journey            | `paths.flow` + step views                                   | `pnpm gen flow <id> --group user\|guest --steps a,b,c` |
+| A reusable UI building block    | `src/components/<Name>` (only if none fits: `pnpm catalog`) | `pnpm gen component <Name>`                            |
+| A component used by one feature | `src/features/<name>/components/<Name>`                     | `pnpm gen component <Name> --feature <name>`           |
+| A config variable               | `src/config/schema.ts`                                      | `docs/configuration.md`                                |
+| Auth provider integration       | `src/auth/adapters` + `src/containers/composition`          | `docs/recipes/real-auth-adapter.md`                    |
+| Copy                            | `src/i18n/locales/*.json` (every locale)                    | `t('key')`                                             |
+| Design tokens                   | `src/styles/themes`                                         | ADR 0005                                               |
+
+Task-by-task recipes and the example to copy for each:
+[`docs/recipes/README.md`](docs/recipes/README.md). The generators produce
+the same patterns as the maintained examples.
+
+<!-- starter:reference-start -->
+
+The complete reference feature is `src/features/resources` (list states,
+URL filter, validated create/edit form with server errors, delete
+confirmation, toasts); `pnpm adopt --remove-reference` removes it once your
+first feature follows its patterns.
+
+<!-- starter:reference-end -->
 
 ## How to work
 
-Before changing code: inspect nearby files, identify the pattern, and follow
-the closest recipe in `docs/recipes/` (task template: `docs/task-template.md`).
+1. Read the recipe for the task and the nearby code. Before creating a
+   component, search: `pnpm catalog <name or prop>`.
+2. Scaffold with `pnpm gen …` (add `--dry-run` to see the plan). It
+   registers paths, routes, navigation, mocks and copy, and lists any manual
+   step.
+3. While iterating: `pnpm verify --affected` (a conservative subset for your
+   diff) or `pnpm validate` (the fast gates, about a minute).
+4. Before you finish: `pnpm validate`; for routing, session, layout or UI
+   behavior also `pnpm verify` (everything CI runs). Report the commands and
+   their results honestly, including anything you could not run.
 
-- **Features:** scaffold with `pnpm gen feature <name>`; import a feature only
-  through its `index.ts`; features never import each other.
-- **Data:** every request goes through `apiClient` with a Zod response schema
-  and the query's `signal`; query keys belong to the feature.
-- **Forms:** React Hook Form + Zod (error codes) + `Field`.
-- **Async from handlers:** `runDetached(promise, onError)`, never `void promise`.
-- **Config:** read through `src/config`; never `import.meta.env`/`process.env`
-  elsewhere. `VITE_*` values are public — no secrets.
-- **Styled components:** import by name from `./styles` (no `import * as _`);
-  internal names start with `_` plus the component name (`_ButtonRoot`); `Root`
-  for the top-level element.
-- **Colocated logic:** components with meaningful logic keep data fetching,
-  derived state, handlers and component hooks in `logic.ts`; `index.tsx`
-  renders. Skip `logic.ts` for tiny presentational components.
-- **Primitives:** reuse `Flex`, `Text`, `Field`, the feedback states, etc.
-  `Box` is a visible surface (border by default), not a layout div; for neutral
-  layout use `Flex` or a local styled component.
-- **Copy and names:** all user-facing text through `t()` in every locale;
-  neutral names (`Item`, `Resource`, `Profile`).
-- **Accessibility:** visible labels, one `h1` and `main` per page, focus
-  returns after dialogs, `prefers-reduced-motion` respected.
-- **Tests:** add a test that fails without your fix; integration tests run
-  against MSW (unhandled requests fail).
+`pnpm validate`/`pnpm verify` print one line per check and, on failure, the
+problems as `file:line rule message`; full logs and a JSON report are in
+`reports/verify/`.
 
-After changing code: run `pnpm validate` (everything CI runs: `pnpm verify`),
-fix what your change broke, report commands and results honestly, and update
-docs when a pattern changes. The invariant → check map is `docs/guardrails.md`.
+## Rules
+
+Enforced by a check unless marked _(review)_. The full map:
+[`docs/guardrails.md`](docs/guardrails.md).
+
+- **Features:** import a feature only through its `index.ts`; features never
+  import each other — compose them in a view.
+- **Components:** a component's public API is its `index`. Its `styles.ts`
+  holds internal `_<Component><Part>` elements, imported by name from
+  `./styles` and only there; its `logic.ts`, helpers and types are private
+  too. Compose existing components before adding one; local wrappers in
+  your own `styles.ts` are fine for layout the existing ones do not express
+  (`docs/ui/foundation.md#public-components-and-internals`). `Box` is a
+  visible surface, not a layout div _(review)_.
+- **Data:** every request goes through `apiClient` with a Zod response
+  schema and the query's `signal`, inside the feature's `api.ts`/`queries.ts`
+  (no raw `fetch`, no other HTTP libraries).
+- **Forms:** React Hook Form + Zod error codes + `Field`; server 422s with
+  `applyServerFieldErrors` (`docs/recipes/data-and-forms.md`).
+- **Session:** UI reads and changes it through `useAuth()` only; browser
+  storage is limited to auth adapters and allow-listed modules. Failure
+  handling: `docs/session-lifecycle.md`.
+- **Async from handlers:** `runDetached(promise, onError)`, never
+  `void promise`.
+- **Config:** read through `src/config`; `VITE_*` values are public.
+- **Copy:** all user-facing text through `t()`, in every locale, with the
+  same `{placeholders}`.
+- **Styling:** theme tokens only (no raw colors, no CSS files or other
+  styling systems); motion opts in with `data-allow-*` and respects reduced
+  motion.
+- **Accessibility:** visible labels, one `h1` and one `main` per page, focus
+  returns after dialogs and stays in the page after navigation. axe runs on
+  stories and key pages; keyboard paths and announcements need tests and
+  review _(review)_.
+- **Tests:** a fix comes with a test that fails without it; unit tests run
+  against MSW (unhandled requests fail); put each test at the lowest layer
+  that can prove the behavior (ADR 0015).
+
+## When a check fails
+
+Read the diagnostic: it names the rule and the approved alternative. Fix the
+cause. Never weaken a guardrail to get green — no lowered coverage floors,
+raised budgets, skipped tests, disabled Strict Mode, or inline
+`eslint-disable` of an architecture rule (those are rejected by
+`starter/no-protected-suppression`). If a limit genuinely has to move, see
+`docs/guardrails.md#evolving-limits-deliberately`.
+
+## Changing the architecture deliberately
+
+Routine feature work needs no ceremony. When the existing structure really
+does not fit:
+
+1. Look for the extension point first: the recipes, `pnpm catalog`, the
+   ADRs (`docs/decisions/`).
+2. Write down why the alternatives do not fit.
+3. Make the smallest coherent change, and change its enforcement with it
+   (rule + fixture in `scripts/architecture/fixtures`, generator template,
+   docs).
+4. Record the decision (`docs/decisions/README.md`) and state the tradeoff
+   in the pull request.
 
 ## Avoid
 
-- Large rewrites of core systems; new libraries without a strong reason
-  (record it in an ADR).
-- Domain-specific names or workflows (`Order`, `Checkout`, `Patient`).
-- Hardcoded visual values outside the theme.
-- Auth storage access outside auth adapters; data fetching in UI primitives.
-- Bypassing route groups, guards or provider boundaries.
-- Editing foundational layout components (e.g. `BaseLayout`) for
-  feature-specific needs: compose page or feature layouts instead.
-- Duplicate primitives; overly abstract "future-proof" systems.
-- Deleting demo/reference code by hand: use `pnpm adopt`.
+- Rewriting or replacing core systems (routing, auth, data, styling,
+  animation, i18n) instead of extending them _(review)_.
+- Speculative abstractions: plugin systems for one use, "future-proof"
+  extension points nobody uses, a global state library for state that is
+  local or server state (TanStack Query) _(review)_.
+- New libraries without a reason recorded in an ADR _(review)_.
+- Product logic in shared layers; data fetching in UI primitives.
+- Editing foundational layouts (`BaseLayout`, `LayoutHeader`, the flow
+  shell) for one page's needs: compose a page or feature layout instead
+  _(review)_.
+- Changing shared flow helpers (`src/flows/fromPaths.ts`) to make one flow
+  work: fix the flow definition (`pnpm test:run` checks the contract).
+- Deleting demo or reference code by hand: use `pnpm adopt`.
+
+Commits are single-line Conventional Commits (commitlint).

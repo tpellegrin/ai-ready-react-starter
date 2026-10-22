@@ -2,20 +2,24 @@
 
 ## Purpose
 
-This folder contains shared, domain-neutral UI primitives and components. These are the building blocks used to construct views and flows.
+Shared, domain-neutral building blocks that views and features compose.
+List them with `pnpm catalog`; usage guidance is in
+`docs/ui/foundation.md`.
 
 ## Rules
 
-- **Domain-Neutral**: Components here must not know about specific product logic or entities.
-- **Theme-Based**: Always use theme tokens (`props.theme`) for styling.
-- **Composition**: Favor small, composable components over large, complex ones.
-- **Logic Separation**: For components with meaningful internal logic (state management, filtering, etc.), use a colocated `logic.ts` file to keep the UI clean.
-
-## Avoid
-
-- **Feature-Specific Logic**: If a component is only used in one feature, it probably doesn't belong here.
-- **Data Fetching**: Components here should receive data via props, not fetch it themselves.
+- **Public API = `index.tsx`.** Other code imports only the folder's index
+  (and the types it exports); `styles.ts`, `logic.ts` and helpers are
+  private (lint-enforced).
+- **Internal elements** are `_<Component><Part>` in `styles.ts`, imported
+  by name from `./styles` only (lint-enforced).
+- **Domain-neutral**, **theme tokens only**, **data through props** (no
+  fetching; lint-enforced).
+- **Logic separation:** meaningful state and handlers in `logic.ts`; simple
+  presentational components have none.
 
 ## Extension guidance
 
-When adding a new component, check if a similar one already exists. If it's a new primitive, ensure it's generic enough to be reused across different parts of the app.
+Check `pnpm catalog` and the inventory first; extend or compose an existing
+component when you can. New ones: `pnpm gen component <Name>` (story with
+play + axe included).

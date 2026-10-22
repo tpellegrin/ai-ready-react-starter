@@ -41,13 +41,19 @@ See .env.example and docs/configuration.md.
 
 ## Modes and committed defaults
 
-| Command                          | Mode          | File               | Setup                                                                          |
-| -------------------------------- | ------------- | ------------------ | ------------------------------------------------------------------------------ |
-| `pnpm start`                     | `development` | `.env.development` | Mock API (MSW); demo auth in the starter, session after adoption               |
-| `pnpm test*`                     | `test`        | `.env.test`        | Tests start the MSW Node server themselves                                     |
-| `pnpm storybook*`                | `storybook`   | `.env.storybook`   | Mock API for stories that fetch                                                |
-| `pnpm build`                     | `production`  | `.env.production`  | Session auth, no mocks; **`VITE_API_BASE_URL` must come from the environment** |
-| `pnpm build:demo` (starter only) | `demo`        | `.env.demo`        | Labelled demo build for the GitHub Pages preview                               |
+| Command           | Mode          | File               | Setup                                                                          |
+| ----------------- | ------------- | ------------------ | ------------------------------------------------------------------------------ |
+| `pnpm start`      | `development` | `.env.development` | Mock API (MSW); demo auth in the starter, session after adoption               |
+| `pnpm test*`      | `test`        | `.env.test`        | Tests start the MSW Node server themselves                                     |
+| `pnpm storybook*` | `storybook`   | `.env.storybook`   | Mock API for stories that fetch                                                |
+| `pnpm build`      | `production`  | `.env.production`  | Session auth, no mocks; **`VITE_API_BASE_URL` must come from the environment** |
+
+<!-- starter:demo-start -->
+
+The starter also has `pnpm build:demo` (mode `demo`, `.env.demo`): the
+labelled demo build behind its GitHub Pages preview. Adoption removes it.
+
+<!-- starter:demo-end -->
 
 Override locally with `.env.local` / `.env.<mode>.local` (gitignored), or with
 real environment variables in CI/CD (they win over files). Example:

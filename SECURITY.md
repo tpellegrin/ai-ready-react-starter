@@ -18,17 +18,29 @@ projects own their copy and should apply the same policy).
   accepts public settings (see `docs/configuration.md`).
 - **Sessions use HttpOnly cookies** via the session adapter
   (`src/auth/adapters/session.ts`); the app never stores tokens in
-  `localStorage`. Only auth adapters touch auth storage (lint-enforced).
+  app-readable storage. Browser storage (`localStorage`, `sessionStorage`,
+  `indexedDB`, `document.cookie`) is lint-restricted to auth adapters, the
+  language preference and mocks (`no-restricted-globals`/`-properties` in
+  `eslint.config.js`, with fixtures in `pnpm arch:check`).
+- **Requests go through one client** (`src/api/http`): raw `fetch`, XHR,
+  WebSocket and EventSource are lint errors elsewhere, and absolute request
+  paths are refused, so credentials are only sent to the configured API.
 - **Demo and mock code never ships in real builds.** Demo auth signs in
   anyone, so it requires `VITE_DEMO_MODE=true`, which production builds of a
   product must not set. `pnpm check:build` fails a production build that
   contains demo, mock, MSW, test or story code, or source maps.
 - **Untrusted input is parsed, not cast:** API responses (Zod schemas in the
-  HTTP client), redirect targets (`returnTo` allow-list against known routes)
-  and storage reads.
-- **Out of scope for a frontend:** authorization, rate limiting, CSRF tokens
-  and Content-Security-Policy headers are the backend's/host's job. Configure
-  a CSP that allows only your API origin when you deploy.
+  HTTP client), redirect targets (`returnTo` allow-list against known
+  routes) and storage reads.
+- **CSRF and authorization are the server's job.** The client sends the
+  session's CSRF token on unsafe methods when the server provides one, and
+  credentialed requests only to the configured API; the server must check
+  the token (and `Origin`/`Sec-Fetch-Site`) on every state-changing request,
+  answer CORS for the app origin only, and authorize every request. Cookie
+  attributes, CORS and CSRF: `docs/session-lifecycle.md`.
+- **Out of scope for a frontend:** rate limiting and Content-Security-Policy
+  headers are the backend's/host's job. Configure a CSP that allows only
+  your API origin when you deploy.
 
 ## Dependency policy
 

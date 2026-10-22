@@ -21,7 +21,7 @@ Core principles:
 - Accessibility during transitions
   - Exiting content is never exposed to assistive technology: the flow exit overlay and the fading-out page in `AnimatedOutlet` are `inert` + `aria-hidden` until removed (a page that re-enters mid-fade is exposed again), so a page never presents two `main` landmarks.
   - Non-flow pages are keyed by pathname: search-only changes (filters) neither remount the page nor move focus.
-  - `prefers-reduced-motion` clamps durations to ≤100 ms and disables reveals; `e2e/demo/accessibility.spec.ts` verifies no movement longer than 100 ms remains (with a control test that proves the measurement works).
+  - `prefers-reduced-motion` clamps durations to ≤100 ms and disables reveals; `e2e/production/accessibility.spec.ts` verifies no movement longer than 100 ms remains, on pages and flow steps, (with a control test that proves the measurement works).
 
 ### Terminology
 
@@ -756,71 +756,19 @@ Example (combine opt‑in with local timing variables):
 - `GlobalStyle` loads after third‑party CSS so the clamp wins specificity.
 - The clamp uses `!important` on `transition-property` to override rogue `transition: all`. Animated elements must opt in via `data-allow-*` and set local `--transition-duration`/`--transition-easing` as needed. If a library injects inline `transition: all`, re‑assert component timing via local CSS variables and ensure proper opt‑in.
 
-#### Guardrails (lint, ESLint, Tailwind, CI)
+#### Guardrails (enforced)
 
-- Stylelint: ban `transition: all`; enforce property‑specific transitions
-
-```json
-{
-  "rules": {
-    "property-disallowed-list": [
-      ["transition"],
-      {
-        "severity": "error",
-        "message": "Use property-specific transitions; global clamp controls timing"
-      }
-    ],
-    "declaration-property-value-disallowed-list": {
-      "transition": ["/^all(\\s|$)/"],
-      "transition-property": ["/^all(\\s|$)/"]
-    }
-  }
-}
-```
-
-- ESLint / className utilities: forbid `transition-all` and inline `style.transition`
-
-```json
-{
-  "rules": {
-    "no-restricted-syntax": [
-      "error",
-      {
-        "selector": "JSXAttribute[name.name=className][value.value=/\\btransition-all\\b/]",
-        "message": "Do not use transition-all; rely on data-allow-* and component timing"
-      }
-    ],
-    "no-restricted-properties": [
-      "error",
-      {
-        "object": "style",
-        "property": "transition",
-        "message": "Set --transition-* vars and use data-allow-*; avoid inline transition"
-      }
-    ]
-  }
-}
-```
-
-- Tailwind (if used; N/A if Tailwind is not used): disable transition utilities
-
-```js
-// tailwind.config.js
-module.exports = {
-  corePlugins: {
-    transitionProperty: false,
-    transitionDelay: false,
-    transitionDuration: false,
-    transitionTimingFunction: false,
-  },
-};
-```
-
-- CI guard:
-
-```bash
-git grep -nE "transition:\s*all\b" -- '*.css' '*.scss' '*.ts' '*.tsx' && echo "Found forbidden transition: all" && exit 1
-```
+- Stylelint rejects `transition: all` and `transition-property: all`
+  (`.stylelintrc.cjs`); ESLint rejects inline `style={{ transition }}` in
+  JSX (`eslint.config.js`). Fixtures in `pnpm arch:check` prove both.
+- Other styling systems (Tailwind, Emotion, CSS files) are rejected by
+  `no-restricted-imports`, so their transition utilities cannot appear.
+- Reduced motion is measured end to end (`e2e/production/accessibility.spec.ts`,
+  with a control test), and flow transitions are tested with and without
+  Strict Mode (unit) and on the dev server (`e2e/dev`).
+- Not machine-checked: whether a new animated element opts in with the
+  right `data-allow-*` variant and clears `will-change` after it settles —
+  review it.
 
 ### Usage Map
 

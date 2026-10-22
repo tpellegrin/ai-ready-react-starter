@@ -33,3 +33,15 @@ CI needs Chromium for Storybook and e2e jobs (cached per Playwright version).
 
 Put a test at the lowest layer that can prove the behavior. Keep e2e focused
 on journeys and deployment properties.
+
+## Amendment (2026-10): browsers and Strict Mode
+
+- Storybook tests run in Chromium and WebKit; production e2e specs run in
+  desktop Chromium and mobile WebKit (iPhone viewport); a `dev` project runs
+  the Vite dev server, where Strict Mode replays effects. Why: a flow
+  transition defect only appeared under Strict Mode, and mobile WebKit
+  exposed focus loss, reduced-motion leaks and an overlapping header that
+  desktop Chromium did not.
+- Generic accessibility and reduced-motion e2e checks live with the
+  production target, so they survive adoption.
+- Tooling (scripts) has its own Vitest project with fixture tests.

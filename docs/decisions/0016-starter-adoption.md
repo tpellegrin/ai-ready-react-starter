@@ -35,3 +35,18 @@ files until the build passed. Scaffolding by copy-paste spreads mistakes.
 
 When adding demo or reference code, list its files in the manifest or wrap
 its references in markers, then run `pnpm adopt:check`.
+
+## Amendment (2026-10): provenance, Markdown, product scenario, generators
+
+- The first adoption records the starter commit (`starterRevision`) in the
+  manifest; the manifest's `adoption` field also tells agents whether they
+  maintain the starter or build a product (`AGENTS.md`).
+- Markdown regions (`<!-- starter:<group>-start -->` lines) let adoption
+  remove docs about removed code; `pnpm docs:check` keeps instructions
+  accurate after adoption.
+- `pnpm adopt:check` runs each adopted project's own `pnpm verify` (without
+  the adoption check, so verification never recurses) and adds a `product`
+  scenario that generates a domain feature and page after adoption.
+- `pnpm gen` covers features, components, pages and flows with one
+  validated plan/apply core and `starter:gen` markers in the existing
+  registries; `pnpm gen:check` no longer depends on removable code.

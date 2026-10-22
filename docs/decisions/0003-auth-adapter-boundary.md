@@ -36,3 +36,22 @@ To change auth providers, implement the `AuthAdapter` interface in `src/auth/typ
 - Identity changes clear the query cache.
 - Migration: `docs/migration-notes.md`; how-to:
   `docs/recipes/real-auth-adapter.md`.
+
+## Amendment (2026-10): contract v3 and the session lifecycle
+
+- Every adapter method receives an `AbortSignal`; `signOut` resolves only
+  once the server session is gone (the provider keeps the session when it
+  cannot be confirmed); `completeOnboarding` rejects with
+  `AuthError('unauthenticated')` when there is no session. New error code:
+  `timeout`.
+- `AuthProvider` runs every call — the startup restore included — in one
+  queue per adapter generation, each with a deadline
+  (`operationTimeoutMs`, default 30 s); replacing the adapter or unmounting
+  aborts in-flight calls, never starts queued ones and does not block the
+  next generation. Why: a late startup restore could overwrite a completed
+  sign-in, and a hung call could block the queue forever.
+- New `verifySession()` (background re-check after an API 401;
+  `SessionMonitor` in `src/containers/session` calls it) and
+  `sessionEndReason` (`expired` shows on sign-in).
+- Policy, deployment and CSRF: `docs/session-lifecycle.md`. Migration:
+  `docs/migration-notes.md`.

@@ -1,61 +1,118 @@
 # Guardrails
 
-Every rule this starter relies on is enforced by a command, not by memory.
-This page maps each invariant to the check that fails when it is broken.
-`pnpm verify` runs all of them locally; CI runs the same commands in parallel
-jobs (`.github/workflows/ci.yml`), and none of them is allowed to fail.
+Which invariant is enforced by which check, what each check cannot see, and
+what still needs a reviewer. `pnpm verify` runs every check locally; CI runs
+the same package scripts as parallel jobs (`.github/workflows/ci.yml`), all
+required. `pnpm docs:check` fails when the two drift apart.
 
 ## Commands
 
-| Command                                | What it runs                                                                                                     | CI job        |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------- |
-| `pnpm validate`                        | Prettier check, ESLint (`--max-warnings=0`), Stylelint, `tsc -b`, i18n checks, architecture fixtures, unit tests | `validate`    |
-| `pnpm test:cov`                        | Unit tests with coverage floors (global and per module)                                                          | `coverage`    |
-| `pnpm audit --prod`                    | Advisories in runtime dependencies (`--audit-level=high` in CI)                                                  | `audit`       |
-| `pnpm build` + `check:build`           | Real build, then budgets, code splitting and forbidden-content inspection                                        | `build`       |
-| `pnpm build:demo` + `check:build:demo` | Demo build (MSW worker present, demo code lazy)                                                                  | `build`       |
-| `pnpm test:storybook`                  | Every story in Chromium: play functions + axe (violations fail)                                                  | `storybook`   |
-| `pnpm storybook:build`                 | Static catalog builds (uploaded as an artifact)                                                                  | `storybook`   |
-| `pnpm test:e2e`                        | Playwright against built apps: demo at root and sub-path, real build with mocked API; axe on key pages           | `e2e`         |
-| `pnpm gen:check`                       | Generator safety + generated feature passes every gate (temporary copy)                                          | `scaffolding` |
-| `pnpm adopt:check`                     | Adoption scenarios pass every gate (temporary copies)                                                            | `scaffolding` |
+| Command                                        | Runs                                                                                                                                    | CI job                        |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `pnpm validate`                                | format, lint (ESLint + boundaries + project rules), Stylelint, types, translations, docs, architecture fixtures, tooling and unit tests | `validate`                    |
+| `pnpm audit --prod --audit-level=high`         | advisories in runtime dependencies                                                                                                      | `audit`                       |
+| `pnpm test:cov`                                | unit tests with coverage floors                                                                                                         | `coverage`                    |
+| `pnpm build` + `pnpm check:build`              | real build; budgets, lazy routes, no demo/mock/test code or source maps, base path                                                      | `build`                       |
+| `pnpm test:storybook` + `pnpm storybook:build` | every story in Chromium and WebKit (play functions, axe); static catalog                                                                | `storybook`                   |
+| `pnpm test:e2e`                                | built apps in desktop Chromium and mobile WebKit, the dev server under Strict Mode (and the starter's demo builds)                      | `e2e`                         |
+| `pnpm gen:check`                               | every generator: refusals, dry runs, registrations, generated code passes the gates (temporary copy)                                    | `generator`                   |
+| `pnpm adopt:check`                             | adoption scenarios, each followed by the adopted project's own `pnpm verify` (temporary copies)                                         | `adoption` (one per scenario) |
+
+`pnpm verify` runs them all and prints one line per check; failures show
+their problems as `file:line rule message` with the full log path, and
+`reports/verify/report.json` records every step. Useful options: `--only`,
+`--skip`, `--bail`, `--json`, `--list`, and `--affected [--base <ref>]`,
+which picks a conservative subset for the current diff (shared
+infrastructure, configuration, dependency or unclassified changes select
+everything; it says what it skipped and why). `--affected` is for iterating;
+merge readiness is `pnpm verify` and CI.
+
+Browsers: `pnpm exec playwright install chromium webkit`.
 
 ## Invariants
 
-| Invariant                                                                                           | Enforced by                                                                                              | Where                                               |
-| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| One Node/pnpm baseline (Node 24 LTS, pnpm 9.15.9)                                                   | `engines` + `engine-strict`, `packageManager`, CI reads `.nvmrc`                                         | `package.json`, `.npmrc`, `.nvmrc`                  |
-| Lockfile matches `package.json`                                                                     | `pnpm install --frozen-lockfile` in every CI job                                                         | `.github/actions/setup`                             |
-| Strict types (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) for app, tests, tooling     | `pnpm typecheck` (`tsc -b` over three projects)                                                          | `tsconfig.*.json`                                   |
-| No unsafe `any` flows, floating/misused promises, explicit `any`, hook dependency mistakes          | ESLint type-aware rules as errors; `void promise` does not silence a floating promise                    | `eslint.config.js`                                  |
-| No warnings accumulate                                                                              | `--max-warnings=0` for ESLint and Stylelint                                                              | `package.json` scripts                              |
-| `import.meta.env` is read only in `src/config`; no `process.env` in browser code                    | `no-restricted-syntax`                                                                                   | `eslint.config.js`                                  |
-| Dev dependencies (MSW, testing libraries, Storybook) never imported by production code              | `import/no-extraneous-dependencies` + boundary rules                                                     | `eslint.config.js`, `eslint/boundaries.js`          |
-| Layer matrix (shared UI ↛ features/navigation/views, features isolated, public API only, no cycles) | `eslint-plugin-boundaries`, `import/no-cycle`; 24 positive/negative fixtures prove the rules bite        | `eslint/boundaries.js`, `pnpm arch:check`           |
-| Unknown top-level `src/` folders are classified deliberately                                        | Boundary rule for unclassified files                                                                     | `eslint/boundaries.js`                              |
-| Configuration is valid; demo auth and mocks are impossible in a real production build               | Zod schema run by `vite.config.ts` (dev server, build, tests) and at runtime                             | `src/config/schema.ts`                              |
-| Real builds contain no demo/mock/MSW/test/story code and no source maps                             | Module report inspection                                                                                 | `pnpm check:build`                                  |
-| Bundle stays within budget; routes that must be lazy stay lazy                                      | Gzip budgets and initial-graph check                                                                     | `scripts/check-build.mjs`                           |
-| Assets resolve under the deployment base path                                                       | `index.html` URL check (`--base`), sub-path e2e project                                                  | `pnpm check:build`, `e2e/demo/smoke.spec.ts`        |
-| Every locale has the same keys; literal keys exist; pseudo-locale is current                        | `pnpm i18n:check`                                                                                        | `scripts/i18n-check.mjs`, `scripts/i18n-pseudo.mjs` |
-| Typed translation keys                                                                              | `I18nKey` type in `t()`                                                                                  | `src/i18n/index.ts`                                 |
-| Tests never hit the network or an unknown endpoint                                                  | MSW server fails the test on any unhandled request                                                       | `src/test/setup.ts`                                 |
-| Coverage does not regress                                                                           | Global floors + stricter per-module floors (api, auth, config, forms, routing/guards, reference feature) | `vitest.config.ts`                                  |
-| Components are accessible (labels, names, roles, contrast, focus)                                   | axe in every story test and on e2e pages; jsdom tests for focus behavior                                 | `.storybook/preview.tsx`, `e2e/fixtures.ts`         |
-| Motion respects `prefers-reduced-motion`                                                            | e2e motion check (with a control test proving it measures something)                                     | `e2e/demo/accessibility.spec.ts`                    |
-| Runtime errors cannot hide behind passing e2e assertions                                            | Every e2e test fails on page errors and console errors                                                   | `e2e/fixtures.ts`                                   |
-| Flaky e2e tests are failures                                                                        | `failOnFlakyTests` on CI                                                                                 | `playwright.config.ts`                              |
-| Generated code follows the conventions                                                              | Generated feature must pass typecheck, lint, Stylelint, Prettier, i18n and its tests                     | `pnpm gen:check`                                    |
-| Removing the demo/reference code leaves a working project                                           | Three adoption scenarios must pass every gate                                                            | `pnpm adopt:check`                                  |
-| Runtime dependencies have no known high advisories                                                  | `pnpm audit --prod --audit-level=high`                                                                   | CI `audit` job, `SECURITY.md`                       |
-| Commit messages are single-line Conventional Commits                                                | commitlint (husky `commit-msg`)                                                                          | `commitlint.config.cjs`                             |
+| Invariant                                                                                                                                   | Enforced by                                                                                                                                                                      | Where                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| One Node/pnpm baseline; lockfile matches `package.json`                                                                                     | `engines` + `engine-strict`, `packageManager`, `--frozen-lockfile` in CI                                                                                                         | `package.json`, `.npmrc`, `.github/actions/setup`                            |
+| Strict types for app, tests and tooling                                                                                                     | `tsc -b` over three projects                                                                                                                                                     | `tsconfig.*.json`                                                            |
+| No unsafe `any`, floating or misused promises; `void promise` is not handling                                                               | type-aware ESLint (errors); fixture `floating-promise-void`                                                                                                                      | `eslint.config.js`                                                           |
+| Layer matrix: shared layers never depend on features, views or the app shell; no cycles                                                     | `boundaries/dependencies`, `import/no-cycle`; positive and negative fixtures                                                                                                     | `eslint/boundaries.js`, `pnpm arch:check`                                    |
+| Features are imported only through `index.ts` and never import each other (aliases, relative paths, re-exports, `import()`)                 | `boundaries/dependencies`; fixtures                                                                                                                                              | same                                                                         |
+| Shared components and layouts are used through their `index`; `_` styled elements stay in their folder                                      | `boundaries/dependencies` (component elements), `starter/no-internal-styled-imports`; fixtures                                                                                   | `eslint/boundaries.js`, `eslint/plugin.js`                                   |
+| Styled elements are named `_<Component><Part>`, live in `styles.ts`, are imported by name; exports are explicit (no local `export *`)       | `starter/styled-element-names`, `no-restricted-imports` (styled outside styles), `no-restricted-syntax`; fixtures                                                                | `eslint.config.js`, `eslint/plugin.js`                                       |
+| Shared UI never fetches; requests go through `apiClient`                                                                                    | boundaries (`@tanstack/react-query`, `msw` in UI), `no-restricted-globals`/`-properties` for `fetch`, XHR, WebSocket, EventSource, `sendBeacon` outside `src/api/http`; fixtures | `eslint.config.js`                                                           |
+| Browser storage (`localStorage`, `sessionStorage`, `indexedDB`, `document.cookie`) only in auth adapters, the language preference and mocks | `no-restricted-globals`/`-properties` with an allow-list; fixtures                                                                                                               | `eslint.config.js`                                                           |
+| Production code never imports demo, tests, stories, test utilities or mocks                                                                 | boundaries, `import/no-extraneous-dependencies`; fixtures; `check:build` inspects the shipped modules                                                                            | `eslint/boundaries.js`, `scripts/check-build.mjs`                            |
+| Configuration is read only in `src/config`; invalid combinations cannot build                                                               | `no-restricted-syntax`; Zod schema in `vite.config.ts` and at runtime; fixture `reads-import-meta-env`                                                                           | `src/config/schema.ts`                                                       |
+| Architecture and safety rules are not suppressed inline                                                                                     | `starter/no-protected-suppression`, re-run by `arch:check` with inline config off (a blanket disable cannot hide itself)                                                         | `eslint/plugin.js`, `scripts/architecture/check.mjs`                         |
+| Colors come from the theme; no stylesheets or other styling systems; no `transition: all` or inline transitions                             | Stylelint (`color-no-hex`, `color-named`, color functions, transition values); `no-restricted-imports`/`-syntax`; fixtures                                                       | `.stylelintrc.cjs`, `eslint.config.js`                                       |
+| Every locale has the same keys and `{placeholders}`; literal keys exist; pseudo-locale current; keys typed                                  | `pnpm i18n:check` (+ `I18nKey` in `t()`)                                                                                                                                         | `scripts/i18n-check.mjs`, `scripts/lib/i18n.mjs`                             |
+| Flow ids match their URL segment; step paths unique, ordered, routed; every `/flow/` route declared                                         | `validateFlowContract` on the real paths and routes (`pnpm test:run`)                                                                                                            | `src/flows/contract.ts`, `src/containers/routing/flowContract.test.ts`       |
+| Docs reference existing files, headings and scripts; verify and CI agree                                                                    | `pnpm docs:check`                                                                                                                                                                | `scripts/check-docs.mjs`                                                     |
+| Tests never hit the network or an unknown endpoint                                                                                          | MSW fails the test on any unhandled request                                                                                                                                      | `src/test/setup.ts`                                                          |
+| Coverage does not regress                                                                                                                   | global and per-module floors                                                                                                                                                     | `vitest.config.ts`                                                           |
+| Session ordering, deadlines and failure policy                                                                                              | unit tests (races, adapter replacement, unmount, Strict Mode, timeouts, 401 policy)                                                                                              | `src/auth`, `src/containers/session`                                         |
+| Components are accessible (names, roles, contrast, focus, WCAG 2.2 target size)                                                             | axe in every story (Chromium, WebKit) and on key pages (desktop and mobile)                                                                                                      | `.storybook/preview.tsx`, `e2e/fixtures.ts`                                  |
+| Flow transitions settle and keep focus in the page, also under Strict Mode                                                                  | unit tests with and without Strict Mode; e2e on built apps and the dev server                                                                                                    | `src/containers/RouteTransitions`, `e2e/production/flows.spec.ts`, `e2e/dev` |
+| Motion respects `prefers-reduced-motion` (≤ 100 ms)                                                                                         | e2e measurement with a control test                                                                                                                                              | `e2e/production/accessibility.spec.ts`                                       |
+| Runtime errors cannot hide behind passing e2e assertions; flaky tests fail                                                                  | page/console errors fail every e2e test; `failOnFlakyTests` on CI                                                                                                                | `e2e/fixtures.ts`, `playwright.config.ts`                                    |
+| Bundle stays within budget; listed routes stay lazy; assets resolve under the base path                                                     | gzip budgets, initial-graph check, `index.html` URL check                                                                                                                        | `scripts/check-build.mjs`                                                    |
+| Generated code follows the conventions; generators stay usable after adoption                                                               | `pnpm gen:check`; the adoption scenarios run it again                                                                                                                            | `scripts/check-generator.mjs`                                                |
+| Removing demo/reference code — and building a product on top — leaves a working project with accurate docs                                  | `pnpm adopt:check` (demo, reference, both, product)                                                                                                                              | `scripts/check-adoption.mjs`                                                 |
+| Runtime dependencies have no known high advisories                                                                                          | `pnpm audit --prod --audit-level=high`                                                                                                                                           | CI `audit`, `SECURITY.md`                                                    |
+| Commit messages are single-line Conventional Commits                                                                                        | commitlint (husky `commit-msg`)                                                                                                                                                  | `commitlint.config.cjs`                                                      |
+
+## Not machine-checked: review these
+
+The checks above are narrow on purpose. Reviewers (and agents) still own:
+
+- **Product judgment:** whether a new shared component was needed at all,
+  or whether an existing one (`pnpm catalog`) or a local wrapper would do;
+  whether code belongs in a feature or a shared layer.
+- **Domain neutrality of the starter** (in starter-maintenance mode) and of
+  shared layers in a product.
+- **Logic separation:** meaningful state, derived values and handlers in
+  `logic.ts`; tiny presentational components without one.
+- **Theme usage beyond colors:** spacing, typography and radii from tokens
+  (structural sizes such as `max-width: 40rem` are fine); `Box` only as a
+  visible surface.
+- **Accessibility beyond axe:** keyboard paths, focus order and focus
+  return, announcements, sensible headings and labels. axe finds a subset of
+  problems; it is not proof of accessibility.
+- **Performance beyond budgets:** budgets catch size regressions, not slow
+  renders or waterfalls.
+- **Security and authorization:** the server authorizes every request; the
+  client cannot.
+- **Copy quality and translations** (the checks only prove the keys and
+  placeholders exist).
+- **Dynamic translation keys** (built from variables) are only type-checked
+  when they come from a typed map.
 
 ## When a check fails
 
-Fix the cause. Do not lower a threshold, raise a budget, add a lint
-suppression or skip a test to make a change pass. If a limit genuinely needs
-to move (a new dependency, a deliberate feature), change it in the same
-change that explains why — budgets and floors carry that instruction in their
-comments, and `SECURITY.md` lists the only accepted advisories.
+Fix the cause; the diagnostic names the approved alternative. Do not lower
+a threshold, raise a budget, skip a test, disable Strict Mode or add a
+suppression to make a change pass. Protected rules cannot be disabled inline
+at all; other inline disables need a reason after `--`.
 
-Adding a check? Add it to `pnpm verify`, to CI, and to this page.
+## Evolving limits deliberately
+
+Products grow: budgets, coverage floors, rules and contracts are expected to
+change — reviewably, never to hide a failure.
+
+- **Budgets** (`scripts/check-build.mjs`): raise one in the change that
+  adds the weight, with the reason in the commit and a comment next to the
+  number (e.g. "charts library, lazy on /reports").
+- **Coverage floors** (`vitest.config.ts`): raise them as coverage grows.
+  Lowering one needs a stated reason (code removed with its tests, a module
+  moved) and an equivalent protection where the risk moved.
+- **Boundary and lint rules:** change `eslint/boundaries.js` or
+  `eslint.config.js` together with a fixture that proves the new rule, the
+  docs, and an ADR when it changes the architecture
+  (`docs/decisions/README.md`).
+- **Contracts** (auth adapter, HTTP client, flow paths, generators): update
+  the contract's tests, the recipe and `docs/migration-notes.md`.
+
+Adding a check: add it to `pnpm verify` (`scripts/lib/verify-steps.mjs`),
+to CI, and to this page; give it positive and negative fixtures or tests and
+a diagnostic that says how to fix the problem.

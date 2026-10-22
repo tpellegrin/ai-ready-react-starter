@@ -16,9 +16,14 @@ export const fetchItems = async (filter: Filter, signal?: AbortSignal) => {
 ```
 
 `apiClient` (`src/api/client.ts`) adds the base URL, JSON headers and
-credentials, handles empty bodies (`emptyResponse`), and normalizes failures
-into `ApiError` (`network`, `aborted`, `http`, `parse`, `schema`).
+credentials, the session's CSRF token on unsafe methods, and a 15 s timeout
+(`timeoutMs` per request for slow endpoints such as uploads); it handles
+empty bodies (`emptyResponse`) and normalizes failures into `ApiError`
+(`network`, `timeout`, `aborted`, `http`, `parse`, `schema`).
 `getErrorMessageKey(error)` maps any error to an i18n key for display.
+
+No `fetch` or other HTTP library elsewhere (lint-enforced): if you need a
+different kind of request, extend `src/api/http` deliberately.
 
 ## Queries
 
@@ -40,8 +45,10 @@ export const itemListQuery = (filter: Filter) =>
   hierarchical so one invalidation covers every filtered list.
 - Pass `signal` through: queries cancel on unmount and when the session
   changes (the cache is cleared on sign-in/sign-out).
-- The client retries only retryable failures (network, 5xx, 408/429), at
-  most twice; mutations are never retried.
+- Queries retry only retryable failures (network, 5xx, 408/429), at most
+  twice; timeouts and mutations are never retried automatically.
+- A 401 while signed in triggers a session check, not a logout; 403 and
+  other errors stay in the region ([session lifecycle](../session-lifecycle.md#failure-policy)).
 
 ## Mutations
 
@@ -72,11 +79,20 @@ list is fresh.
 Async work started from event handlers goes through `runDetached(promise,
 onError)` (`src/utils/async`), never `void promise` (lint-enforced).
 
-Reference: `features/resources/components/ResourceForm/logic.ts`.
+Minimal example: `src/views/guest/SignIn/logic.ts`.
+
+<!-- starter:reference-start -->
+
+Complete example: `ResourceForm/logic.ts` in the reference feature (create
+and edit, server field errors, numeric input).
+
+<!-- starter:reference-end -->
 
 ## Tests
 
 Integration tests render through the real HTTP client against MSW
 (`src/mocks/handlers.ts`, fixtures reset after each test). Override a
-response with `server.use(http.get(...))`; any unhandled request fails the
-test. See `src/views/user/Resources/Resources.test.tsx`.
+response with `server.use(http.get(...))`, or make the next call of a mock
+fail with `injectFault('<feature>.<action>')`; any unhandled request fails
+the test. The generated `<Feature>Panel.test.tsx` shows the loading, empty
+and retry paths; cover a mutation's success, 422 and failure the same way.

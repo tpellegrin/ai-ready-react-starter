@@ -32,3 +32,16 @@ agents.
 
 Add a primitive only when two features need it; include a story with a play
 function.
+
+## Amendment (2026-10): public components and internal elements
+
+- Two levels: public components (a folder's `index`) and internal
+  `_<Component><Part>` styled elements in its `styles.ts`, imported by name
+  from `./styles` only and never re-exported. Enforced by boundaries and
+  `eslint/plugin.js`; details in `docs/ui/foundation.md`.
+- Deliberately shared pieces are explicit exports of the index (prop types,
+  the dialog family's `useReturnFocus` and surface styles). Button's label
+  composes the public `Text` instead of its internal element.
+- `pnpm catalog` lists the public building blocks from source;
+  `pnpm gen component` adds one (shared or feature-scoped, `logic.ts` only
+  on request) and refuses duplicates.

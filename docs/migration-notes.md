@@ -116,3 +116,57 @@ signal })` (`src/api/client.ts`), feature-owned keys and `queryOptions`
 - Use `renderWithProviders` / `renderApp` (`src/test`), `createFakeAuthAdapter`
   (`src/test/auth.ts`) and MSW handlers; a request without a handler fails the
   test. Storybook and Playwright suites run in CI.
+
+# Migration notes (completion pass, after `40cc3de`)
+
+For copies taken from the first version of the foundation (commit
+`40cc3de`).
+
+## Auth adapter contract v3 [0003]
+
+- Every method receives an `AbortSignal`: `signIn(credentials, signal)`,
+  `signOut(signal)`, `completeOnboarding(signal)` (and `restoreSession` as
+  before). Pass it to your requests.
+- `signOut` must reject when the server session could not be ended; the
+  provider then keeps the session (it used to clear it locally and rethrow).
+  Resolve when the server answers that there was no session.
+- `completeOnboarding` rejects with `AuthError('unauthenticated')` when
+  there is no session (the provider ends the session as expired).
+- `useAuth()` adds `verifySession()` and `sessionEndReason`; `AuthErrorCode`
+  adds `timeout`. Map auth errors to copy with `getAuthErrorMessageKey`
+  (`src/auth/messages.ts`).
+- Fake adapters in tests: `createFakeAuthAdapter` already matches.
+
+## HTTP client [0011]
+
+- `ApiErrorKind` adds `timeout`; the app client times out after 15 s
+  (`timeoutMs` per request to change it). `isRetryableError` is false for
+  timeouts.
+- The `headers` option receives `{ method, path }`.
+- The session adapter takes `{ csrf }` (the composition root passes
+  `csrfToken` from `src/api/client.ts`).
+
+## Components and imports [0013, 0014]
+
+- Import shared components and layouts only through their index; prop
+  types are exported from it (`BoxProps`, `FlexProps`, `LayoutHeaderProps`,
+  `LayoutFooterProps`, `MainLayoutProps`, `ControlSize`, …). Replace deep
+  imports such as `components/Box/types` or `…/MainLayout/types`.
+- `_` elements may only be imported from `./styles`; `BaseLayout` no longer
+  re-exports its styles. Local `export *` is replaced by explicit exports.
+- `styled-components` factories are imported only in `styles.ts(x)` files
+  and `src/styles`.
+- `LayoutTransitionContainer` is a component; `UserPageLayout`'s header
+  moved navigation and language to a second row (no overlap on phones).
+- Small form controls are 24px tall (WCAG 2.2 target size).
+
+## Tooling [0008, 0015, 0016]
+
+- `pnpm validate` runs through `scripts/verify.mjs` (also `docs:check` and
+  `test:tooling`); `pnpm verify` adds the audit. Install WebKit for
+  Storybook and e2e: `pnpm exec playwright install chromium webkit`.
+- `pnpm gen` adds `component`, `view` and `flow`; keep the `starter:gen`
+  markers in `paths.ts`, the route tables, `UserPageLayout` and
+  `src/mocks/handlers.ts`.
+- Flow step headings can use `flow.common.step` (`Step {current} of
+{total}`).

@@ -8,7 +8,7 @@ The onboarding flow is the **canonical reference implementation** of the flow ar
 
 ## Purpose
 
-Onboarding runs for users who are authenticated but have `needsOnboarding: true` on their user record. It is a guided three-step setup experience that exits by switching the router to the user context.
+Onboarding runs for users who are authenticated but have `needsOnboarding: true` on their user record. It is a guided three-step setup experience; completing it updates the session, and AppRouter then mounts the user routes.
 
 ## Route tree
 
@@ -29,7 +29,8 @@ src/views/onboarding/
   Preferences/
     index.tsx        ← Preferences screen
   Complete/
-    index.tsx        ← Completion screen (calls setRouterType to exit)
+    index.tsx        ← Completion screen (rendering)
+    logic.ts         ← completeOnboarding() with pending and error states
   index.tsx          ← Route definitions (OnboardingRoutes)
   README.md          ← This file
 ```
@@ -43,7 +44,7 @@ src/views/onboarding/
 - **`LayoutFooter`** — wraps the Continue/Finish button
 - **i18n** — all copy uses `useI18n()` with keys under `onboarding.*`
 - **Accessible heading** — every screen has a `<Text as="h1">` element
-- **Flow exit** — `Complete` calls `completeOnboarding()` (via `useAuth`); the user's `needsOnboarding` becomes false and AppRouter mounts the user routes
+- **Flow exit** — `Complete` calls `completeOnboarding()` (via `useAuth`, in `logic.ts`); the user's `needsOnboarding` becomes false and AppRouter mounts the user routes at the destination kept since sign-in, if any. A failure stays on the step with the reason, and the button retries.
 
 ## How to trigger onboarding in development
 
@@ -65,4 +66,5 @@ onboarding.complete.heading
 onboarding.complete.title
 onboarding.complete.body
 onboarding.complete.cta
+onboarding.complete.pending
 ```

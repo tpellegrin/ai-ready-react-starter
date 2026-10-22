@@ -6,7 +6,7 @@ This document is the authoritative reference for the flow architecture. It cover
 >
 > - [`docs/architecture.md`](./architecture.md) — general architectural overview
 > - [`docs/animation-system.md`](./animation-system.md) — transition animation details
-> - [`docs/how-to-extend.md`](./how-to-extend.md) — step-by-step extension guide
+> - [`docs/recipes/README.md`](./recipes/README.md) — task recipes and generators
 > - [`src/flows/README.md`](../src/flows/README.md) — flows folder reference
 > - [`src/views/onboarding/README.md`](../src/views/onboarding/README.md) — canonical demo
 
@@ -194,7 +194,11 @@ See [`docs/animation-system.md`](./animation-system.md) for full details.
 
 ### i18n
 
-All user-facing strings in flow screens must use i18n keys. Add keys under the relevant namespace in all locale files:
+All user-facing strings in flow screens must use i18n keys. The step heading
+uses the shared `flow.common.step` key (`t('flow.common.step', { current:
+position, total })` with `useFlowProgressFromPaths`), so adding a step does
+not mean editing every heading. Add the steps' own copy under the flow's
+namespace in all locale files:
 
 ```json
 // src/i18n/locales/en-US.json
@@ -276,6 +280,30 @@ src/
 ### 1. Decide if you really need a flow
 
 Review the "When to use a flow" section above. If the experience is a single page, a modal, or does not have back/next semantics, a flow is probably overkill.
+
+### The fast path: generate it
+
+```sh
+pnpm gen flow account-setup --group user --steps intro,details,review --dry-run
+pnpm gen flow account-setup --group user --steps intro,details,review
+```
+
+This adds `paths.flow['account-setup']` (key order = step order), one step
+view per step (`FlowLayout`, `useFlowNav`, progress, back on every step but
+the first), their routes in `src/views/<group>/index.tsx`, the copy in every
+locale and a test that moves forward and back. The last step navigates home;
+replace that with the flow's real completion (a mutation, then navigation).
+Steps 2–7 below describe the same by hand.
+
+### The contract is checked before runtime
+
+`validateFlowContract` (`src/flows/contract.ts`) runs in `pnpm test:run`
+against the real `paths.flow` and route table: flow ids are kebab-case and
+match their URL segment, step paths are `/flow/<id>/<step>` and unique, an
+explicit `__order` lists every step once, every step is routed and every
+`/flow/` route is declared. Each failure names the fix. It cannot check
+behavior — navigation, completion, guards, focus and transitions still need
+the flow's own tests.
 
 ### 2. Add step paths to `paths.ts`
 
@@ -391,7 +419,8 @@ Write tests for:
 - Back button navigates to the previous step
 - Completion step exits the flow correctly
 
-Use existing patterns from `src/views/onboarding/__tests__/`.
+Use the generated flow test (it drives the real router with
+`settleTransitions`) or `src/views/onboarding/__tests__/`.
 
 ### 7. Validate
 
@@ -408,7 +437,7 @@ Before marking a flow screen complete, verify:
 - [ ] Uses `FlowLayout` (not a custom page container)
 - [ ] Header passes `progress` from `useFlowProgressFromPaths`
 - [ ] Back button is present on all steps except the first
-- [ ] All buttons have `aria-label`
+- [ ] All buttons have an accessible name (visible label, or `aria-label` for icon buttons)
 - [ ] `<h1>` heading is present on every step
 - [ ] All copy uses i18n keys (no hardcoded strings)
 - [ ] Completion step exits the flow (router switch, redirect, or mutation)
