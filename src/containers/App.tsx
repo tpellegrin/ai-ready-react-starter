@@ -15,6 +15,7 @@ import { base } from 'styles/themes/base';
 
 import { AppRouter } from './AppRouter';
 import type { RouteTable, RouterFactory } from './routing/types';
+import { SessionMonitor } from './session/SessionMonitor';
 
 export type AppProps = {
   authAdapter: AuthAdapter;
@@ -58,6 +59,7 @@ export const App = ({
                 adapter={authAdapter}
                 onIdentityChange={handleIdentityChange}
               >
+                <SessionMonitor queryClient={queryClient} />
                 <NavigationProvider>
                   <ProgressBarProvider>
                     <AppRouter

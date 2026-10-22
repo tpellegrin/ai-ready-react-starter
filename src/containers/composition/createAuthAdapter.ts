@@ -1,4 +1,4 @@
-import { apiClient } from 'api/client';
+import { apiClient, csrfToken } from 'api/client';
 import { createSessionAuthAdapter } from 'auth/adapters/session';
 import type { AuthAdapter } from 'auth/types';
 // starter:demo-start
@@ -17,7 +17,9 @@ import { ConfigError, DEMO_MODE, type AppConfig } from 'config';
 export const createAuthAdapter = (config: AppConfig): Promise<AuthAdapter> => {
   switch (config.authProvider) {
     case 'session':
-      return Promise.resolve(createSessionAuthAdapter(apiClient));
+      return Promise.resolve(
+        createSessionAuthAdapter(apiClient, { csrf: csrfToken }),
+      );
     // starter:demo-start
     // The demo adapter is behind DEMO_MODE (a build-time constant) and a
     // dynamic import, so non-demo bundles do not contain it.

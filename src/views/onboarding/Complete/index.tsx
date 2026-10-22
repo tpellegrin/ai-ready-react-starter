@@ -1,34 +1,21 @@
 // DEMO: Replace or remove this onboarding screen when adopting the boilerplate. See docs/adoption.md.
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from 'auth/useAuth';
-import { paths } from 'globals/paths';
-import { runDetached } from 'utils/async';
 import { FlowLayout } from 'containers/Layouts/FlowLayout';
 import { useFlowNav } from 'hooks/useFlowNav';
 import { useFlowProgressFromPaths } from 'hooks/useFlowProgress';
 import { Button } from 'components/Button';
+import { InlineAlert } from 'components/InlineAlert';
 import { Text } from 'components/Text';
 import { Flex } from 'components/Flex';
 import { LayoutFooter } from 'containers/Layouts/common/LayoutFooter';
 import { useI18n } from 'i18n/provider';
 
+import { useCompleteOnboarding } from './logic';
+
 export function Complete() {
   const { t } = useI18n();
   const { goBack } = useFlowNav();
   const { percentage } = useFlowProgressFromPaths();
-  const navigate = useNavigate();
-  const { completeOnboarding, isAuthenticated } = useAuth();
-
-  // Authenticated users complete onboarding; AppRouter then derives the user
-  // router from auth state. A guest viewing the demo preview just returns to
-  // the start: the preview never grants access to protected routes.
-  const handleFinish = () => {
-    if (!isAuthenticated) {
-      navigate(paths.index);
-      return;
-    }
-    runDetached(completeOnboarding());
-  };
+  const { finish, isFinishing, errorKey } = useCompleteOnboarding();
 
   return (
     <FlowLayout
@@ -41,8 +28,9 @@ export function Complete() {
         <LayoutFooter>
           <Button
             label={t('onboarding.complete.cta')}
-            onClick={handleFinish}
-            aria-label={t('onboarding.complete.cta')}
+            isPending={isFinishing}
+            pendingLabel={t('onboarding.complete.pending')}
+            onClick={finish}
           />
         </LayoutFooter>
       }
@@ -52,6 +40,9 @@ export function Complete() {
           {t('onboarding.complete.title')}
         </Text>
         <Text variant="bodyMd">{t('onboarding.complete.body')}</Text>
+        {errorKey ? (
+          <InlineAlert tone="error">{t(errorKey)}</InlineAlert>
+        ) : null}
       </Flex>
     </FlowLayout>
   );

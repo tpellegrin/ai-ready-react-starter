@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
-import { useAuth } from 'auth/useAuth';
 import { Button } from 'components/Button';
+import { InlineAlert } from 'components/InlineAlert';
 import { LanguageSelector } from 'components/LanguageSelector';
 import { Text } from 'components/Text';
 import { appConfig } from 'config';
@@ -9,8 +9,8 @@ import { LayoutHeader } from 'containers/Layouts/common/LayoutHeader';
 import { MainLayout } from 'containers/Layouts/MainLayout';
 import { paths } from 'globals/paths';
 import { useI18n } from 'i18n/provider';
-import { runDetached } from 'utils/async';
 
+import { useSignOut } from './logic';
 import {
   _UserPageLayoutActions,
   _UserPageLayoutContent,
@@ -30,7 +30,7 @@ type Props = {
  */
 export const UserPageLayout = ({ title, children }: Props) => {
   const { t } = useI18n();
-  const { signOut } = useAuth();
+  const { isSigningOut, signOutErrorKey, handleSignOut } = useSignOut();
 
   return (
     <MainLayout
@@ -64,7 +64,9 @@ export const UserPageLayout = ({ title, children }: Props) => {
                 size="small"
                 variant="tertiary"
                 label={t('user.nav.signOut')}
-                onClick={() => runDetached(signOut())}
+                isPending={isSigningOut}
+                pendingLabel={t('auth.signOut.pending')}
+                onClick={handleSignOut}
               />
             </_UserPageLayoutActions>
           }
@@ -72,6 +74,9 @@ export const UserPageLayout = ({ title, children }: Props) => {
       }
     >
       <_UserPageLayoutContent>
+        {signOutErrorKey ? (
+          <InlineAlert tone="error">{t(signOutErrorKey)}</InlineAlert>
+        ) : null}
         <Text as="h1" variant="headingLg">
           {title}
         </Text>
