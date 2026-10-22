@@ -91,8 +91,9 @@ and edit, server field errors, numeric input).
 ## Tests
 
 Integration tests render through the real HTTP client against MSW
-(`src/mocks/handlers.ts`, fixtures reset after each test). Override a
-response with `server.use(http.get(...))`, or make the next call of a mock
-fail with `injectFault('<feature>.<action>')`; any unhandled request fails
-the test. The generated `<Feature>Panel.test.tsx` shows the loading, empty
+(`src/mocks/handlers.ts`). Mocks that keep mutable data (an in-memory store
+behind mutations) reset it in `resetMockData`, which runs after each test.
+Override a response with `server.use(http.get(...))`, or make the next call
+of a mock fail with `injectFault('<feature>.<action>')`; any unhandled
+request fails the test. The generated `<Feature>Panel.test.tsx` shows the loading, empty
 and retry paths; cover a mutation's success, 422 and failure the same way.
