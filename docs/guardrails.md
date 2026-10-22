@@ -7,16 +7,17 @@ required. `pnpm docs:check` fails when the two drift apart.
 
 ## Commands
 
-| Command                                        | Runs                                                                                                                                                           | CI job                        |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `pnpm validate`                                | format, lint (ESLint + boundaries + project rules), Stylelint, types, translations, docs, architecture fixtures, tooling and unit tests                        | `validate`                    |
-| `pnpm audit --prod --audit-level=high`         | advisories in runtime dependencies                                                                                                                             | `audit`                       |
-| `pnpm test:cov`                                | unit tests with coverage floors                                                                                                                                | `coverage`                    |
-| `pnpm build` + `pnpm check:build`              | real build; budgets, lazy routes, no demo/mock/test code or source maps, base path                                                                             | `build`                       |
-| `pnpm test:storybook` + `pnpm storybook:build` | every story in Chromium and WebKit (play functions, axe); static catalog                                                                                       | `storybook`                   |
-| `pnpm test:e2e`                                | built apps in desktop Chromium and mobile WebKit, the dev server under Strict Mode (and the starter's demo builds)                                             | `e2e`                         |
-| `pnpm gen:check`                               | every generator: refusals, dry runs, registrations, generated code passes the gates (temporary copy)                                                           | `generator`                   |
-| `pnpm adopt:check`                             | adoption scenarios, each followed by the adopted project's own `pnpm verify` (temporary copies); `product` adds a form and a browser journey to generated code | `adoption` (one per scenario) |
+| Command                                        | Runs                                                                                                                                                                                                                                          | CI job                        |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `pnpm validate`                                | format, lint (ESLint + boundaries + project rules), Stylelint, types, translations, docs, architecture fixtures, composition plans, tooling and unit tests                                                                                    | `validate`                    |
+| `pnpm audit --prod --audit-level=high`         | advisories in runtime dependencies                                                                                                                                                                                                            | `audit`                       |
+| `pnpm test:cov`                                | unit tests with coverage floors                                                                                                                                                                                                               | `coverage`                    |
+| `pnpm build` + `pnpm check:build`              | real build; budgets, lazy routes, no demo/mock/test code or source maps, base path                                                                                                                                                            | `build`                       |
+| `pnpm test:storybook` + `pnpm storybook:build` | every story in Chromium and WebKit (play functions, axe); static catalog                                                                                                                                                                      | `storybook`                   |
+| `pnpm test:e2e`                                | built apps in desktop Chromium and mobile WebKit, the dev server under Strict Mode (and the starter's demo builds)                                                                                                                            | `e2e`                         |
+| `pnpm design:regress`                          | composition plans' regression scenarios against their reviewed baselines (`design/<task>/baselines`); a missing baseline fails, nothing is written                                                                                            | `e2e`                         |
+| `pnpm gen:check`                               | every generator: refusals, dry runs, registrations, generated code passes the gates (temporary copy)                                                                                                                                          | `generator`                   |
+| `pnpm adopt:check`                             | adoption scenarios, each followed by the adopted project's own `pnpm verify` (temporary copies); `product` adds a form and a browser journey to generated code; `design` builds two pages from reference images and proves the design tooling | `adoption` (one per scenario) |
 
 `pnpm verify` runs them all and prints one line per check; failures show
 their problems as `file:line rule message` with the full log path, and
@@ -37,6 +38,10 @@ skipped and why:
   for tests, stories and e2e files; production code re-lints everything
   (type-aware rules re-check importers).
 - Stories alone: only those stories.
+- Composition plans, their reference images and baselines (`design/`): the
+  plan check and the design regression check (which also follow production
+  code and e2e changes); images are never passed to Prettier. Other files
+  under `design/` select everything.
 
 `--affected` is for iterating; merge readiness is `pnpm verify` and CI.
 
@@ -70,6 +75,9 @@ Browsers: `pnpm exec playwright install chromium webkit`.
 | Motion respects `prefers-reduced-motion` (≤ 100 ms)                                                                                         | e2e measurement with a control test                                                                                                                                              | `e2e/production/accessibility.spec.ts`                                       |
 | Runtime errors cannot hide behind passing e2e assertions; flaky tests fail                                                                  | page/console errors fail every e2e test (exempt: exact engine notices about deliberate markup, `ENGINE_NOTICES`); `failOnFlakyTests` on CI                                       | `e2e/fixtures.ts`, `playwright.config.ts`                                    |
 | Bundle stays within budget; listed routes stay lazy; assets resolve under the base path                                                     | gzip budgets, initial-graph check, `index.html` URL check                                                                                                                        | `scripts/check-build.mjs`                                                    |
+| Reference images, plans and evidence never ship                                                                                             | `check:build` refuses modules from `design/` or `reports/`                                                                                                                       | `scripts/check-build.mjs`                                                    |
+| Composition plans are valid, match the images they were written from and map regions to real public exports, never internals                | `pnpm design:check` (read-only; schema, hashes, cross-references, catalog facts, name collisions); tests with fixtures                                                           | `scripts/lib/design/check.mjs`                                               |
+| Reviewed design baselines still match; missing ones fail; baselines are written only on request                                             | `pnpm design:regress` (Playwright snapshots, default thresholds, per platform)                                                                                                   | `playwright.design.config.ts`, `e2e/design/capture.spec.ts`                  |
 | Generated code follows the conventions; generators stay usable after adoption                                                               | `pnpm gen:check`; the adoption scenarios run it again                                                                                                                            | `scripts/check-generator.mjs`                                                |
 | Removing demo/reference code — and building a product on top — leaves a working project with accurate docs                                  | `pnpm adopt:check` (demo, reference, both, product)                                                                                                                              | `scripts/check-adoption.mjs`                                                 |
 | Runtime dependencies have no known high advisories                                                                                          | `pnpm audit --prod --audit-level=high`                                                                                                                                           | CI `audit`, `SECURITY.md`                                                    |
@@ -89,6 +97,10 @@ The checks above are narrow on purpose. Reviewers (and agents) still own:
 - **Theme usage beyond colors:** spacing, typography and radii from tokens
   (structural sizes such as `max-width: 40rem` are fine); `Box` only as a
   visible surface.
+- **Design fidelity:** whether a page matches its reference images. The
+  design checks prove facts and structure (regions present, arrangement,
+  containment); the agent records what it saw, and only a person sets
+  `review.human` in a plan.
 - **Accessibility beyond axe:** keyboard paths, focus order and focus
   return, announcements, sensible headings and labels. axe finds a subset of
   problems; it is not proof of accessibility.

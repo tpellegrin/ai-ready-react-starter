@@ -22,6 +22,7 @@ it.
 | [0014](0014-ui-foundation.md)                      | Small UI foundation; public components and internal elements    |
 | [0015](0015-testing-strategy.md)                   | Test layers and browsers                                        |
 | [0016](0016-starter-adoption.md)                   | Adoption, provenance, generators                                |
+| [0017](0017-image-guided-composition.md)           | Pages from images: plans, checks, captures, baselines           |
 
 ## Changing the architecture
 
