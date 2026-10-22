@@ -38,12 +38,14 @@ export function useCenterOnlyTransitionLogic(cfg: HookConfig) {
   const finalizingTxnRef = React.useRef<number | null>(null);
   const mountedRef = React.useRef(true);
 
-  React.useEffect(
-    () => () => {
+  // Set on every mount, not only at creation: Strict Mode (dev) runs
+  // mount → cleanup → mount, and a flag left false would skip finalization.
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
       mountedRef.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   React.useLayoutEffect(() => {
     if (!activeOverlay && !exitOverlay) return;
