@@ -114,8 +114,10 @@ Products grow: budgets, coverage floors, rules and contracts are expected to
 change — reviewably, never to hide a failure.
 
 - **Budgets** (`scripts/check-build.mjs`): raise one in the change that
-  adds the weight, with the reason in the commit and a comment next to the
-  number (e.g. "charts library, lazy on /reports").
+  adds the weight, with the measured sizes and the reason in the commit and
+  a comment next to the number (e.g. "charts library, lazy on /reports").
+  After adoption they are the product's budgets; measuring and changing
+  them: [adoption](adoption.md#6-own-the-performance-budgets).
 - **Coverage floors** (`vitest.config.ts`): raise them as coverage grows.
   Lowering one needs a stated reason (code removed with its tests, a module
   moved) and an equivalent protection where the risk moved.
