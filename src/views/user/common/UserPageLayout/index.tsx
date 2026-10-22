@@ -67,6 +67,7 @@ export const UserPageLayout = ({ title, children }: Props) => {
                   </_UserPageLayoutNavLink>
                 </li>
                 {/* starter:reference-end */}
+                {/* starter:gen user-nav (`pnpm gen view --nav` adds links above) */}
               </_UserPageLayoutNavList>
             </nav>
             <LanguageSelector />

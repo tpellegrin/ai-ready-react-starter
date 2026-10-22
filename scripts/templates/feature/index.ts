@@ -4,3 +4,4 @@
  */
 export { __Feature__Panel } from './components/__Feature__Panel';
 export type { __Entity__ } from './model';
+// starter:gen exports (`pnpm gen component --feature` adds exports above)

@@ -3,6 +3,7 @@ import { paths } from 'globals/paths';
 import { Welcome } from './Welcome';
 import { Preferences } from './Preferences';
 import { Complete } from './Complete';
+// starter:gen route-imports (`pnpm gen` adds view imports above)
 
 /**
  * Maintainer/AI note:
@@ -24,4 +25,5 @@ export const OnboardingRoutes: RouteType[] = [
     path: paths.onboarding.complete,
     Component: Complete,
   },
+  // starter:gen routes (`pnpm gen view|flow` registers routes above)
 ];
