@@ -12,10 +12,10 @@ import { useI18n } from 'i18n/provider';
 
 import { useSignOut } from './logic';
 import {
-  _UserPageLayoutActions,
   _UserPageLayoutContent,
   _UserPageLayoutNavLink,
   _UserPageLayoutNavList,
+  _UserPageLayoutToolbar,
 } from './styles';
 
 type Props = {
@@ -25,8 +25,9 @@ type Props = {
 };
 
 /**
- * Shell for signed-in pages: header with primary navigation, language and
- * sign-out, and a scrollable content column (MainLayout owns scrolling).
+ * Shell for signed-in pages: a header (app name, sign-out) with a toolbar
+ * row (primary navigation, language) that wraps on narrow screens, and a
+ * scrollable content column (MainLayout owns scrolling).
  */
 export const UserPageLayout = ({ title, children }: Props) => {
   const { t } = useI18n();
@@ -38,7 +39,20 @@ export const UserPageLayout = ({ title, children }: Props) => {
       header={
         <LayoutHeader
           Left={<Text variant="bodyMdBold">{appConfig.appName}</Text>}
-          Center={
+          Right={
+            <Button
+              isCompact
+              size="small"
+              variant="tertiary"
+              label={t('user.nav.signOut')}
+              isPending={isSigningOut}
+              pendingLabel={t('auth.signOut.pending')}
+              onClick={handleSignOut}
+            />
+          }
+        >
+          {/* Its own row, wrapping on narrow screens: nothing overlaps. */}
+          <_UserPageLayoutToolbar>
             <nav aria-label={t('user.nav.label')}>
               <_UserPageLayoutNavList>
                 <li>
@@ -55,22 +69,9 @@ export const UserPageLayout = ({ title, children }: Props) => {
                 {/* starter:reference-end */}
               </_UserPageLayoutNavList>
             </nav>
-          }
-          Right={
-            <_UserPageLayoutActions>
-              <LanguageSelector />
-              <Button
-                isCompact
-                size="small"
-                variant="tertiary"
-                label={t('user.nav.signOut')}
-                isPending={isSigningOut}
-                pendingLabel={t('auth.signOut.pending')}
-                onClick={handleSignOut}
-              />
-            </_UserPageLayoutActions>
-          }
-        />
+            <LanguageSelector />
+          </_UserPageLayoutToolbar>
+        </LayoutHeader>
       }
     >
       <_UserPageLayoutContent>

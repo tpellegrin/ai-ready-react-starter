@@ -1,52 +1,68 @@
 import { defineConfig, devices, type Project } from '@playwright/test';
 
 /**
- * End-to-end tests against BUILT apps served by `vite preview`
- * (`pnpm test:e2e`). Each target builds its own output under dist-e2e/.
+ * End-to-end tests (`pnpm test:e2e`). Servers build and serve the app;
+ * projects run spec folders against a server in a browser.
+ *
+ * - production: a real build (session auth, no mocks); specs fake the API
+ *   with page.route. Runs in desktop Chromium and, because the custom
+ *   scrolling, transitions, focus handling and native inputs are riskiest
+ *   there, in mobile WebKit (iPhone viewport).
+ * - dev: the Vite dev server, i.e. React's development build with Strict
+ *   Mode's effect replay (main.tsx), which built apps never exercise.
+ * - demo / demo-subpath: the starter's labelled demo build (MSW in the
+ *   browser), at the root and under a GitHub Pages-style sub-path.
  */
 const isCI = !!process.env.CI;
 
-type Target = {
-  name: string;
+type Server = {
   port: number;
   base: string;
-  mode: string;
-  env: Record<string, string>;
-  testMatch: string;
+  command: string;
+  env?: Record<string, string>;
 };
 
-const targets: Target[] = [
-  // A real build (session auth, no mocks); each test mocks the API with
-  // page.route.
-  {
-    name: 'production',
+const build = (name: string, mode: string, port: number) =>
+  [
+    `vite build --mode ${mode} --outDir dist-e2e/${name} --logLevel warn`,
+    `vite preview --outDir dist-e2e/${name} --port ${port} --strictPort`,
+  ].join(' && ');
+
+const servers = {
+  production: {
     port: 4175,
     base: '/',
-    mode: 'production',
+    command: build('production', 'production', 4175),
     env: { VITE_API_BASE_URL: '/api' },
-    testMatch: 'production/**/*.spec.ts',
+  },
+  dev: {
+    port: 4176,
+    base: '/',
+    command: 'vite --mode development --port 4176 --strictPort',
   },
   // starter:demo-start
-  // The demo build at the domain root (MSW in the browser)...
-  {
-    name: 'demo',
-    port: 4173,
-    base: '/',
-    mode: 'demo',
-    env: {},
-    testMatch: 'demo/**/*.spec.ts',
-  },
-  // ...and under a sub-path, like GitHub Pages.
-  {
-    name: 'demo-subpath',
+  demo: { port: 4173, base: '/', command: build('demo', 'demo', 4173) },
+  demoSubpath: {
     port: 4174,
     base: '/starter/',
-    mode: 'demo',
+    command: build('demo-subpath', 'demo', 4174),
     env: { BASE_PATH: '/starter/' },
-    testMatch: 'demo/smoke.spec.ts',
   },
   // starter:demo-end
-];
+} satisfies Record<string, Server>;
+
+const url = (server: Server) => `http://localhost:${server.port}${server.base}`;
+
+const project = (
+  name: string,
+  server: Server,
+  testMatch: string,
+  device = devices['Desktop Chrome'],
+): Project => ({
+  name,
+  testMatch,
+  use: { ...device, baseURL: url(server) },
+});
 
 export default defineConfig({
   testDir: 'e2e',
@@ -61,24 +77,27 @@ export default defineConfig({
     ? [['github'], ['html', { open: 'never' }]]
     : [['list'], ['html', { open: 'never' }]],
   use: {
-    ...devices['Desktop Chrome'],
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  projects: targets.map(
-    (target): Project => ({
-      name: target.name,
-      testMatch: target.testMatch,
-      use: { baseURL: `http://localhost:${target.port}${target.base}` },
-    }),
-  ),
-  webServer: targets.map((target) => ({
-    command: [
-      `vite build --mode ${target.mode} --outDir dist-e2e/${target.name} --logLevel warn`,
-      `vite preview --outDir dist-e2e/${target.name} --port ${target.port} --strictPort`,
-    ].join(' && '),
-    url: `http://localhost:${target.port}${target.base}`,
-    env: target.env,
+  projects: [
+    project('production', servers.production, 'production/**/*.spec.ts'),
+    project(
+      'mobile-webkit',
+      servers.production,
+      'production/**/*.spec.ts',
+      devices['iPhone 14'],
+    ),
+    project('dev', servers.dev, 'dev/**/*.spec.ts'),
+    // starter:demo-start
+    project('demo', servers.demo, 'demo/**/*.spec.ts'),
+    project('demo-subpath', servers.demoSubpath, 'demo/smoke.spec.ts'),
+    // starter:demo-end
+  ],
+  webServer: Object.values(servers).map((server: Server) => ({
+    command: server.command,
+    url: url(server),
+    env: server.env ?? {},
     reuseExistingServer: !isCI,
     timeout: 120_000,
   })),

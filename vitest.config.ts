@@ -8,8 +8,9 @@ import { createViteConfig } from './vite.config';
 /**
  * Test projects (run one with `vitest --project <name>`):
  * - unit: jsdom component/integration tests in src/ (`pnpm test:run`).
- * - storybook: every story rendered in real Chromium, with its play function
- *   and an axe check that fails on violations (`pnpm test:storybook`).
+ * - storybook: every story rendered in real Chromium and WebKit, with its
+ *   play function and an axe check that fails on violations
+ *   (`pnpm test:storybook`).
  * - tooling: Node tests for the repository's own checks and generators
  *   (`*.test.mjs` files under scripts/, `pnpm test:tooling`).
  */
@@ -66,7 +67,9 @@ export default defineConfig((env) =>
               enabled: true,
               headless: true,
               provider: playwright({}),
-              instances: [{ browser: 'chromium' }],
+              // WebKit too: focus handling (dialogs, buttons) differs most
+              // in Safari.
+              instances: [{ browser: 'chromium' }, { browser: 'webkit' }],
             },
           },
         },
@@ -82,9 +85,9 @@ export default defineConfig((env) =>
           'src/**/*.d.ts',
         ],
         reporter: ['text-summary', 'html', 'lcov'],
-        // Floors set just below the measured coverage (see
-        // docs/starter-upgrade-plan.md). Raise them when coverage improves;
-        // never lower them to make a change pass. Core infrastructure has its
+        // Floors set just below the measured coverage. Raise them when
+        // coverage improves; never lower them to make a change pass
+        // (docs/guardrails.md#evolving-limits-deliberately). Core infrastructure has its
         // own, stricter floors on top of the global (all files) floor.
         thresholds: {
           statements: 77,

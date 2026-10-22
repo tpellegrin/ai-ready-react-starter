@@ -63,6 +63,11 @@ export const prefersReducedMotion = (): boolean => {
  * Get appropriate duration based on user preferences
  * Returns shorter durations if user prefers reduced motion
  */
+/** Longest transition allowed when the user prefers reduced motion. */
+export const REDUCED_MOTION_MAX_MS = 100;
+
 export const getAccessibleDuration = (duration: number): number => {
-  return prefersReducedMotion() ? Math.min(duration, 100) : duration;
+  return prefersReducedMotion()
+    ? Math.min(duration, REDUCED_MOTION_MAX_MS)
+    : duration;
 };

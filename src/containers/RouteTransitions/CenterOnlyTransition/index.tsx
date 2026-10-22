@@ -11,6 +11,9 @@ import {
 } from './styles';
 import { useNavigation } from 'globals/context/NavigationContext';
 
+const FOCUSABLE =
+  '[data-route-focus], [autofocus], button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 export const CenterOnlyTransition = ({
   children,
   routeKey,
@@ -142,21 +145,24 @@ export const CenterOnlyTransition = ({
       return;
     }
 
-    const focusable = container.querySelector<HTMLElement>(
-      '[data-route-focus], [autofocus], button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    );
-
-    let removeFallbackTabIndex = false;
-    if (focusable) {
-      focusable.focus({ preventScroll: true });
-    } else {
-      container.setAttribute('tabindex', '-1');
-      removeFallbackTabIndex = true;
-      container.focus({ preventScroll: true });
+    // The step's own control, else its heading (the usual target after a
+    // route change), else the scene itself.
+    const target =
+      container.querySelector<HTMLElement>(FOCUSABLE) ??
+      container.querySelector<HTMLElement>('h1') ??
+      container;
+    if (!target.matches(FOCUSABLE)) {
+      // Focusable only while it holds focus. Removing tabindex right away
+      // would blur it again (the browser's focus fixup), dropping focus to
+      // <body> — which is what screen reader users would then hear.
+      target.setAttribute('tabindex', '-1');
+      target.addEventListener(
+        'blur',
+        () => target.removeAttribute('tabindex'),
+        { once: true },
+      );
     }
-    if (removeFallbackTabIndex) {
-      container.removeAttribute('tabindex');
-    }
+    target.focus({ preventScroll: true });
     lastFocusedEpochRef.current = transitionEpoch;
   }, [phase, transitionEpoch]);
 
