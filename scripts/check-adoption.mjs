@@ -2,15 +2,18 @@
 // @ts-check
 /**
  * Verifies `pnpm adopt` in temporary copies of the project
- * (`pnpm adopt:check`; the checkout itself is never modified). For each
+ * (`pnpm adopt:check`; the checkout itself is never modified). Each copy is a
+ * fresh one-commit git repository, like a clone of the starter. For each
  * scenario — demo removed, reference feature removed, both — it checks that:
  *
  * - --dry-run writes nothing, and the real run leaves no markers or paths of
- *   the removed groups behind;
- * - the adopted project passes typecheck, lint (including architecture
- *   boundaries), stylelint, Prettier, i18n checks, the architecture fixtures,
- *   unit tests with coverage floors (auth through the test adapter), and a
- *   production build with its artifact inspection.
+ *   the removed groups behind and records the starter revision;
+ * - the adopted project passes everything an adopted project's own
+ *   `pnpm verify` runs: validate (format, lint + boundaries, styles, types,
+ *   i18n, docs, architecture fixtures, unit tests), coverage floors,
+ *   production build + inspection, Storybook tests and build, end-to-end
+ *   tests and the generator check. The nested verify skips its own adoption
+ *   check (and the dependency audit), so verification never recurses.
  *
  *   node scripts/check-adoption.mjs [--scenario demo|reference|all] [--keep]
  */
@@ -20,6 +23,13 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { createReport, createWorkspace } from './lib/workspace.mjs';
+
+if (process.env.STARTER_NESTED_VERIFY === '1') {
+  console.error(
+    '[adopt:check] Refusing to run inside a nested verification (verify → adopt:check → verify would recurse).',
+  );
+  process.exit(2);
+}
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -58,12 +68,15 @@ for (const name of selected) {
     continue;
   }
   const groups = flags.map((flag) => flag.replace('--remove-', ''));
-  const workspace = createWorkspace(projectRoot, `starter-adopt-${name}-`);
+  const workspace = createWorkspace(projectRoot, `starter-adopt-${name}-`, {
+    git: true,
+  });
   console.log(
     `\n[adopt:check] Scenario "${name}" (${flags.join(' ')}) in ${workspace.dir}`,
   );
 
   try {
+    const head = workspace.run('git', ['rev-parse', 'HEAD'], { quiet: true });
     const before = workspace.snapshot('.');
     const dryRun = workspace.run(
       'node',
@@ -117,39 +130,37 @@ for (const name of selected) {
       );
     }
 
-    /** @type {Array<[string, string, string[], Record<string, string>?]>} */
-    const gates = [
-      ['typecheck', 'tsc', ['-b']],
-      ['lint', 'eslint', ['.', '--max-warnings=0']],
-      ['stylelint', 'stylelint', ['src/**/*.{ts,tsx}', '--max-warnings=0']],
-      ['format', 'prettier', ['--check', '.']],
-      ['i18n keys', 'node', ['scripts/i18n-check.mjs']],
-      ['pseudo-locale', 'node', ['scripts/i18n-pseudo.mjs', '--check']],
-      ['architecture fixtures', 'node', ['scripts/architecture/check.mjs']],
-      [
-        'unit tests + coverage floors',
-        'vitest',
-        ['run', '--project', 'unit', '--coverage'],
-      ],
-      [
-        'production build',
-        'vite',
-        ['build', '--logLevel', 'warn'],
-        { VITE_API_BASE_URL: 'https://api.example.test' },
-      ],
-      ['build inspection', 'node', ['scripts/check-build.mjs']],
-    ];
-    for (const [label, command, args, env] of gates) {
-      const result = workspace.run(command, args, {
-        quiet: true,
-        env: env ?? {},
-      });
-      report.step(
-        `${name}: ${label}`,
-        result.status === 0,
-        result.output.slice(-4000),
-      );
-    }
+    const adoption =
+      /** @type {{ adoption?: { removed?: unknown, starterRevision?: unknown } }} */ (
+        readJson(path.join(workspace.dir, 'starter.manifest.json'))
+      ).adoption;
+    report.step(
+      `${name}: manifest records the removed groups and the starter revision`,
+      JSON.stringify(adoption?.removed) === JSON.stringify(groups) &&
+        JSON.stringify(adoption?.starterRevision) ===
+          JSON.stringify({
+            commit: head.output.trim(),
+            uncommittedChanges: false,
+          }),
+      JSON.stringify(adoption),
+    );
+
+    // What an adopted project's own `pnpm verify` runs, minus the adoption
+    // check itself (STARTER_NESTED_VERIFY) — never verify → adopt:check →
+    // verify.
+    console.log(`[adopt:check] ${name}: running the adopted project's verify…`);
+    const verified = workspace.run('node', ['scripts/verify.mjs'], {
+      quiet: true,
+      env: { STARTER_NESTED_VERIFY: '1' },
+    });
+    const summary = verified.output.slice(
+      verified.output.lastIndexOf('[verify]'),
+    );
+    report.step(
+      `${name}: adopted project passes verify (${summary.split('\n')[0]?.replace('[verify] ', '') ?? ''})`,
+      verified.status === 0,
+      verified.output.slice(-6000),
+    );
   } finally {
     if (values.keep) console.log(`[adopt:check] Kept ${workspace.dir}`);
     else workspace.cleanup();

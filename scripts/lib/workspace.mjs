@@ -1,47 +1,73 @@
 // @ts-check
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+
+import { listProjectFiles } from './files.mjs';
 
 /** Tool caches that must not be shared with the real checkout. */
 const PRIVATE_NODE_MODULES = new Set(['.cache', '.tmp', '.vite', '.vite-temp']);
 
 /**
- * Copies the project (tracked and untracked-but-not-ignored files) into a
- * temporary directory. node_modules is a real directory of symlinks to the
- * checkout's packages, so installs are reused while tool caches (tsc build
- * info, Vite, Vitest) stay private to the copy.
+ * Copies the project (tracked and untracked-but-not-ignored files, or every
+ * source file when it is not a git checkout) into a temporary directory.
+ * node_modules is a real directory of symlinks to the checkout's packages,
+ * so installs are reused while tool caches (tsc build info, Vite, Vitest)
+ * stay private to the copy. Never install packages inside a workspace: the
+ * symlinks point at the checkout.
+ *
+ * With `git: true` the copy becomes a one-commit git repository, like a fresh
+ * clone of the starter (adoption reads git and records the revision).
  *
  * @param {string} projectRoot
  * @param {string} prefix
+ * @param {{ git?: boolean }} [options]
  */
-export const createWorkspace = (projectRoot, prefix) => {
+export const createWorkspace = (projectRoot, prefix, { git = false } = {}) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-  const files = execFileSync(
-    'git',
-    ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
-    { cwd: projectRoot },
-  )
-    .toString()
-    .split('\0')
-    .filter(Boolean);
-  for (const file of files) {
-    const source = path.join(projectRoot, file);
-    if (!fs.existsSync(source)) continue; // deleted in the working tree
+  for (const file of listProjectFiles(projectRoot)) {
     const target = path.join(dir, file);
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.cpSync(source, target);
+    fs.cpSync(path.join(projectRoot, file), target);
   }
 
   const modules = path.join(dir, 'node_modules');
   fs.mkdirSync(modules);
+  // A workspace created inside another workspace links to the same real
+  // packages (node_modules entries there are symlinks already).
   for (const entry of fs.readdirSync(path.join(projectRoot, 'node_modules'))) {
     if (PRIVATE_NODE_MODULES.has(entry)) continue;
     fs.symlinkSync(
-      path.join(projectRoot, 'node_modules', entry),
+      fs.realpathSync(path.join(projectRoot, 'node_modules', entry)),
       path.join(modules, entry),
     );
+  }
+
+  if (git) {
+    const identity = [
+      '-c',
+      'user.name=starter',
+      '-c',
+      'user.email=starter@localhost',
+    ];
+    for (const args of [
+      ['init', '--quiet'],
+      ['add', '--all'],
+      [
+        ...identity,
+        'commit',
+        '--quiet',
+        '--no-verify',
+        '-m',
+        'chore: starter copy',
+      ],
+    ]) {
+      const result = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+      if (result.status !== 0) {
+        throw new Error(`git ${args.join(' ')} failed: ${result.stderr}`);
+      }
+    }
   }
 
   /**
@@ -63,7 +89,7 @@ export const createWorkspace = (projectRoot, prefix) => {
     return { status: result.status ?? 1, output };
   };
 
-  /** Lists every file under `relative` with its size and mtime. */
+  /** Lists every file under `relative` (minus .git and node_modules) with its size and mtime. */
   const snapshot = (relative = 'src') =>
     listFiles(path.join(dir, relative))
       .map((file) => {
@@ -81,6 +107,7 @@ export const createWorkspace = (projectRoot, prefix) => {
 /** @param {string} dir @returns {string[]} */
 const listFiles = (dir) =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.name === '.git' || entry.name === 'node_modules') return [];
     const full = path.join(dir, entry.name);
     return entry.isDirectory() ? listFiles(full) : [full];
   });

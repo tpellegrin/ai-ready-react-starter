@@ -31,6 +31,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { listProjectFiles } from './lib/files.mjs';
+
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
@@ -79,46 +81,7 @@ if (values.help || !groups.length) {
 const dryRun = values['dry-run'];
 
 // --- Collect files ------------------------------------------------------
-/** Generated or installed directories that never hold source. */
-const SKIP_DIRS = new Set([
-  '.git',
-  'node_modules',
-  'coverage',
-  'reports',
-  'storybook-static',
-  'playwright-report',
-  'test-results',
-]);
-/** @param {string} dir @returns {string[]} */
-const walk = (dir) =>
-  fs
-    .readdirSync(path.join(projectRoot, dir), { withFileTypes: true })
-    .flatMap((entry) => {
-      const relative = dir ? `${dir}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) {
-        return SKIP_DIRS.has(entry.name) || /^dist(?:-|$)/.test(entry.name)
-          ? []
-          : walk(relative);
-      }
-      return [relative];
-    });
-
-/** Project files: git's view when available (respects .gitignore), else a walk. */
-const listProjectFiles = () => {
-  try {
-    return execFileSync(
-      'git',
-      ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
-      { cwd: projectRoot, stdio: ['ignore', 'pipe', 'ignore'] },
-    )
-      .toString()
-      .split('\0')
-      .filter((file) => file && fs.existsSync(path.join(projectRoot, file)));
-  } catch {
-    return walk('');
-  }
-};
-const trackedFiles = listProjectFiles();
+const trackedFiles = listProjectFiles(projectRoot);
 
 const deletions = groups.flatMap((name) => manifest.groups[name]?.delete ?? []);
 const isDeleted = (/** @type {string} */ file) =>
@@ -238,10 +201,51 @@ const deleteKey = (object, dotted) => {
   return true;
 };
 
+// --- Provenance ---------------------------------------------------------
+/**
+ * @typedef {{ commit: string, uncommittedChanges: boolean } | null} Revision
+ * @typedef {{ removed?: unknown, starterRevision?: Revision }} AdoptionRecord
+ */
+const previousAdoption = /** @type {AdoptionRecord} */ (
+  manifest.adoption ?? {}
+);
+/** The commit this run starts from (null outside a git checkout). @returns {Revision} */
+const readRevision = () => {
+  /** @param {string[]} args */
+  const git = (args) =>
+    execFileSync('git', args, {
+      cwd: projectRoot,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim();
+  try {
+    return {
+      commit: git(['rev-parse', 'HEAD']),
+      uncommittedChanges: git(['status', '--porcelain']) !== '',
+    };
+  } catch {
+    return null;
+  }
+};
+// Recorded by the first adoption run only: later runs (e.g. removing the
+// reference feature weeks later) happen on the product's own commits.
+const starterRevision =
+  previousAdoption.starterRevision !== undefined
+    ? previousAdoption.starterRevision
+    : readRevision();
+
 // --- Report ------------------------------------------------------------
 const rel = (/** @type {string} */ file) => file;
 console.log(
   `[adopt] Removing: ${groups.join(', ')}${dryRun ? ' (dry run)' : ''}`,
+);
+console.log(
+  `  record  starter.manifest.json › adoption (starter revision ${
+    starterRevision
+      ? `${starterRevision.commit}${starterRevision.uncommittedChanges ? ' + uncommitted changes' : ''}`
+      : 'unknown: not a git checkout'
+  })`,
 );
 for (const target of deletions) {
   if (fs.existsSync(path.join(projectRoot, target)))
@@ -278,16 +282,13 @@ for (const file of fs.readdirSync(localesDir)) {
   fs.writeFileSync(localePath, `${JSON.stringify(locale, null, 2)}\n`);
 }
 
-const previous = Array.isArray(
-  /** @type {{ removed?: unknown }} */ (manifest.adoption ?? {}).removed,
-)
-  ? /** @type {string[]} */ (
-      /** @type {{ removed: unknown }} */ (manifest.adoption).removed
-    )
+const previous = Array.isArray(previousAdoption.removed)
+  ? /** @type {string[]} */ (previousAdoption.removed)
   : [];
 manifest.adoption = {
   removed: [...new Set([...previous, ...groups])],
   date: new Date().toISOString().slice(0, 10),
+  starterRevision,
 };
 fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
