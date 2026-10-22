@@ -3,7 +3,8 @@
  * Shared core of `pnpm gen` (scripts/gen.mjs): every generator builds a
  * plan, the core validates all of it before the first write, then writes.
  *
- * - Files are only created, never overwritten (refused if they exist).
+ * - Files are only created, never overwritten (refused if they exist, or
+ *   if two of the plan's files are the same path once normalized).
  * - Edits insert code at `starter:gen <name>` markers in the existing
  *   registries (paths.ts, route tables, mock handlers, navigation). A
  *   required marker that is missing stops the run; an optional one becomes
@@ -151,6 +152,25 @@ export const copyConflicts = (messages, copy, prefix = '') =>
     return [`"${at}" already exists; the plan would replace its text`];
   });
 
+/**
+ * Files the plan would create more than once: paths that are equal once
+ * normalized (`a/./b`, `a//b`) or that differ only in case (the same file
+ * on case-insensitive file systems, the macOS and Windows defaults).
+ * @param {CreateFile[]} creates
+ * @returns {string[][]} each group of colliding paths, as planned
+ */
+export const duplicateDestinations = (creates) => {
+  /** @type {Map<string, string[]>} */
+  const byDestination = new Map();
+  for (const file of creates) {
+    const key = path.posix
+      .normalize(file.path.split(path.sep).join('/'))
+      .toLowerCase();
+    byDestination.set(key, [...(byDestination.get(key) ?? []), file.path]);
+  }
+  return [...byDestination.values()].filter((paths) => paths.length > 1);
+};
+
 /** @param {Record<string, unknown>} target @param {Record<string, unknown>} source */
 const merge = (target, source) => {
   for (const [key, value] of Object.entries(source)) {
@@ -187,6 +207,16 @@ export const runPlan = (root, plan, { dryRun }) => {
     .map((file) => path.join(localesDir, file));
 
   // --- Validate everything first ---------------------------------------
+  const duplicates = duplicateDestinations(plan.creates);
+  if (duplicates.length) {
+    fail(
+      [
+        `${plan.title} would create the same file more than once:`,
+        ...duplicates.map((paths) => `  ${paths.join(' and ')}`),
+        'Two inputs became the same name (case and dashes are not kept); rename one. Nothing was changed.',
+      ].join('\n'),
+    );
+  }
   for (const file of plan.creates) {
     if (fs.existsSync(abs(file.path))) {
       fail(`${file.path} already exists. Nothing was changed.`);

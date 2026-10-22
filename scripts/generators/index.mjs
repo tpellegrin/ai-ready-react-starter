@@ -448,13 +448,38 @@ export const flowPlan = (context) => {
     fail(`Invalid step name(s): ${bad.join(', ')}. Use kebab-case.`);
   if (new Set(steps).size !== steps.length) fail('Step names must be unique.');
 
+  const flowPascal = toPascal(name);
+  const flowCamel = toCamel(name);
+  const dir = `src/views/${group}/${flowPascal}`;
+  // Distinct step names can normalize to the same key, component and folder
+  // ("a-1" and "a1" both become A1); folders that differ only in case are
+  // one folder on case-insensitive file systems.
+  /** @type {Map<string, string[]>} */
+  const byFolder = new Map();
+  for (const step of steps) {
+    const folder = toPascal(step).toLowerCase();
+    byFolder.set(folder, [...(byFolder.get(folder) ?? []), step]);
+  }
+  const clashes = [...byFolder.values()].filter((same) => same.length > 1);
+  if (clashes.length) {
+    fail(
+      [
+        'Step names must stay distinct once normalized:',
+        ...clashes.flatMap((clash) =>
+          clash.map(
+            (step) =>
+              `  "${step}" → key ${toCamel(step)}, component ${flowPascal}${toPascal(step)}, folder ${dir}/${toPascal(step)}`,
+          ),
+        ),
+        'Each step needs its own key, component and folder (folders that differ only in case are the same folder on macOS and Windows). Rename one of them. Nothing was changed.',
+      ].join('\n'),
+    );
+  }
+
   const pathsSource = read(root, PATHS);
   if (pathsSource.includes(`/flow/${name}/`)) {
     fail(`The flow "${name}" already exists in ${PATHS}. Nothing was changed.`);
   }
-  const flowPascal = toPascal(name);
-  const flowCamel = toCamel(name);
-  const dir = `src/views/${group}/${flowPascal}`;
   if (fs.existsSync(path.join(root, dir))) {
     fail(`${dir} already exists. Nothing was changed.`);
   }
