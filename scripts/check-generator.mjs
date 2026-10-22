@@ -9,8 +9,13 @@
  *    typecheck, lint (type-aware + boundaries), stylelint, Prettier, i18n
  *    checks and its own tests.
  *
+ * It depends on no removable example code: the "existing feature" case uses
+ * a placeholder feature this check creates (and removes) itself, so it passes
+ * in adopted projects too (`pnpm adopt:check` runs it after each adoption).
+ *
  * Pass --keep to leave the copy on disk for inspection.
  */
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,6 +27,7 @@ const projectRoot = path.resolve(
 );
 const keep = process.argv.includes('--keep');
 const NAME = 'sample-items';
+const EXISTING = 'gen-check-existing';
 const workspace = createWorkspace(projectRoot, 'starter-gen-check-');
 const report = createReport('gen:check');
 console.log(`[gen:check] Workspace: ${workspace.dir}\n`);
@@ -30,6 +36,10 @@ const gen = (/** @type {string[]} */ args, quiet = true) =>
   workspace.run('node', ['scripts/gen.mjs', ...args], { quiet });
 
 try {
+  const existingDir = path.join(workspace.dir, 'src/features', EXISTING);
+  fs.mkdirSync(existingDir, { recursive: true });
+  fs.writeFileSync(path.join(existingDir, 'index.ts'), 'export {};\n');
+
   const before = workspace.snapshot();
   const dryRun = gen(['feature', NAME, '--dry-run']);
   report.step(
@@ -40,7 +50,7 @@ try {
 
   /** @type {Array<[string[], string]>} */
   const refusals = [
-    [['feature', 'resources'], 'existing feature'],
+    [['feature', EXISTING], 'existing feature'],
     [['feature', '../outside'], 'path traversal'],
     [['feature', 'src/features/x'], 'nested path'],
     [['feature', 'Bad_Name'], 'invalid name'],
@@ -56,6 +66,9 @@ try {
       result.output,
     );
   }
+
+  // The gates below run on the real project, without the placeholder.
+  fs.rmSync(existingDir, { recursive: true, force: true });
 
   const generated = gen(['feature', NAME], false);
   report.step(`generates feature "${NAME}"`, generated.status === 0);
