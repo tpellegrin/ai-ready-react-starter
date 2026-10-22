@@ -128,9 +128,12 @@ src/features/<name>/
 2. Add or adjust a fixture in `scripts/architecture/fixtures`: header
    `// @fixture-path src/<folder>/__arch__/<file>` plus `// @expect none` or
    `// @expect <rule>: <message substring>` (`// @lint stylelint` for
-   Stylelint rules). Fixtures that need a feature or a shared component use
-   throwaway ones from `scripts/architecture/support/<area>/<name>`
-   (`features/arch-fixture-feature`, `components/ArchFixtureWidget`), copied
-   into `src/` for the run.
+   Stylelint rules). Fixtures that need a feature, a shared component or
+   demo code use throwaway ones from
+   `scripts/architecture/support/<area>/<name>`
+   (`features/arch-fixture-feature`, `components/ArchFixtureWidget`,
+   `demo/ArchFixtureDemo`), copied into `src/` for the run. Never point a
+   fixture at code that adoption removes: the check must pass in adopted
+   projects too.
 3. Run `pnpm arch:check` and `pnpm lint`, update this page, and record an
    architecture change in an ADR (`docs/decisions/README.md`).
