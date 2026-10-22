@@ -8,6 +8,7 @@ import {
   formatWithIntl,
   parseLocaleNumber,
   parseTypedNumber,
+  type TypedNumber,
 } from 'i18n/numberFormat';
 import {
   countDigitsBefore,
@@ -83,9 +84,26 @@ export const useInputLogic = (
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const composingRef = useRef(false);
-  // The value this field last reported. When the parent echoes it back, the
-  // display already shows it (possibly mid-typing, e.g. "1."): don't reformat.
+  // The value this field last reported, and the in-progress decimal input
+  // behind it ("1.", "1.50"). When the parent echoes that value back, the
+  // display already shows it: don't reformat (that would erase "1.").
   const emittedRef = useRef<number | null | undefined>(undefined);
+  const typedRef = useRef<TypedNumber | null>(null);
+  // The formatting the display was produced with. When it changes (locale,
+  // currency, grouping, precision), the display is re-rendered even for an
+  // echoed value, so later edits are parsed with the separators shown.
+  const formatKey = [
+    locale,
+    format,
+    currency,
+    maximumFractionDigits,
+    useGrouping,
+  ].join('|');
+  const displayedWithRef = useRef(formatKey);
+  const onValueChangeRef = useRef(onValueChange);
+  useEffect(() => {
+    onValueChangeRef.current = onValueChange;
+  });
   const setRefs = (node: HTMLInputElement | null) => {
     inputRef.current = node;
     assignRef(forwardedRef, node);
@@ -106,34 +124,68 @@ export const useInputLogic = (
     return '';
   });
 
-  // Keep the Display in sync with the external value
+  // Keep the display in sync with the external value and the formatting.
   useEffect(() => {
     if (!formattingEnabled) return;
-    if (emittedRef.current !== undefined && value === emittedRef.current) {
+    const formatChanged = displayedWithRef.current !== formatKey;
+    displayedWithRef.current = formatKey;
+    const echoed =
+      emittedRef.current !== undefined && value === emittedRef.current;
+    if (echoed && !formatChanged) return;
+
+    // Same in-progress input, new separators or grouping ("1.234," in pt-BR).
+    const typed = typedRef.current;
+    if (
+      echoed &&
+      typed &&
+      typeof value === 'number' &&
+      typed.value === value &&
+      format === 'number' &&
+      typed.fractionDigits <= effectiveMaxFrac &&
+      decimalsExpected
+    ) {
+      setDisplay(
+        formatTypedNumber(
+          { ...typed, value },
+          { locale, maximumFractionDigits: effectiveMaxFrac, useGrouping },
+        ),
+      );
       return;
     }
+
     emittedRef.current = undefined;
+    typedRef.current = null;
     if (typeof value === 'number' && Number.isFinite(value)) {
-      setDisplay(
-        formatWithIntl(value, {
-          locale,
-          format,
-          currency,
-          maximumFractionDigits,
-          useGrouping,
-        }),
-      );
+      const next = formatWithIntl(value, {
+        locale,
+        format,
+        currency,
+        maximumFractionDigits,
+        useGrouping,
+      });
+      setDisplay(next);
+      // New formatting may not show the value exactly (fewer fraction
+      // digits): report what the field now displays, so the value and the
+      // display never disagree.
+      const shown = formatChanged ? parseLocaleNumber(next, locale) : value;
+      if (shown !== null && shown !== value) {
+        emittedRef.current = shown;
+        onValueChangeRef.current?.(shown);
+      }
     } else if (value === '' || value === undefined || value === null) {
       setDisplay('');
     }
   }, [
     value,
     formattingEnabled,
+    formatKey,
     locale,
     format,
     currency,
     maximumFractionDigits,
     useGrouping,
+    effectiveMaxFrac,
+    decimalsExpected,
   ]);
 
   // Change handler that parses and re-formats as user types
@@ -175,6 +227,7 @@ export const useInputLogic = (
         : null;
     const parsed = typed ? typed.value : parseLocaleNumber(raw, locale);
     emittedRef.current = parsed;
+    typedRef.current = typed;
     onValueChange?.(parsed);
 
     if (parsed === null) {
@@ -290,6 +343,7 @@ export const useInputLogic = (
 
   // Leaving the field settles in-progress input ("1." → "1").
   const handleBlur: React.FocusEventHandler<HTMLInputElement> = (event) => {
+    typedRef.current = null;
     if (
       formattingEnabled &&
       typeof value === 'number' &&
