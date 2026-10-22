@@ -104,6 +104,9 @@ jobs:
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/playwright
       - run: pnpm test:e2e
+      # Composition plans' reviewed baselines (design/<task>/baselines);
+      # a missing one fails, nothing is written (docs/recipes/compose-from-images.md).
+      - run: pnpm design:regress
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
@@ -112,6 +115,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            reports/design/
           retention-days: 7
 
   generator:

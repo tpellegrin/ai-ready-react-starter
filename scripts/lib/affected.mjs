@@ -10,7 +10,9 @@
  * Stylelint per file, ESLint for tests, stories and e2e (nothing imports
  * them), `vitest related` for unit tests (it follows the real module graph)
  * and changed stories alone. Shared code, copy and assets run whole suites;
- * anything the rules below do not recognize selects everything.
+ * anything the rules below do not recognize selects everything. Composition
+ * plans and their reference images and baselines (design/) select the plan
+ * check and the design regression check, never Prettier for images.
  */
 
 /**
@@ -27,7 +29,7 @@ const GLOBAL = [
   /^\.npmrc$/,
   /^\.nvmrc$/,
   /^tsconfig[\w.]*\.json$/,
-  /^(vite|vitest|playwright|capacitor)\.config\.ts$/,
+  /^(vite|vitest|playwright|playwright\.design|capacitor)\.config\.ts$/,
   /^eslint\.config\.js$/,
   /^eslint\//,
   /^\.stylelintrc\.cjs$/,
@@ -60,6 +62,11 @@ const isAsset = (/** @type {string} */ file) =>
   /^src\/assets\//.test(file) &&
   (BINARY_ASSET.test(file) || /\.(svg|txt)$/i.test(file));
 const isE2e = (/** @type {string} */ file) => /^e2e\/.*\.ts$/.test(file);
+/** Composition plans, their reference images and reviewed baselines. */
+const isDesign = (/** @type {string} */ file) =>
+  /^design\/[^/]+\/(?:plan\.json|(?:references|baselines)\/[^/]+\.(?:png|jpe?g))$/i.test(
+    file,
+  );
 
 /**
  * @param {Change[]} changes
@@ -101,6 +108,7 @@ export const selectAffected = (changes, steps, { existing }) => {
     isAsset(file) ||
     isSourceCode(file) ||
     isE2e(file) ||
+    isDesign(file) ||
     file === 'LICENSE';
   const unknown = files.filter((file) => !known(file));
   if (unknown.length) {
@@ -122,6 +130,7 @@ export const selectAffected = (changes, steps, { existing }) => {
   const e2e = files.filter(isE2e);
   const locales = files.filter(isLocale);
   const assets = files.filter(isAsset);
+  const design = files.filter(isDesign);
   const typescript = [...source, ...e2e];
   /** What the app, its stories and its builds load: */
   const loaded = [...productionSource, ...locales, ...assets];
@@ -215,6 +224,15 @@ export const selectAffected = (changes, steps, { existing }) => {
   } else skip('i18n', 'no source or locale changes');
 
   decide('docs', 'cheap; docs, links and command references');
+  // Plans name source facts (exports, paths, routes, locales).
+  if (design.length || source.length || locales.length) {
+    decide(
+      'design',
+      design.length
+        ? `composition plans or references changed (${design[0]})`
+        : 'source changed: plans map regions to its public exports',
+    );
+  } else skip('design', 'no plans, references or source changed');
   decide(
     'architecture',
     source.length ? 'source changed (fixtures + suppression scan)' : null,
@@ -295,6 +313,19 @@ export const selectAffected = (changes, steps, { existing }) => {
     decide('e2e', `journeys may change (${journeys[0]})`);
   } else {
     skip('e2e', 'only tests, stories or docs changed');
+  }
+
+  const renders = [...loaded, ...e2e, ...design];
+  if (renders.length) {
+    decide(
+      'design-regression',
+      `renders or baselines may change (${renders[0]})`,
+    );
+  } else {
+    skip(
+      'design-regression',
+      'nothing rendered and no plan or baseline changed',
+    );
   }
 
   skip('generator', 'generator and templates unchanged');
