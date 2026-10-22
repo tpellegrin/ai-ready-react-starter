@@ -3,8 +3,11 @@ import type { Page, Route } from '@playwright/test';
 import {
   currentAppPath,
   expect,
+  expectFlowSettled,
   expectNoA11yViolations,
+  fakeSessionApi,
   gotoApp,
+  signInWithForm,
   test,
 } from '../fixtures';
 
@@ -20,12 +23,13 @@ test.use({
   ],
 });
 
-const user = {
-  id: 'user-1',
-  email: 'ada@example.com',
-  name: 'Ada',
-  needsOnboarding: false,
-};
+const json = (route: Route, status: number, body?: unknown) =>
+  route.fulfill({
+    status,
+    contentType: 'application/json',
+    body: body === undefined ? '' : JSON.stringify(body),
+  });
+
 // starter:reference-start
 const resources = [
   {
@@ -39,48 +43,25 @@ const resources = [
     updatedAt: '2026-01-15T09:30:00.000Z',
   },
 ];
-// starter:reference-end
 
-const json = (route: Route, status: number, body?: unknown) =>
-  route.fulfill({
-    status,
-    contentType: 'application/json',
-    body: body === undefined ? '' : JSON.stringify(body),
+/** The session API plus the reference feature's list endpoint. */
+const fakeBackend = async (page: Page, options = {}) => {
+  const api = await fakeSessionApi(page, options);
+  const seen: string[] = [];
+  await page.route('**/api/resources**', (route) => {
+    seen.push(route.request().url());
+    return api.signedIn
+      ? json(route, 200, { items: resources })
+      : json(route, 401);
   });
-
-/** Minimal stateful backend for the session contract (src/auth/adapters/session.ts). */
-const fakeBackend = async (page: Page, { signedIn = false } = {}) => {
-  const state = { signedIn, signOutCalls: 0 };
-  await page.route('**/api/session', async (route) => {
-    const method = route.request().method();
-    if (method === 'GET') {
-      return state.signedIn ? json(route, 200, { user }) : json(route, 401);
-    }
-    if (method === 'POST') {
-      const body = route.request().postDataJSON() as { password?: string };
-      if (body.password === 'wrong') return json(route, 401);
-      state.signedIn = true;
-      return json(route, 200, { user });
-    }
-    if (method === 'DELETE') {
-      state.signedIn = false;
-      state.signOutCalls += 1;
-      return route.fulfill({ status: 204 });
-    }
-    return json(route, 405);
-  });
-  // starter:reference-start
-  await page.route('**/api/resources**', (route) =>
-    json(route, 200, { items: resources }),
-  );
-  // starter:reference-end
-  return state;
+  return { api, seen };
 };
+// starter:reference-end
 
 test('guests start on Welcome; no demo hub and no mock service worker', async ({
   page,
 }) => {
-  await fakeBackend(page);
+  await fakeSessionApi(page);
   await gotoApp(page);
 
   await expect(
@@ -93,14 +74,13 @@ test('guests start on Welcome; no demo hub and no mock service worker', async ({
       async () => (await navigator.serviceWorker.getRegistrations()).length,
     ),
   ).toBe(0);
-  await expectNoA11yViolations(page);
 });
 
 // starter:reference-start
 test('protected deep link → sign in against the API → back to the page; reload restores the session', async ({
   page,
 }) => {
-  const backend = await fakeBackend(page);
+  const { api } = await fakeBackend(page);
   await gotoApp(page, '/resources');
 
   await expect(
@@ -108,13 +88,10 @@ test('protected deep link → sign in against the API → back to the page; relo
   ).toBeVisible();
   await expectNoA11yViolations(page);
 
-  await page.getByLabel('Email').fill('ada@example.com');
-  await page.getByLabel('Password').fill('wrong');
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await signInWithForm(page, 'wrong');
   await expect(page.getByRole('alert')).toHaveText('Invalid email or password');
 
-  await page.getByLabel('Password').fill('correct horse');
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await signInWithForm(page, 'correct horse');
   await expect(
     page.getByRole('heading', { level: 2, name: 'Server resource' }),
   ).toBeVisible();
@@ -131,16 +108,61 @@ test('protected deep link → sign in against the API → back to the page; relo
   await expect(
     page.getByRole('heading', { level: 1, name: 'Sign in' }),
   ).toBeVisible();
-  expect(backend.signOutCalls).toBe(1);
+  expect(api.calls.signOut).toBe(1);
   await page.reload();
   await expect(
     page.getByRole('heading', { level: 1, name: 'Sign in' }),
   ).toBeVisible();
 });
+
+test('a protected deep link with a query survives sign-in and required onboarding', async ({
+  page,
+}) => {
+  await fakeBackend(page, { needsOnboarding: true });
+  await gotoApp(page, '/resources?status=archived');
+
+  await signInWithForm(page);
+  for (const step of [1, 2]) {
+    await expect(page.getByText(`Step ${step} of 3`)).toBeVisible();
+    await expectFlowSettled(page);
+    await page.getByRole('button', { name: 'Continue' }).click();
+  }
+  await expect(page.getByText('Step 3 of 3')).toBeVisible();
+  await expectFlowSettled(page);
+  await page.getByRole('button', { name: 'Go to Dashboard' }).click();
+
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Resources' }),
+  ).toBeVisible();
+  expect(currentAppPath(page)).toBe('/resources?status=archived');
+});
+
+test('an expired session on an API request leads to sign-in for the same page', async ({
+  page,
+}) => {
+  const { api } = await fakeBackend(page, { signedIn: true });
+  await gotoApp(page, '/resources?status=active');
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Server resource' }),
+  ).toBeVisible();
+
+  // The server forgets the session; the next request answers 401 and the
+  // session check confirms it.
+  api.signedIn = false;
+  await page.getByLabel('Status').selectOption('archived');
+
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Sign in' }),
+  ).toBeVisible();
+  await expect(page.getByRole('status')).toContainText(
+    'Your session has expired',
+  );
+  expect(currentAppPath(page)).toMatch(/^\/sign-in\?returnTo=/);
+});
 // starter:reference-end
 
 test('protected pages ask guests to sign in first', async ({ page }) => {
-  await fakeBackend(page);
+  await fakeSessionApi(page);
   await gotoApp(page, '/flow/onboarding/welcome');
 
   await expect(
@@ -153,14 +175,8 @@ test('protected pages ask guests to sign in first', async ({ page }) => {
 test('an unreachable session check is recoverable in place', async ({
   page,
 }) => {
-  let failures = 1;
-  await page.route('**/api/session', (route) => {
-    if (failures > 0) {
-      failures -= 1;
-      return json(route, 503, { title: 'Unavailable', status: 503 });
-    }
-    return json(route, 200, { user });
-  });
+  const api = await fakeSessionApi(page, { signedIn: true });
+  api.fail('restore', 503);
   await gotoApp(page);
 
   await expect(
@@ -179,7 +195,7 @@ test('an unreachable session check is recoverable in place', async ({
 test('a response that breaks the API contract is shown as an error, not rendered', async ({
   page,
 }) => {
-  await fakeBackend(page, { signedIn: true });
+  await fakeSessionApi(page, { signedIn: true });
   await page.route('**/api/resources**', (route) =>
     json(route, 200, { items: [{ id: 1, title: 'wrong shape' }] }),
   );

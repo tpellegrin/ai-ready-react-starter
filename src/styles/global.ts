@@ -1,5 +1,5 @@
 import { createGlobalStyle } from 'styled-components';
-import { TRANSITIONS } from 'utils/transitions/config';
+import { REDUCED_MOTION_MAX_MS, TRANSITIONS } from 'utils/transitions/config';
 import { prettyScrollbar } from './mixins';
 import { typography } from './themes/typography';
 
@@ -66,6 +66,14 @@ export const GlobalStyle = createGlobalStyle`
 
   .app-root [data-allow-fade] {
     --transition-props: opacity;
+  }
+
+  /* Reduced motion: the default duration also obeys the clamp (components
+     that set their own use getAccessibleDuration). */
+  @media (prefers-reduced-motion: reduce) {
+    .app-root * {
+      --transition-duration: ${REDUCED_MOTION_MAX_MS}ms;
+    }
   }
 
   p {

@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Page, type Route } from '@playwright/test';
 
 /**
  * Routing uses hash URLs, so every in-app path is `<base>#<path>`. Relative
@@ -115,3 +115,134 @@ export const injectMockFault = (page: Page, fault: string) =>
   }, fault);
 
 export { expect };
+
+/**
+ * Production builds only: a stateful fake of the cookie-session contract
+ * (src/auth/adapters/session.ts) through page.route, so journeys run against
+ * a real build without a backend. `fail` makes the next call of an endpoint
+ * answer with that status once.
+ */
+export const fakeSessionApi = async (
+  page: Page,
+  {
+    signedIn = false,
+    needsOnboarding = false,
+  }: { signedIn?: boolean; needsOnboarding?: boolean } = {},
+) => {
+  const state = {
+    signedIn,
+    user: {
+      id: 'user-1',
+      email: 'ada@example.com',
+      name: 'Ada',
+      needsOnboarding,
+    },
+    calls: { restore: 0, signIn: 0, signOut: 0, onboarding: 0 },
+    failures: new Map<string, number>(),
+    fail(
+      endpoint: 'restore' | 'signIn' | 'signOut' | 'onboarding',
+      status: number,
+    ) {
+      state.failures.set(endpoint, status);
+    },
+  };
+  const json = (route: Route, status: number, body?: unknown) =>
+    route.fulfill({
+      status,
+      contentType: 'application/json',
+      body: body === undefined ? '' : JSON.stringify(body),
+    });
+  const failure = (endpoint: string) => {
+    const status = state.failures.get(endpoint);
+    state.failures.delete(endpoint);
+    return status;
+  };
+  await page.route('**/api/session/onboarding', async (route) => {
+    state.calls.onboarding += 1;
+    const status = failure('onboarding');
+    if (status) return json(route, status, { status });
+    if (!state.signedIn) return json(route, 401);
+    state.user = { ...state.user, needsOnboarding: false };
+    return json(route, 200, { user: state.user });
+  });
+  await page.route('**/api/session', async (route) => {
+    const method = route.request().method();
+    if (method === 'GET') {
+      state.calls.restore += 1;
+      const status = failure('restore');
+      if (status) return json(route, status, { status });
+      return state.signedIn
+        ? json(route, 200, { user: state.user })
+        : json(route, 401);
+    }
+    if (method === 'POST') {
+      state.calls.signIn += 1;
+      const body = route.request().postDataJSON() as { password?: string };
+      if (body.password === 'wrong') return json(route, 401);
+      state.signedIn = true;
+      return json(route, 200, { user: state.user });
+    }
+    if (method === 'DELETE') {
+      state.calls.signOut += 1;
+      const status = failure('signOut');
+      if (status) return json(route, status, { status });
+      state.signedIn = false;
+      return route.fulfill({ status: 204 });
+    }
+    return json(route, 405);
+  });
+  return state;
+};
+
+/** Signs in through the UI (the app must be on the sign-in page). */
+export const signInWithForm = async (page: Page, password = 'secret') => {
+  await page.getByLabel('Email').fill('ada@example.com');
+  await page.getByLabel('Password').fill(password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+};
+
+/**
+ * Longest movement on the page (seconds): transitions of motion properties
+ * (transform, position, size, opacity) and keyframe animations. Color and
+ * shadow fades are not motion and are ignored. Runs in the page.
+ */
+export const longestMotion = () => {
+  const MOTION =
+    /^(all|transform|translate|scale|rotate|opacity|top|left|right|bottom|inset|margin.*|width|height)$/;
+  const list = (value: string) => value.split(',').map((part) => part.trim());
+  const seconds = (value: string) => parseFloat(value) || 0;
+  return Math.max(
+    0,
+    ...Array.from(document.querySelectorAll('*')).map((element) => {
+      const style = getComputedStyle(element);
+      const properties = list(style.transitionProperty);
+      const durations = list(style.transitionDuration);
+      const delays = list(style.transitionDelay);
+      const transition = Math.max(
+        0,
+        ...properties.map((property, index) =>
+          MOTION.test(property)
+            ? seconds(durations[index % durations.length] ?? '0') +
+              seconds(delays[index % delays.length] ?? '0')
+            : 0,
+        ),
+      );
+      const animation =
+        style.animationName === 'none'
+          ? 0
+          : Math.max(...list(style.animationDuration).map(seconds)) +
+            Math.max(...list(style.animationDelay).map(seconds));
+      return Math.max(transition, animation);
+    }),
+  );
+};
+
+/**
+ * Waits until a flow step has fully settled: no slide in progress, no exiting
+ * step left in the DOM.
+ */
+export const expectFlowSettled = async (page: Page) => {
+  await waitForRouteTransition(page);
+  await expect(page.locator('[data-center-phase="settled"]')).toHaveCount(1);
+  await expect(page.locator('[data-overlay="exit"]')).toHaveCount(0);
+};

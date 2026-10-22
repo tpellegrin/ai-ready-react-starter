@@ -6,6 +6,7 @@ import React, {
   useRef,
 } from 'react';
 
+import { getAccessibleDuration } from 'utils/transitions/config';
 import { OverlayRoleContext } from 'utils/transitions/overlayRole';
 import {
   LayoutTransitionContainer,
@@ -19,6 +20,9 @@ import {
 import { LayoutChromeContext } from '../common/LayoutChromeContext';
 
 import { type Props } from './types';
+
+/** Fade of the header/footer content when a step publishes new chrome. */
+const CHROME_FADE_MS = 200;
 import { _FlowLayoutContentColumn, _FlowLayoutScrollViewport } from './styles';
 import { IS_DEV } from 'config';
 import { useNavigation } from 'globals/context/NavigationContext';
@@ -74,7 +78,8 @@ export const FlowLayout: React.FC<Props> = ({
     [footer, showFooter],
   );
 
-  // Publish header/footer into the persistent shell (MainLayout) via context
+  // Publish header/footer into the persistent shell (MainLayout) via context.
+  // Their fade obeys reduced motion like every other transition.
   const { registerChrome, unregisterChrome } = useContext(LayoutChromeContext);
   const ownerTokenRef = useRef(Symbol('flow-layout-owner'));
   const ownerToken = ownerTokenRef.current;
@@ -88,7 +93,7 @@ export const FlowLayout: React.FC<Props> = ({
           data-flow-header
           data-allow-fade
           style={{
-            ['--transition-duration' as string]: '200ms',
+            ['--transition-duration' as string]: `${getAccessibleDuration(CHROME_FADE_MS)}ms`,
             ['--transition-easing' as string]: 'ease',
           }}
         >
@@ -105,7 +110,7 @@ export const FlowLayout: React.FC<Props> = ({
           data-flow-footer
           data-allow-fade
           style={{
-            ['--transition-duration' as string]: '200ms',
+            ['--transition-duration' as string]: `${getAccessibleDuration(CHROME_FADE_MS)}ms`,
             ['--transition-easing' as string]: 'ease',
           }}
         >

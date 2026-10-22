@@ -158,7 +158,8 @@ export const _ControlField = styled.input<{
       : $size === 'small'
         ? css`
             ${typography.bodyMd};
-            height: 1.25rem;
+            /* The native field is the touch target: WCAG 2.2 minimum (24px). */
+            height: 1.5rem;
           `
         : css`
             ${typography.headingSm};
