@@ -39,6 +39,7 @@
     "check:build:demo": "node scripts/check-build.mjs --profile demo",
     "gen": "node scripts/gen.mjs",
     "gen:check": "node scripts/check-generator.mjs",
+    "catalog": "node scripts/catalog.mjs",
     "test:e2e": "playwright test",
     "adopt": "node scripts/adopt.mjs",
     "adopt:check": "node scripts/check-adoption.mjs",

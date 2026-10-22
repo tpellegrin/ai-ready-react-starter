@@ -3,8 +3,11 @@
 /**
  * Verifies `pnpm adopt` in temporary copies of the project
  * (`pnpm adopt:check`; the checkout itself is never modified). Each copy is a
- * fresh one-commit git repository, like a clone of the starter. For each
- * scenario — demo removed, reference feature removed, both — it checks that:
+ * fresh one-commit git repository, like a clone of the starter. Scenarios:
+ * demo removed, reference feature removed, both, and `product` — both
+ * removed, then a small real product built the documented way (a domain
+ * feature and its page with the generators, a nav link, a new app name).
+ * For each scenario it checks that:
  *
  * - --dry-run writes nothing, and the real run leaves no markers or paths of
  *   the removed groups behind and records the starter revision;
@@ -15,9 +18,9 @@
  *   tests and the generator check. The nested verify skips its own adoption
  *   check (and the dependency audit), so verification never recurses.
  *
- *   node scripts/check-adoption.mjs [--scenario demo|reference|all] [--keep]
+ *   node scripts/check-adoption.mjs [--scenario demo|reference|all|product] [--keep]
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -42,11 +45,52 @@ const { values } = parseArgs({
   },
 });
 
-/** @type {Record<string, string[]>} */
+/**
+ * After adoption, the `product` scenario does what a team does first: real
+ * domain names in product code, a page with navigation, its own branding.
+ * @type {Array<[string, string, string[]]>}
+ */
+const PRODUCT_STEPS = [
+  [
+    'generate a domain feature',
+    'node',
+    ['scripts/gen.mjs', 'feature', 'invoices', '--entity', 'Invoice'],
+  ],
+  [
+    'generate a feature component',
+    'node',
+    [
+      'scripts/gen.mjs',
+      'component',
+      'InvoiceTotal',
+      '--feature',
+      'invoices',
+      '--logic',
+    ],
+  ],
+  [
+    'generate its page, route and nav link',
+    'node',
+    [
+      'scripts/gen.mjs',
+      'view',
+      'Invoices',
+      '--group',
+      'user',
+      '--feature',
+      'invoices',
+      '--nav',
+    ],
+  ],
+];
+const PRODUCT_NAME = 'Ledgerly';
+
+/** @type {Record<string, { flags: string[], product?: boolean }>} */
 const SCENARIOS = {
-  demo: ['--remove-demo'],
-  reference: ['--remove-reference'],
-  all: ['--remove-demo', '--remove-reference'],
+  demo: { flags: ['--remove-demo'] },
+  reference: { flags: ['--remove-reference'] },
+  all: { flags: ['--remove-demo', '--remove-reference'] },
+  product: { flags: ['--remove-demo', '--remove-reference'], product: true },
 };
 const selected = values.scenario?.length
   ? values.scenario
@@ -62,11 +106,12 @@ const manifest =
 const report = createReport('adopt:check');
 
 for (const name of selected) {
-  const flags = SCENARIOS[name];
-  if (!flags) {
+  const scenario = SCENARIOS[name];
+  if (!scenario) {
     report.step(`unknown scenario "${name}"`, false);
     continue;
   }
+  const { flags } = scenario;
   const groups = flags.map((flag) => flag.replace('--remove-', ''));
   const workspace = createWorkspace(projectRoot, `starter-adopt-${name}-`, {
     git: true,
@@ -114,6 +159,21 @@ for (const name of selected) {
         ],
         { quiet: true },
       );
+      const markdownMarkers = workspace.run(
+        'git',
+        [
+          'grep',
+          '--no-index',
+          '-l',
+          '-E',
+          `^\\s*<!--\\s*starter:${group}-`,
+          '--',
+          '*.md',
+          ':!node_modules',
+        ],
+        { quiet: true },
+      );
+      markers.output += markdownMarkers.output;
       report.step(
         `${name}: no "${group}" markers left`,
         markers.output.trim() === '',
@@ -144,6 +204,43 @@ for (const name of selected) {
           }),
       JSON.stringify(adoption),
     );
+
+    if (scenario.product) {
+      for (const [label, command, args] of PRODUCT_STEPS) {
+        const result = workspace.run(command, args, { quiet: true });
+        report.step(`${name}: ${label}`, result.status === 0, result.output);
+      }
+      // Branding: every environment names the product.
+      for (const file of [
+        '.env.development',
+        '.env.production',
+        '.env.test',
+        '.env.storybook',
+        '.env.example',
+      ]) {
+        const target = path.join(workspace.dir, file);
+        const text = readFileSync(target, 'utf8');
+        writeFileSync(
+          target,
+          text.replace(/^VITE_APP_NAME=.*$/m, `VITE_APP_NAME=${PRODUCT_NAME}`),
+        );
+      }
+      report.step(
+        `${name}: product names live in product code`,
+        workspace.run(
+          'git',
+          [
+            'grep',
+            '--no-index',
+            '-q',
+            'Invoice',
+            '--',
+            'src/features/invoices',
+          ],
+          { quiet: true },
+        ).status === 0,
+      );
+    }
 
     // What an adopted project's own `pnpm verify` runs, minus the adoption
     // check itself (STARTER_NESTED_VERIFY) — never verify → adopt:check →

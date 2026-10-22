@@ -65,7 +65,7 @@ test('guests start on Welcome; no demo hub and no mock service worker', async ({
   await gotoApp(page);
 
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Welcome to React Starter' }),
+    page.getByRole('heading', { level: 1, name: /^Welcome to / }),
   ).toBeVisible();
   await expect(page.getByText('Starter overview')).toBeHidden();
   expect(currentAppPath(page)).toBe('/');

@@ -22,7 +22,7 @@ test.use({
 
 test.describe('pages have no axe violations', () => {
   for (const [path, heading] of [
-    ['/', 'Welcome to React Starter'],
+    ['/', /^Welcome to /],
     ['/sign-in', 'Sign in'],
     ['/does-not-exist', 'Page not found'],
   ] as const) {
