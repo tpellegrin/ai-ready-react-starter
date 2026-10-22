@@ -1,16 +1,13 @@
 import React from 'react';
 
 import { MainLayout } from 'containers/Layouts/MainLayout';
-import { CenterAnimatedOutlet } from 'containers/RouteTransitions/AnimatedOutlet/CenterAnimatedOutlet';
+import { CenterAnimatedOutlet } from 'containers/RouteTransitions/AnimatedOutlet';
 import {
   LayoutChromeContext,
   type LayoutChromeOwnerToken,
   type LayoutChromePayload,
 } from 'containers/Layouts/common/LayoutChromeContext';
-import type {
-  HeaderProp,
-  FooterProp,
-} from 'containers/Layouts/MainLayout/types';
+import type { HeaderProp, FooterProp } from 'containers/Layouts/MainLayout';
 
 type ChromeRegistryEntry = {
   payload: LayoutChromePayload;

@@ -31,3 +31,5 @@ export const LayoutHeader: React.FC<Props> = ({
     </_LayoutHeaderRoot>
   );
 };
+
+export type { Props as LayoutHeaderProps } from './types';

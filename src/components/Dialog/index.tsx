@@ -81,3 +81,10 @@ export const Dialog = ({
     </DialogRoot>
   );
 };
+
+/**
+ * Dialog-family building blocks, public for other dialogs (ConfirmDialog):
+ * focus return to the opener and the shared overlay/surface styles.
+ */
+export { useReturnFocus } from './useReturnFocus';
+export { dialogContentStyles, dialogOverlayStyles } from './styles';

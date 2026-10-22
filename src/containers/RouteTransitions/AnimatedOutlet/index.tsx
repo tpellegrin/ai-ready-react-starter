@@ -206,3 +206,6 @@ export const AnimatedOutlet = () => {
     </ErrorBoundary>
   );
 };
+
+/** Slide variant for flow steps (used by the flow shell). */
+export { CenterAnimatedOutlet } from './CenterAnimatedOutlet';

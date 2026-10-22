@@ -1,6 +1,6 @@
 import type { InputHTMLAttributes, ReactNode, Ref } from 'react';
 
-import type { ControlSize, ControlStatus } from '../common/Control/styles';
+import type { ControlSize, ControlStatus } from '../common/Control';
 
 export type NumberFormatMode = 'currency' | 'number';
 

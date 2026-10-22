@@ -84,14 +84,9 @@ export const prettyScrollbar = ({
   /* Firefox */
   scrollbar-width: thin;
   ${({ theme }) => {
-    const track =
-      trackColor ?? (theme?.colors?.surface?.transparent || 'transparent');
-    const thumb =
-      thumbColor ??
-      (theme?.colors?.transparent?.dark?.s150 || 'rgba(0,0,0,0.4)');
-    const thumbHover =
-      thumbHoverColor ??
-      (theme?.colors?.action?.primaryHover || 'rgba(0,0,0,0.6)');
+    const track = trackColor ?? theme.colors.surface.transparent;
+    const thumb = thumbColor ?? theme.colors.transparent.dark.s150;
+    const thumbHover = thumbHoverColor ?? theme.colors.action.primaryHover;
     const corner = cornerColor ?? track;
     return css`
       scrollbar-color: ${thumb} ${track};

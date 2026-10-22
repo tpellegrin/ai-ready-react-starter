@@ -1,9 +1,6 @@
 import React from 'react';
 
-import type {
-  HeaderProp,
-  FooterProp,
-} from 'containers/Layouts/MainLayout/types';
+import type { HeaderProp, FooterProp } from 'containers/Layouts/MainLayout';
 
 export type LayoutChromeOwnerToken = symbol;
 

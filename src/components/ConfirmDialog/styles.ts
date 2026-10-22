@@ -4,10 +4,7 @@ import {
 } from '@radix-ui/react-alert-dialog';
 import { styled } from 'styled-components';
 
-import {
-  dialogContentStyles,
-  dialogOverlayStyles,
-} from 'components/Dialog/styles';
+import { dialogContentStyles, dialogOverlayStyles } from 'components/Dialog';
 
 export const _ConfirmDialogOverlay = styled(AlertDialogOverlay)`
   ${dialogOverlayStyles}

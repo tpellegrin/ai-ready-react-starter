@@ -1,10 +1,8 @@
 import { isValidElement } from 'react';
 import type { ReactElement } from 'react';
 
-import { LayoutHeader } from './LayoutHeader';
-import { LayoutFooter } from './LayoutFooter';
-import type { Props as LayoutHeaderProps } from './LayoutHeader/types';
-import type { Props as LayoutFooterProps } from './LayoutFooter/types';
+import { LayoutHeader, type LayoutHeaderProps } from './LayoutHeader';
+import { LayoutFooter, type LayoutFooterProps } from './LayoutFooter';
 
 type HeaderInput = ReactElement | LayoutHeaderProps;
 type FooterInput = ReactElement | LayoutFooterProps;

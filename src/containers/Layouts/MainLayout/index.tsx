@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 
 import { BaseLayout } from '../common/BaseLayout';
-import { _LayoutTransitionContainerRoot } from '../common/LayoutTransitionContainer/styles';
+import { LayoutTransitionContainer } from '../common/LayoutTransitionContainer';
 import { resolveHeader, resolveFooter } from '../common/helpers';
 
 import { type Props } from './types';
@@ -39,9 +39,11 @@ export const MainLayout: React.FC<Props> = ({
       fixedFooter={fixedFooter}
       contentClassName={contentClassName}
     >
-      <_LayoutTransitionContainerRoot className={contentInnerClassName}>
+      <LayoutTransitionContainer className={contentInnerClassName}>
         {children}
-      </_LayoutTransitionContainerRoot>
+      </LayoutTransitionContainer>
     </BaseLayout>
   );
 };
+
+export type { FooterProp, HeaderProp, Props as MainLayoutProps } from './types';
