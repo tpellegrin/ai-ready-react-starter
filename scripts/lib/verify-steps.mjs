@@ -153,7 +153,7 @@ export const steps = [
   // starter:demo-end
   {
     id: 'storybook',
-    label: 'Storybook tests (Chromium, axe)',
+    label: 'Storybook tests (Chromium, WebKit, axe)',
     script: 'test:storybook',
     ...vitestJson('storybook.json'),
   },
