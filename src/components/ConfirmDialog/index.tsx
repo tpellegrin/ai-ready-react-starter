@@ -7,7 +7,7 @@ import {
 } from '@radix-ui/react-alert-dialog';
 
 import { Button } from 'components/Button';
-import { useReturnFocus } from 'components/Dialog/useReturnFocus';
+import { useReturnFocus } from 'components/Dialog';
 import { InlineAlert } from 'components/InlineAlert';
 import { Text } from 'components/Text';
 import { useI18n } from 'i18n/provider';

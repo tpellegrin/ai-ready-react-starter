@@ -1,4 +1,4 @@
-import type { ControlSize, ControlStatus } from '../common/Control/styles';
+import type { ControlSize, ControlStatus } from '../common/Control';
 
 export type TextareaProps =
   React.TextareaHTMLAttributes<HTMLTextAreaElement> & {

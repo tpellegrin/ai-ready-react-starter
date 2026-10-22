@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect } from 'react';
 import { useLocation, useOutlet } from 'react-router-dom';
 
-import { CenterOnlyTransition } from 'containers/RouteTransitions/CenterOnlyTransition';
-import { useFlowCenterDirection } from 'containers/RouteTransitions/CenterOnlyTransition/useFlowCenterDirection';
+import {
+  CenterOnlyTransition,
+  useFlowCenterDirection,
+} from 'containers/RouteTransitions/CenterOnlyTransition';
 import { TRANSITIONS } from 'utils/transitions/config';
 import { useNavigation } from 'globals/context/NavigationContext';
 

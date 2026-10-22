@@ -1,6 +1,6 @@
 import type { ReactNode, Ref } from 'react';
 
-import type { Props as BoxProps } from 'components/Box/types';
+import type { BoxProps } from 'components/Box';
 
 /**
  * A raised card surface (Box with card radius, padding and muted background).

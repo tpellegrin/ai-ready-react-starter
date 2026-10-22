@@ -8,9 +8,9 @@ import React, {
 
 import { OverlayRoleContext } from 'utils/transitions/overlayRole';
 import {
-  _LayoutTransitionContainerRoot,
-  _LayoutTransitionContainerInner,
-} from '../common/LayoutTransitionContainer/styles';
+  LayoutTransitionContainer,
+  LayoutTransitionContainerInner,
+} from '../common/LayoutTransitionContainer';
 import { resolveFooter } from '../common/helpers';
 import {
   FlowLayoutHeader,
@@ -194,12 +194,12 @@ export const FlowLayout: React.FC<Props> = ({
   }, []);
 
   return (
-    <_LayoutTransitionContainerRoot
+    <LayoutTransitionContainer
       className={contentInnerClassName}
       data-center-content
       data-allow-motion
     >
-      <_LayoutTransitionContainerInner>
+      <LayoutTransitionContainerInner>
         {banner}
         <_FlowLayoutScrollViewport
           ref={scrollViewportRef}
@@ -222,9 +222,13 @@ export const FlowLayout: React.FC<Props> = ({
             {children}
           </_FlowLayoutContentColumn>
         </_FlowLayoutScrollViewport>
-      </_LayoutTransitionContainerInner>
-    </_LayoutTransitionContainerRoot>
+      </LayoutTransitionContainerInner>
+    </LayoutTransitionContainer>
   );
 };
 
-export * from './types';
+export type {
+  FooterProp as FlowLayoutFooterProp,
+  HeaderProp as FlowLayoutHeaderProp,
+  Props as FlowLayoutProps,
+} from './types';

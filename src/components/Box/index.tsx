@@ -43,3 +43,5 @@ export const Box = forwardRef<HTMLDivElement, Props>(
 );
 
 Box.displayName = 'Box';
+
+export type { Props as BoxProps } from './types';

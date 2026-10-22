@@ -128,5 +128,4 @@ export const BaseLayout: React.FC<Props> = ({
   );
 };
 
-export * from './styles';
-export * from './types';
+export type { Props as BaseLayoutProps } from './types';

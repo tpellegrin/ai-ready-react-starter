@@ -1,11 +1,17 @@
 import { styled, css } from 'styled-components';
 
-import { _TextRoot as Text } from 'components/Text/styles';
 import { ButtonBase } from 'components/ButtonBase';
+import { Text } from 'components/Text';
 import { onlyHoverDevice } from 'styles/media';
 import type { Props } from './types';
 
 export const TRANSITION_MS = 150;
+
+/** The label composes the public Text component (typography, truncation). */
+export const _ButtonLabel = styled(Text)`
+  margin: 0;
+  color: inherit;
+`;
 
 export const _ButtonIcon = styled.span`
   display: inline-flex;
@@ -59,11 +65,6 @@ export const _ButtonRoot = styled(ButtonBase)<{
     &::after {
       opacity: 1;
     }
-  }
-
-  ${Text} {
-    margin: 0;
-    color: inherit !important;
   }
 
   ${({ $isPending }) =>

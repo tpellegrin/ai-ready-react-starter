@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react';
 
-import { type Props as LayoutHeaderProps } from '../common/LayoutHeader/types';
-import { type Props as LayoutFooterProps } from '../common/LayoutFooter/types';
+import type { LayoutHeaderProps } from '../common/LayoutHeader';
+import type { LayoutFooterProps } from '../common/LayoutFooter';
 import type { FlowLayoutHeaderProps } from './FlowLayoutHeader';
-import type { Props as FlexProps } from 'components/Flex/types';
+import type { FlexProps } from 'components/Flex';
 
 export type HeaderProp =
   | LayoutHeaderProps

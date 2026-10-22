@@ -13,9 +13,26 @@
 import boundaries from 'eslint-plugin-boundaries';
 
 const DOCS = 'See docs/architecture/boundaries.md.';
+const COMPONENT_DOCS =
+  'See docs/ui/foundation.md#public-components-and-internals.';
 
 /** Hooks with no app/navigation context: shared UI may use these. */
 const NEUTRAL_HOOKS = '{useFlipLayout,useMediaQuery}';
+
+/**
+ * A component is a folder with an index file: that file is its public API
+ * (docs/ui/foundation.md#public-components-and-internals). Everything else in
+ * the folder — styles.ts with its `_` elements, logic.ts, helpers, types —
+ * is private to it. Component elements capture `component`; grouping
+ * folders (Form, Animations, Layouts/common, Layouts/Shells) are excluded
+ * from the component patterns, so loose modules directly inside them (e.g.
+ * Layouts/common/helpers.tsx) stay public to their layer.
+ *
+ * @param {string} type
+ * @param {string[]} patterns  deepest first
+ */
+const componentsOf = (type, patterns) =>
+  patterns.map((pattern) => ({ type, pattern, capture: ['component'] }));
 
 /** First match wins at each folder level, so specific folders come first. */
 const elements = [
@@ -24,6 +41,13 @@ const elements = [
   { type: 'styles', pattern: 'src/styles' },
   { type: 'assets', pattern: 'src/assets' },
   { type: 'i18n', pattern: 'src/i18n' },
+  // Shared UI: one element per component, deepest groups first.
+  ...componentsOf('ui', [
+    'src/components/Form/common/*',
+    'src/components/Form/!(common)',
+    'src/components/Animations/*',
+    'src/components/!(Form|Animations)',
+  ]),
   { type: 'ui', pattern: 'src/components' },
   { type: 'hooks', pattern: 'src/hooks/*', capture: ['hook'] },
   { type: 'data', pattern: 'src/api' },
@@ -31,6 +55,13 @@ const elements = [
   { type: 'forms', pattern: 'src/forms' },
   { type: 'navigation', pattern: ['src/globals', 'src/flows', 'src/guards'] },
   { type: 'feature', pattern: 'src/features/*', capture: ['feature'] },
+  // Layouts and route transitions: one element per component, too.
+  ...componentsOf('shell', [
+    'src/containers/Layouts/FlowLayout/*',
+    'src/containers/Layouts/common/*',
+    'src/containers/Layouts/!(common|Shells)',
+    'src/containers/RouteTransitions/*',
+  ]),
   {
     type: 'shell',
     pattern: ['src/containers/Layouts', 'src/containers/RouteTransitions'],
@@ -48,9 +79,15 @@ const files = [
   // (boundaries/no-unknown-files).
   {
     category: 'source',
-    pattern: elements.flatMap((element) =>
-      [element.pattern].flat().map((p) => `${p.replace(/\/\*$/, '')}/**`),
-    ),
+    pattern: [
+      ...new Set(
+        elements.flatMap((element) =>
+          [element.pattern]
+            .flat()
+            .map((p) => `${p.replace(/\/(?:\*|!\([^)]*\))$/, '')}/**`),
+        ),
+      ),
+    ],
   },
   {
     category: 'test',
@@ -177,6 +214,25 @@ const policies = [
     allow: {
       to: { element: { type: 'feature', fileInternalPath: 'mocks/index.ts' } },
     },
+  },
+
+  // --- Component public APIs --------------------------------------------
+  // Outside a component, import only its entry (index.ts/tsx). Its styles
+  // (`_` elements), logic, helpers and types are implementation details;
+  // export deliberately from the index what other components may use.
+  {
+    disallow: {
+      to: {
+        element: {
+          type: ['ui', 'shell'],
+          captured: { component: '*' },
+          fileInternalPath: '!index.{ts,tsx}',
+        },
+      },
+    },
+    message:
+      'Component boundary: {{#if dependency.specifiers}}{{dependency.specifiers}} from {{/if}}"{{dependency.source}}" is internal to {{to.element.captured.component}} ({{to.element.fileInternalPath}}). Use the component\'s public API ({{to.element.path}}/index); if this really is a shared building block, export it from that index. ' +
+      COMPONENT_DOCS,
   },
 
   // Files may always import files of their own element.

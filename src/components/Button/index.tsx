@@ -1,9 +1,8 @@
 import type { MouseEvent } from 'react';
 
 import { Spinner } from 'components/Spinner';
-import { Text } from 'components/Text';
 
-import { _ButtonIcon, _ButtonRoot } from './styles';
+import { _ButtonIcon, _ButtonLabel, _ButtonRoot } from './styles';
 import type { Props } from './types';
 
 export const Button = ({
@@ -43,13 +42,13 @@ export const Button = ({
       $isPending={isPending}
     >
       {leading ? <_ButtonIcon aria-hidden="true">{leading}</_ButtonIcon> : null}
-      <Text
-        as="span"
+      <_ButtonLabel
+        forwardedAs="span"
         variant={size === 'medium' ? 'bodyMdBold' : 'captionMdBold'}
         truncate
       >
         {isPending ? (pendingLabel ?? label) : label}
-      </Text>
+      </_ButtonLabel>
       {endIcon ? <_ButtonIcon aria-hidden="true">{endIcon}</_ButtonIcon> : null}
     </_ButtonRoot>
   );

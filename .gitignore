@@ -54,3 +54,4 @@ next-env.d.ts
 # Architecture check scratch fixtures (scripts/architecture/check.mjs)
 __arch__/
 /src/features/arch-fixture-feature/
+/src/components/ArchFixtureWidget/

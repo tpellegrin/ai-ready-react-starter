@@ -56,3 +56,5 @@ export const Flex = React.forwardRef<HTMLDivElement, Props>(
 );
 
 Flex.displayName = 'Flex';
+
+export type { Props as FlexProps } from './types';

@@ -141,3 +141,4 @@ const Compound: ControlCompound = Object.assign(Control, {
 Compound.displayName = 'Control';
 
 export { Compound as Control };
+export type { ControlSize, ControlStatus } from './styles';
