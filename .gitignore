@@ -55,3 +55,4 @@ next-env.d.ts
 __arch__/
 /src/features/arch-fixture-feature/
 /src/components/ArchFixtureWidget/
+/src/demo/ArchFixtureDemo/

@@ -18,7 +18,7 @@
  *
  * Fixtures that need a feature or a shared component use throwaway ones
  * copied from scripts/architecture/support/<area>/<name> to src/<area>/<name>
- * for the run, so the checks never depend on removable product code.
+ * for the run, so the checks never depend on removable product or demo code.
  * `__arch__/` and the support targets are gitignored in case the process is
  * killed mid-run; stale copies are removed first.
  *
@@ -79,6 +79,11 @@ const removeScratch = () => {
   }
   for (const { to } of supportCopies) {
     fs.rmSync(to, { recursive: true, force: true });
+    // An area that only existed for the copy (src/demo after adoption).
+    const area = path.dirname(to);
+    if (fs.existsSync(area) && fs.readdirSync(area).length === 0) {
+      fs.rmdirSync(area);
+    }
   }
 };
 
