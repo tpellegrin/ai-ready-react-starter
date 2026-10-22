@@ -1,0 +1,59 @@
+{
+  "$comment": "Product code on top of what the generators wrote, applied by `pnpm adopt:check --scenario design` (scripts/lib/overlay.mjs). Hashes are of the generated files each entry replaces or removes: when a template changes, the scenario fails and names the file to review.",
+  "generate": [
+    ["feature", "expenses", "--entity", "Expense"],
+    ["component", "ExpenseSummary", "--feature", "expenses"],
+    ["component", "AddExpenseDialog", "--feature", "expenses", "--logic"],
+    ["view", "Expenses", "--group", "user", "--feature", "expenses", "--nav"],
+    ["view", "Pricing", "--group", "guest"]
+  ],
+  "replace": {
+    "src/features/expenses/api.ts": "e43a6b96ed0c5e23e3d3d5866a7d09caa03dea60395b16ce99ac04a31eb90248",
+    "src/features/expenses/components/AddExpenseDialog/AddExpenseDialog.test.tsx": "4fb53c1204adb0463d13f7e24e1f6fea934dcfa78bf1a2d7fac5719dd280da78",
+    "src/features/expenses/components/AddExpenseDialog/index.tsx": "e289fdb8d0ea761a84cc28f0fe785cf265d96323b58727fdc9757b7dc7617835",
+    "src/features/expenses/components/AddExpenseDialog/logic.ts": "e1eadfe587b7292dd4bc5c163a6e825c54d2638c80944cac798d68445eee81a8",
+    "src/features/expenses/components/AddExpenseDialog/styles.ts": "ea679b440ed4a4f82bdbeffe8a148d41092bee4e18d8cb8b9bb3c410756a7ac3",
+    "src/features/expenses/components/ExpenseSummary/ExpenseSummary.test.tsx": "9a4dd15481941d26cd4699f668f160d09ad58531d6950a1c074119bfe516f834",
+    "src/features/expenses/components/ExpenseSummary/index.tsx": "ad39e9a08a268fc8f2d2e2298a836fcf7ecab453be8b14ab145d0ed762419429",
+    "src/features/expenses/components/ExpenseSummary/styles.ts": "6cea71fb1b92e613bd1a884682d1e0e5de5f133c45bbff2b3f6a6ea6d533d532",
+    "src/features/expenses/components/ExpensesPanel/ExpensesPanel.test.tsx": "229fdca7e9163379e610be065ace63aa569f019c4820e549086f83452996a8a7",
+    "src/features/expenses/components/ExpensesPanel/index.tsx": "a6875235d2e810fd2330199f62f0cce142f62170ecca89d583029a759ad01dba",
+    "src/features/expenses/components/ExpensesPanel/logic.ts": "1ff7dbea8fdf217b7f5cedc301a66aa9f3a65a34316d8372af54a21aa1532ac4",
+    "src/features/expenses/components/ExpensesPanel/styles.ts": "767b82a207af1e45516036ae271bd4434e1e49b29e9f57e593afe90dd87f92e9",
+    "src/features/expenses/mocks/fixtures.ts": "e169bbac423604553410ecc683c571bbb8c945cdf509545dda848a41b3bb07b3",
+    "src/features/expenses/mocks/handlers.ts": "2afa0cd56dd7e1e8fe7acd99525cff05c24e4858134c3ca23ed4bff457861931",
+    "src/features/expenses/model.ts": "08a6fd425e038baddd8ea2ee82a9f7bbc90e0806300da074671f12207c3ffb1a",
+    "src/features/expenses/queries.ts": "8d02021c96c3196c90df88b54575cd7f7e67450ac55f2843bb79165f1b759cfc",
+    "src/views/guest/Pricing/Pricing.test.tsx": "b7ada1923639cc785114f7bfe7d782046b1d06d494c7162fdfde79c0d5373d8e",
+    "src/views/guest/Pricing/index.tsx": "b372eb6869503f824337a8e0340c2b63ad2ff04ccfb300fc75fc457e44d4298e",
+    "src/views/guest/Pricing/styles.ts": "4ae2a9246ef043f0c36de9828e99dbb9d619448e0c1699a19795ce8137b66c9d",
+    "src/views/user/Expenses/index.tsx": "a262e52670c443c8929aeab89ba867a10e09f898f442c2664c191a5edcf13ce9"
+  },
+  "remove": {
+    "src/features/expenses/components/AddExpenseDialog/logic.test.ts": "6d4e4b98aad6e563122be61d4b7a998ca0ba568530f844c54cd80cfc25bce1e1"
+  },
+  "insert": [
+    {
+      "file": "src/features/expenses/index.ts",
+      "marker": "starter:gen exports",
+      "lines": [
+        "export {",
+        "  EXPENSE_FILTERS,",
+        "  parseExpenseFilter,",
+        "  type ExpenseFilter,",
+        "} from './model';"
+      ]
+    }
+  ],
+  "copyReplace": {
+    "expenses.list.emptyTitle": "Nothing here yet",
+    "expenses.list.emptyDescription": "Items you add will appear here.",
+    "user.expenses.intro": "What people can do on the expenses page.",
+    "guest.pricing.title": "Pricing",
+    "guest.pricing.intro": "What people can do on the pricing page."
+  },
+  "lazyModules": [
+    "src/views/user/Expenses/index.tsx",
+    "src/views/guest/Pricing/index.tsx"
+  ]
+}

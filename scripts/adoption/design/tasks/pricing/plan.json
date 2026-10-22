@@ -1,0 +1,686 @@
+{
+  "schemaVersion": 1,
+  "task": "pricing",
+  "title": "Pricing page",
+  "request": {
+    "summary": "Build the public pricing page of Ledgerly from the designer's high-fidelity desktop and mobile exports, using the product's components and theme.",
+    "requirements": [
+      {
+        "id": "req-plans",
+        "text": "Show the three plans (Starter, Team, Business) with price, short description and what each includes."
+      },
+      {
+        "id": "req-yearly",
+        "text": "Yearly billing costs ten months (two months free): show the monthly equivalent and the yearly total when Yearly is chosen."
+      },
+      {
+        "id": "req-cta",
+        "text": "Starter and Team start at sign-in; Business contacts sales by email (sales@ledgerly.example)."
+      }
+    ]
+  },
+  "references": [
+    {
+      "id": "pricing-desktop",
+      "file": "references/pricing-desktop.png",
+      "sha256": "d4cc924c8508434eb978c41ec8f4f6bec1446b6edd148857794c40b1d0dd1f81",
+      "image": {
+        "format": "png",
+        "width": 1280,
+        "height": 978
+      },
+      "kind": "high-fidelity",
+      "role": "screen",
+      "screen": "pricing",
+      "viewport": {
+        "width": 1280,
+        "height": 800,
+        "deviceScaleFactor": 1,
+        "basis": "stated"
+      },
+      "source": "Designer export \"pricing desktop\", full page at 1280 px wide, scale 1 (stated with the hand-over)."
+    },
+    {
+      "id": "pricing-mobile",
+      "file": "references/pricing-mobile.png",
+      "sha256": "3164b9fa1931e946af64b7abdb15b9bcea3b6ac9ee5b4a57ef3e0f18a588de9c",
+      "image": {
+        "format": "png",
+        "width": 780,
+        "height": 3786
+      },
+      "kind": "high-fidelity",
+      "role": "responsive-variant",
+      "screen": "pricing",
+      "variantOf": "pricing-desktop",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 2,
+        "basis": "stated"
+      },
+      "source": "Designer export \"pricing mobile\", full page for a 390 px wide phone at scale 2: 780 image px are 390 CSS px."
+    },
+    {
+      "id": "team-card",
+      "file": "references/team-card.png",
+      "sha256": "e77cde462f84c6262c249b81e9bb676db6719fe889536af4adfb80d8ccc12c08",
+      "image": {
+        "format": "png",
+        "width": 676,
+        "height": 902
+      },
+      "kind": "high-fidelity",
+      "role": "detail",
+      "detailOf": "pricing-desktop",
+      "region": "team",
+      "source": "Designer export: the Team card at scale 2, cut off below \"Expense tracking\".",
+      "notes": "Shows the badge overlapping the top border, the check marks and the filled call to action."
+    }
+  ],
+  "screens": [
+    {
+      "id": "pricing",
+      "title": "Pricing",
+      "route": {
+        "path": "/pricing",
+        "group": "guest",
+        "status": "existing"
+      },
+      "view": "Pricing",
+      "feature": null,
+      "states": [
+        {
+          "id": "monthly",
+          "kind": "content",
+          "basis": "observed",
+          "references": ["pricing-desktop", "pricing-mobile"]
+        },
+        {
+          "id": "yearly",
+          "kind": "content",
+          "basis": "requirement",
+          "requirements": ["req-yearly"],
+          "notes": "The exports show the Yearly option but not its prices."
+        }
+      ],
+      "regions": [
+        {
+          "id": "brand",
+          "label": "Brand: mark and \"Ledgerly\"",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [64, 24, 116, 26],
+            "pricing-mobile": [40, 38, 231, 47]
+          },
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "containers/Layouts/common/LayoutHeader",
+                "export": "LayoutHeader"
+              },
+              {
+                "import": "components/Text",
+                "export": "Text"
+              }
+            ],
+            "wrapper": "a decorative mark on theme tokens"
+          },
+          "locator": {
+            "text": "Ledgerly",
+            "exact": true
+          },
+          "notes": "The header row is LayoutHeader (Left: brand, Right: Sign in) inside MainLayout, which owns the page's main landmark and scrolling: the generated guest root does not scroll, and the page is taller than a phone screen."
+        },
+        {
+          "id": "sign-in",
+          "label": "\"Sign in\" link",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [1164, 28, 53, 18],
+            "pricing-mobile": [636, 47, 104, 32]
+          },
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "containers/Layouts/common/LayoutHeader",
+                "export": "LayoutHeader"
+              },
+              {
+                "import": "components/LinkBase",
+                "export": "LinkBase"
+              }
+            ]
+          },
+          "locator": {
+            "role": "link",
+            "name": "Sign in"
+          }
+        },
+        {
+          "id": "title",
+          "label": "Heading \"Simple pricing for growing teams\"",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [306, 124, 668, 46],
+            "pricing-mobile": [131, 180, 520, 142]
+          },
+          "component": {
+            "use": "existing",
+            "import": "components/Text",
+            "export": "Text"
+          },
+          "locator": {
+            "role": "heading",
+            "level": 1,
+            "name": "Simple pricing for growing teams"
+          }
+        },
+        {
+          "id": "lead",
+          "label": "Lead paragraph",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [296, 190, 688, 48],
+            "pricing-mobile": [59, 362, 662, 85]
+          },
+          "component": {
+            "use": "existing",
+            "import": "components/Text",
+            "export": "Text"
+          },
+          "locator": {
+            "text": "Send invoices, track expenses"
+          }
+        },
+        {
+          "id": "billing",
+          "label": "Billing period: Monthly / Yearly (2 months free)",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [500, 277, 281, 46],
+            "pricing-mobile": [44, 524, 695, 125]
+          },
+          "requirements": ["req-yearly"],
+          "component": {
+            "use": "existing",
+            "import": "components/Form/RadioGroup",
+            "export": "RadioGroup"
+          },
+          "locator": {
+            "role": "radiogroup",
+            "name": "Billing period"
+          }
+        },
+        {
+          "id": "plans",
+          "label": "The three plans",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [124, 358, 1032, 500],
+            "pricing-mobile": [44, 725, 695, 2818]
+          },
+          "requirements": ["req-plans"],
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "components/Box",
+                "export": "Box"
+              },
+              {
+                "import": "components/Text",
+                "export": "Text"
+              },
+              {
+                "import": "components/Button",
+                "export": "Button"
+              }
+            ],
+            "wrapper": "a local list: three columns on wide screens, one on narrow ones"
+          },
+          "locator": {
+            "role": "list",
+            "name": "Plans"
+          }
+        },
+        {
+          "id": "starter",
+          "label": "Starter card",
+          "parent": "plans",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [124, 371, 323, 487],
+            "pricing-mobile": [44, 725, 695, 829]
+          },
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "components/Box",
+                "export": "Box"
+              },
+              {
+                "import": "components/Text",
+                "export": "Text"
+              },
+              {
+                "import": "components/Button",
+                "export": "Button"
+              }
+            ]
+          },
+          "locator": {
+            "role": "article",
+            "name": "Starter"
+          }
+        },
+        {
+          "id": "team",
+          "label": "Team card, highlighted, \"Most popular\"",
+          "parent": "plans",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [480, 371, 322, 487],
+            "pricing-mobile": [44, 1608, 695, 944]
+          },
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "components/Box",
+                "export": "Box"
+              },
+              {
+                "import": "components/Text",
+                "export": "Text"
+              },
+              {
+                "import": "components/Button",
+                "export": "Button"
+              }
+            ],
+            "wrapper": "a local emphasis border on the theme accent"
+          },
+          "locator": {
+            "role": "article",
+            "name": "Team"
+          }
+        },
+        {
+          "id": "team-badge",
+          "label": "\"Most popular\" badge over the top border",
+          "parent": "team",
+          "basis": "observed",
+          "references": ["team-card"],
+          "bounds": {
+            "pricing-desktop": [513, 359, 106, 26]
+          },
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "components/Text",
+                "export": "Text"
+              }
+            ],
+            "wrapper": "a local pill on theme tokens"
+          },
+          "locator": {
+            "text": "Most popular",
+            "exact": true
+          }
+        },
+        {
+          "id": "business",
+          "label": "Business card",
+          "parent": "plans",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [834, 371, 322, 487],
+            "pricing-mobile": [44, 2612, 695, 931]
+          },
+          "component": {
+            "use": "composition",
+            "parts": [
+              {
+                "import": "components/Box",
+                "export": "Box"
+              },
+              {
+                "import": "components/Text",
+                "export": "Text"
+              },
+              {
+                "import": "components/LinkBase",
+                "export": "LinkBase"
+              }
+            ]
+          },
+          "locator": {
+            "role": "article",
+            "name": "Business"
+          }
+        },
+        {
+          "id": "footnote",
+          "label": "VAT and billing footnote",
+          "basis": "observed",
+          "bounds": {
+            "pricing-desktop": [470, 898, 340, 16],
+            "pricing-mobile": [51, 3625, 680, 32]
+          },
+          "component": {
+            "use": "existing",
+            "import": "components/Text",
+            "export": "Text"
+          },
+          "locator": {
+            "text": "Prices exclude VAT"
+          }
+        }
+      ]
+    }
+  ],
+  "flows": [],
+  "interactions": [
+    {
+      "id": "i-billing",
+      "screen": "pricing",
+      "region": "billing",
+      "trigger": "Choose Yearly",
+      "result": "Team and Business show their monthly equivalent for yearly billing and the yearly total; Starter stays free.",
+      "keyboard": "Arrow keys move between the two options",
+      "basis": "requirement",
+      "requirements": ["req-yearly"]
+    },
+    {
+      "id": "i-start",
+      "screen": "pricing",
+      "region": "plans",
+      "trigger": "\"Start for free\" or \"Start free trial\"",
+      "result": "The sign-in page opens.",
+      "basis": "requirement",
+      "requirements": ["req-cta"]
+    },
+    {
+      "id": "i-sales",
+      "screen": "pricing",
+      "region": "business",
+      "trigger": "\"Contact sales\"",
+      "result": "An email to sales@ledgerly.example starts.",
+      "basis": "requirement",
+      "requirements": ["req-cta"]
+    }
+  ],
+  "responsive": [
+    {
+      "id": "r-stack",
+      "screen": "pricing",
+      "region": "plans",
+      "when": "phone widths (the 390 px export)",
+      "behavior": "Plans stack in one column in the same order; the billing control spans the width; the header stays on one row.",
+      "basis": "observed",
+      "references": ["pricing-mobile"]
+    },
+    {
+      "id": "r-between",
+      "screen": "pricing",
+      "when": "between the two exports (tablets)",
+      "behavior": "Plans stay in one column until three fit side by side.",
+      "basis": "inferred"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q-source",
+      "text": "Should prices come from the billing service instead of the page?",
+      "blocking": false,
+      "status": "open"
+    },
+    {
+      "id": "q-segmented",
+      "text": "Should the foundation offer a segmented control (a horizontal radio group) for choices like the billing period?",
+      "blocking": false,
+      "status": "open"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "a-static",
+      "text": "Prices are product copy kept with the page, in euros, formatted for the active locale (e.g. \"€12\" in en-US, \"12 €\" in es-ES).",
+      "basis": "inferred",
+      "about": ["plans"]
+    },
+    {
+      "id": "a-reach",
+      "text": "The page is reached by its link (/pricing); adding it to other pages is out of scope.",
+      "basis": "inferred",
+      "about": ["pricing"]
+    }
+  ],
+  "deviations": [
+    {
+      "id": "d-billing",
+      "screen": "pricing",
+      "region": "billing",
+      "reference": "pricing-desktop",
+      "observed": "a segmented pill with Monthly and Yearly side by side",
+      "implemented": "RadioGroup: native radios under a visible \"Billing period\" legend, one per line",
+      "reason": "design-system"
+    },
+    {
+      "id": "d-colors",
+      "screen": "pricing",
+      "reference": "pricing-desktop",
+      "observed": "a blue accent (Team border, badge, filled call to action, check marks) on a cool gray background",
+      "implemented": "theme tokens: the primary Button, the accent color for the emphasis border, badge and checks, the base surface behind white cards",
+      "reason": "design-system"
+    },
+    {
+      "id": "d-type",
+      "screen": "pricing",
+      "reference": "pricing-desktop",
+      "observed": "Helvetica Neue with its own sizes",
+      "implemented": "Inter and the typography tokens closest in size",
+      "reason": "design-system"
+    },
+    {
+      "id": "d-sales",
+      "screen": "pricing",
+      "region": "business",
+      "reference": "pricing-desktop",
+      "observed": "\"Contact sales\" drawn like a button",
+      "implemented": "a link, because it opens an email rather than acting in the page",
+      "reason": "accessibility"
+    },
+    {
+      "id": "d-mark",
+      "screen": "pricing",
+      "region": "brand",
+      "reference": "pricing-desktop",
+      "observed": "a blue rounded-square logo mark",
+      "implemented": "a decorative mark in the theme accent color (there is no logo asset)",
+      "reason": "design-system"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "ac-guest",
+      "text": "Guests open /pricing and see the three plans.",
+      "verify": "e2e",
+      "where": "e2e/production/pricing.spec.ts"
+    },
+    {
+      "id": "ac-yearly",
+      "text": "Switching to Yearly with the keyboard updates the prices and yearly totals.",
+      "verify": "e2e"
+    },
+    {
+      "id": "ac-cta",
+      "text": "Starting a plan opens sign-in; Contact sales is an email link.",
+      "verify": "e2e"
+    },
+    {
+      "id": "ac-layout",
+      "text": "Desktop (1280 px, scale 1) and mobile (390 px, scale 2) renders keep the exports' regions and order, apart from documented deviations.",
+      "verify": "capture"
+    },
+    {
+      "id": "ac-a11y",
+      "text": "No axe violations on desktop and mobile.",
+      "verify": "e2e"
+    }
+  ],
+  "captures": [
+    {
+      "id": "desktop",
+      "screen": "pricing",
+      "state": "monthly",
+      "compare": "pricing-desktop",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "fullPage": true,
+      "session": "guest",
+      "ready": [
+        {
+          "role": "heading",
+          "level": 1,
+          "name": "Simple pricing for growing teams"
+        },
+        {
+          "role": "list",
+          "name": "Plans"
+        }
+      ],
+      "regression": true
+    },
+    {
+      "id": "mobile",
+      "screen": "pricing",
+      "state": "monthly",
+      "compare": "pricing-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "deviceScaleFactor": 2,
+      "mobile": true,
+      "fullPage": true,
+      "session": "guest",
+      "ready": [
+        {
+          "role": "heading",
+          "level": 1,
+          "name": "Simple pricing for growing teams"
+        },
+        {
+          "role": "list",
+          "name": "Plans"
+        }
+      ],
+      "regression": true
+    },
+    {
+      "id": "desktop-yearly",
+      "screen": "pricing",
+      "state": "yearly",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "fullPage": true,
+      "session": "guest",
+      "steps": [
+        {
+          "action": "check",
+          "target": {
+            "role": "radio",
+            "name": "Yearly"
+          }
+        }
+      ],
+      "ready": [
+        {
+          "role": "heading",
+          "level": 1,
+          "name": "Simple pricing for growing teams"
+        },
+        {
+          "role": "list",
+          "name": "Plans"
+        },
+        {
+          "text": "Billed yearly",
+          "exact": false
+        }
+      ]
+    }
+  ],
+  "review": {
+    "rounds": [
+      {
+        "id": "round-1",
+        "focus": "Missing content and major layout",
+        "before": "remeasured-2",
+        "after": "round-1",
+        "kept": true,
+        "findings": [
+          {
+            "id": "f-hero-gap",
+            "capture": "desktop",
+            "region": "lead",
+            "observed": "The lead sits about 40 px below the heading and each plan's name about 30 px above its description (default h1/h2 margins); the export keeps them close.",
+            "change": "No heading margins in the hero and the cards; the wrappers' gaps set the spacing (Pricing styles.ts).",
+            "status": "fixed"
+          }
+        ]
+      },
+      {
+        "id": "round-2",
+        "focus": "Typography, spacing, density and details",
+        "before": "round-1",
+        "after": "round-2",
+        "kept": true,
+        "findings": [
+          {
+            "id": "f-rhythm",
+            "capture": "desktop",
+            "region": "plans",
+            "observed": "After round 1 the page is tighter than the export: the plans start at about 292 px instead of 371 px.",
+            "change": "Section gap and top padding from xl to xxl, the largest spacer: the plans now start at about 316 px.",
+            "status": "accepted"
+          }
+        ]
+      }
+    ],
+    "best": "round-2",
+    "remaining": [
+      {
+        "id": "r-rhythm",
+        "capture": "desktop",
+        "region": "plans",
+        "text": "The export's 36–48 px section spacing is larger than the largest spacer token (32 px); the plans start about 55 px higher than in the export."
+      },
+      {
+        "id": "r-cta-shape",
+        "capture": "desktop",
+        "region": "team",
+        "text": "Calls to action are the pill-shaped Button; the export draws 10 px corners."
+      },
+      {
+        "id": "r-heading-weight",
+        "capture": "desktop",
+        "region": "title",
+        "text": "headingXl is medium weight; the export's heading is bold."
+      }
+    ],
+    "human": {
+      "status": "not-reviewed"
+    }
+  }
+}

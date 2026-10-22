@@ -154,8 +154,9 @@ export default tseslint.config(
       // Linted at their virtual src/ paths by `pnpm arch:check`.
       'scripts/architecture/fixtures/**',
       'scripts/architecture/support/**',
-      // Linted inside the adopted copy by `pnpm adopt:check --scenario product`.
+      // Linted inside the adopted copy by `pnpm adopt:check --scenario product|design`.
       'scripts/adoption/product/**',
+      'scripts/adoption/design/**',
     ],
   },
   {

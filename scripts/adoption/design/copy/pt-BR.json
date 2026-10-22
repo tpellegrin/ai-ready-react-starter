@@ -1,0 +1,100 @@
+{
+  "expenses": {
+    "summary": {
+      "label": "Resumo",
+      "total": "Total",
+      "pending": "Pendentes",
+      "approved": "Aprovadas"
+    },
+    "filter": {
+      "label": "Situação",
+      "all": "Todas",
+      "pending": "Pendentes",
+      "approved": "Aprovadas"
+    },
+    "list": {
+      "emptyTitle": "Nenhuma despesa ainda",
+      "emptyDescription": "As despesas que você adicionar aparecem aqui.",
+      "filteredTitle": "Nenhuma despesa nesta situação",
+      "filteredDescription": "Escolha outra situação para ver mais."
+    },
+    "actions": {
+      "add": "Adicionar despesa"
+    },
+    "item": {
+      "meta": "{category} · {date}"
+    },
+    "category": {
+      "meals": "Refeições",
+      "travel": "Viagens",
+      "software": "Software",
+      "other": "Outros"
+    },
+    "status": {
+      "pending": "Pendente",
+      "approved": "Aprovada"
+    },
+    "form": {
+      "title": "Adicionar despesa",
+      "description": "Descrição",
+      "amount": "Valor",
+      "category": "Categoria",
+      "save": "Salvar",
+      "created": "Despesa adicionada"
+    }
+  },
+  "user": {
+    "expenses": {
+      "intro": "Acompanhe e aprove os gastos da equipe."
+    }
+  },
+  "guest": {
+    "pricing": {
+      "title": "Preços simples para equipes em crescimento",
+      "intro": "Envie faturas, acompanhe despesas e receba mais rápido. Mude ou cancele seu plano a qualquer momento.",
+      "signIn": "Entrar",
+      "billing": {
+        "legend": "Período de cobrança",
+        "monthly": "Mensal",
+        "yearly": "Anual",
+        "yearlyHint": "2 meses grátis"
+      },
+      "plans": {
+        "label": "Planos",
+        "popular": "Mais popular",
+        "perMonth": "/ mês",
+        "perUserMonth": "/ usuário / mês",
+        "free": "Grátis para sempre",
+        "billedMonthly": "Cobrado mensalmente",
+        "billedYearly": "Cobrado anualmente: {total} por usuário",
+        "starter": {
+          "name": "Starter",
+          "description": "Para autônomos enviando as primeiras faturas.",
+          "cta": "Começar grátis",
+          "feature1": "5 faturas por mês",
+          "feature2": "1 usuário",
+          "feature3": "Suporte por e-mail"
+        },
+        "team": {
+          "name": "Team",
+          "description": "Para pequenas equipes que faturam e gastam juntas.",
+          "cta": "Começar teste grátis",
+          "feature1": "Faturas ilimitadas",
+          "feature2": "Até 10 usuários",
+          "feature3": "Controle de despesas",
+          "feature4": "Suporte prioritário"
+        },
+        "business": {
+          "name": "Business",
+          "description": "Para empresas com aprovações e muitas pessoas.",
+          "cta": "Falar com vendas",
+          "feature1": "Tudo do Team",
+          "feature2": "Usuários ilimitados",
+          "feature3": "Fluxos de aprovação",
+          "feature4": "Gerente de conta dedicado"
+        }
+      },
+      "footnote": "Preços sem impostos. Planos anuais são cobrados uma vez por ano."
+    }
+  }
+}
