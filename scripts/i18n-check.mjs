@@ -3,15 +3,21 @@
 /**
  * i18n consistency check (`pnpm i18n:check`).
  *
- * - Every locale in src/i18n/locales must have exactly the same keys as the
- *   source locale (en-US).
- * - Every literal key used as `t('some.key')` in src/ must exist in en-US.
+ * - Every locale in src/i18n/locales (pseudo included) has exactly the keys
+ *   of the source locale (en-US), and every message the same `{placeholder}`
+ *   names (rules in scripts/lib/i18n.mjs).
+ * - Every literal key used as `t('some.key')` in src/ exists in en-US.
  *
- * Keys passed through variables are type-checked instead (`I18nKey`).
+ * Limits: keys built at runtime (`t(\`a.${b}\`)`) cannot be checked here;
+ * `t()` only accepts `I18nKey`, so TypeScript rejects unknown keys and
+ * computed keys must come from a typed map (e.g. FORM_ERROR_KEYS).
+ * `pnpm i18n:pseudo` (and its --check) keeps the pseudo-locale current.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { findLocaleProblems } from './lib/i18n.mjs';
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -54,23 +60,18 @@ const main = () => {
   const localeFiles = fs
     .readdirSync(localesDir)
     .filter((f) => f.endsWith('.json'));
-  const sourceKeys = new Set(
-    flattenKeys(readJson(path.join(localesDir, `${SOURCE_LOCALE}.json`))),
+  const load = (/** @type {string} */ file) => ({
+    name: path.basename(file, '.json'),
+    messages: readJson(path.join(localesDir, file)),
+  });
+  const source = load(`${SOURCE_LOCALE}.json`);
+  const sourceKeys = new Set(flattenKeys(source.messages));
+  errors.push(
+    ...findLocaleProblems(
+      source,
+      localeFiles.filter((file) => file !== `${SOURCE_LOCALE}.json`).map(load),
+    ),
   );
-
-  for (const file of localeFiles) {
-    const locale = path.basename(file, '.json');
-    if (locale === SOURCE_LOCALE) continue;
-    const keys = new Set(flattenKeys(readJson(path.join(localesDir, file))));
-    const missing = [...sourceKeys].filter((k) => !keys.has(k));
-    const extra = [...keys].filter((k) => !sourceKeys.has(k));
-    if (missing.length)
-      errors.push(`Missing keys in ${locale}: ${missing.join(', ')}`);
-    if (extra.length)
-      errors.push(
-        `Extra keys in ${locale} (not in ${SOURCE_LOCALE}): ${extra.join(', ')}`,
-      );
-  }
 
   const keyPattern = /\bt\(\s*['"]([a-zA-Z0-9_.-]+)['"]/g;
   const usedMissing = new Set();

@@ -10,11 +10,20 @@ import { createViteConfig } from './vite.config';
  * - unit: jsdom component/integration tests in src/ (`pnpm test:run`).
  * - storybook: every story rendered in real Chromium, with its play function
  *   and an axe check that fails on violations (`pnpm test:storybook`).
+ * - tooling: Node tests for the repository's own checks and generators
+ *   (`*.test.mjs` files under scripts/, `pnpm test:tooling`).
  */
 export default defineConfig((env) =>
   mergeConfig(createViteConfig(env), {
     test: {
       projects: [
+        {
+          test: {
+            name: 'tooling',
+            environment: 'node',
+            include: ['scripts/**/*.test.mjs'],
+          },
+        },
         {
           extends: true,
           test: {
