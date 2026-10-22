@@ -30,7 +30,11 @@ export const expectNoA11yViolations = async (page: Page) => {
         .map((node) => node.target.join(' '))
         .join('\n    ')}`,
   );
-  expect(summary, 'accessibility violations').toEqual([]);
+  // The ids lead the message: `pnpm verify` reports its first line.
+  expect(
+    summary,
+    `accessibility violations: ${results.violations.map((v) => v.id).join(', ')}`,
+  ).toEqual([]);
 };
 
 /**
@@ -60,7 +64,8 @@ export const test = base.extend<{
         }
       });
       await use(errors);
-      expect(errors, 'console errors').toEqual([]);
+      // The messages lead: `pnpm verify` reports the first line.
+      expect(errors, `console errors: ${errors.join(' | ')}`).toEqual([]);
     },
     { auto: true },
   ],
