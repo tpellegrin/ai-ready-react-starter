@@ -171,12 +171,17 @@ export const duplicateDestinations = (creates) => {
   return [...byDestination.values()].filter((paths) => paths.length > 1);
 };
 
-/** @param {Record<string, unknown>} target @param {Record<string, unknown>} source */
-const merge = (target, source) => {
+/**
+ * Merges copy into a locale in place. Check `copyConflicts` first: this
+ * overwrites whatever it conflicts with.
+ * @param {Record<string, unknown>} target
+ * @param {Record<string, unknown>} source
+ */
+export const mergeCopy = (target, source) => {
   for (const [key, value] of Object.entries(source)) {
     const existing = target[key];
     if (isGroup(value) && isGroup(existing)) {
-      merge(existing, value);
+      mergeCopy(existing, value);
     } else {
       target[key] = value;
     }
@@ -295,7 +300,7 @@ export const runPlan = (root, plan, { dryRun }) => {
   if (newKeys.length) {
     for (const file of localeFiles) {
       const locale = readJson(file);
-      merge(locale, structuredClone(plan.copy));
+      mergeCopy(locale, structuredClone(plan.copy));
       fs.writeFileSync(file, `${JSON.stringify(locale, null, 2)}\n`);
     }
   }

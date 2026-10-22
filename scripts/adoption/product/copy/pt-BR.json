@@ -1,0 +1,12 @@
+{
+  "invoices": {
+    "form": {
+      "title": "Nova fatura",
+      "customer": "Cliente",
+      "amount": "Valor",
+      "submit": "Criar fatura",
+      "submitting": "Criando…",
+      "created": "Fatura criada"
+    }
+  }
+}

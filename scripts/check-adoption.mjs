@@ -6,7 +6,10 @@
  * fresh one-commit git repository, like a clone of the starter. Scenarios:
  * demo removed, reference feature removed, both, and `product` — both
  * removed, then a small real product built the documented way (a domain
- * feature and its page with the generators, a nav link, a new app name).
+ * feature and its page with the generators, a nav link, a new app name),
+ * continued with the product's own code from scripts/adoption/product: a
+ * create form and a browser journey through the generated page (loading,
+ * content, empty and error states; validation, a failed save, a retry).
  * For each scenario it checks that:
  *
  * - --dry-run writes nothing, and the real run leaves no markers or paths of
@@ -20,11 +23,18 @@
  *
  *   node scripts/check-adoption.mjs [--scenario demo|reference|all|product] [--keep]
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { copyConflicts, listFiles, mergeCopy } from './lib/generator.mjs';
 import { createReport, createWorkspace } from './lib/workspace.mjs';
 
 if (process.env.STARTER_NESTED_VERIFY === '1') {
@@ -84,6 +94,19 @@ const PRODUCT_STEPS = [
   ],
 ];
 const PRODUCT_NAME = 'Ledgerly';
+/**
+ * Then the product's own code on top of what was generated, the way a team
+ * continues (scripts/adoption/product): `files/` is copied over the copy —
+ * a create form composed into the generated page (model, endpoint,
+ * mutation, mock, component, unit tests) and a browser journey through the
+ * page's navigation, list states and form — and `copy/<locale>.json` is
+ * merged into each locale. These files are outside the starter's lint and
+ * type projects; the adopted project's own verify checks them like any
+ * product code.
+ */
+const PRODUCT_OVERLAY = path.join(projectRoot, 'scripts/adoption/product');
+/** The generated page, kept out of the initial bundle by `check:build`. */
+const PRODUCT_LAZY_MODULE = 'src/views/user/Invoices/index.tsx';
 
 /** @type {Record<string, { flags: string[], product?: boolean }>} */
 const SCENARIOS = {
@@ -104,6 +127,71 @@ const manifest =
   );
 
 const report = createReport('adopt:check');
+
+/**
+ * Applies PRODUCT_OVERLAY to an adopted copy whose generators have run.
+ * @param {ReturnType<typeof createWorkspace>} workspace
+ * @param {string} name  scenario name, for the report
+ */
+const applyProductOverlay = (workspace, name) => {
+  const files = path.join(PRODUCT_OVERLAY, 'files');
+  for (const file of listFiles(files)) {
+    const target = path.join(workspace.dir, path.relative(files, file));
+    mkdirSync(path.dirname(target), { recursive: true });
+    copyFileSync(file, target);
+  }
+
+  // Copy only adds keys, like the generators' (scripts/lib/generator.mjs).
+  const locales = path.join(workspace.dir, 'src/i18n/locales');
+  /** @type {string[]} */
+  const conflicts = [];
+  for (const file of readdirSync(locales)) {
+    if (!file.endsWith('.json') || file === 'pseudo.json') continue;
+    const target = path.join(locales, file);
+    const locale = /** @type {Record<string, unknown>} */ (readJson(target));
+    const copy = /** @type {Record<string, unknown>} */ (
+      readJson(path.join(PRODUCT_OVERLAY, 'copy', file))
+    );
+    conflicts.push(
+      ...copyConflicts(locale, copy).map((conflict) => `${file}: ${conflict}`),
+    );
+    mergeCopy(locale, copy);
+    writeFileSync(target, `${JSON.stringify(locale, null, 2)}\n`);
+  }
+
+  // The generator's next step for a lazy page: keep it lazy for good.
+  const checkBuild = path.join(workspace.dir, 'scripts/check-build.mjs');
+  const source = readFileSync(checkBuild, 'utf8');
+  const lazy = source.replace(
+    /(const LAZY_MODULES = \{\s*production: \[)/,
+    `$1'${PRODUCT_LAZY_MODULE}', `,
+  );
+  writeFileSync(checkBuild, lazy);
+
+  const formatted = [
+    ['node', ['scripts/i18n-pseudo.mjs']],
+    ['prettier', ['--write', 'src/i18n/locales', 'scripts/check-build.mjs']],
+  ].map(([command, args]) =>
+    workspace.run(
+      /** @type {string} */ (command),
+      /** @type {string[]} */ (args),
+      {
+        quiet: true,
+      },
+    ),
+  );
+  report.step(
+    `${name}: add the product's form, browser journey, copy and lazy page`,
+    conflicts.length === 0 &&
+      lazy !== source &&
+      formatted.every((result) => result.status === 0),
+    [
+      ...conflicts,
+      ...(lazy === source ? ['LAZY_MODULES.production not found'] : []),
+      ...formatted.map((result) => result.output),
+    ].join('\n'),
+  );
+};
 
 for (const name of selected) {
   const scenario = SCENARIOS[name];
@@ -225,6 +313,7 @@ for (const name of selected) {
           text.replace(/^VITE_APP_NAME=.*$/m, `VITE_APP_NAME=${PRODUCT_NAME}`),
         );
       }
+      applyProductOverlay(workspace, name);
       report.step(
         `${name}: product names live in product code`,
         workspace.run(

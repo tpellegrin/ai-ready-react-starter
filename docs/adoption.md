@@ -74,9 +74,12 @@ uses the session adapter against the MSW mock backend
 
 `pnpm adopt:check` proves all of this on temporary copies — demo removed,
 reference removed, both, and a `product` scenario that then generates a
-domain feature, its page and navigation and renames the app — by running
-each adopted project's own `pnpm verify` (lint, types, docs, architecture,
-unit, coverage, build inspection, Storybook, e2e, generators). Run it after
+domain feature, its page and navigation, renames the app and adds product
+code on top (`scripts/adoption/product`: a create form, and a browser
+journey through the generated page's navigation, loading, content, empty
+and error states, validation, a failed save and a retry) — by running each
+adopted project's own `pnpm verify` (lint, types, docs, architecture, unit,
+coverage, build inspection, Storybook, e2e, generators). Run it after
 changing demo or reference code.
 
 ## 2. Wire the real backend
