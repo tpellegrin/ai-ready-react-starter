@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { copyConflicts, runPlan } from './generator.mjs';
+import { copyConflicts, duplicateDestinations, runPlan } from './generator.mjs';
 
 /** @typedef {import('./generator.mjs').Plan} Plan */
 
@@ -45,6 +45,42 @@ describe('copyConflicts', () => {
         user: { nav: { reports: 'Reports' }, reports: { title: 'Reports' } },
         reports: { title: 'Reports' },
       }),
+    ).toEqual([]);
+  });
+});
+
+describe('duplicateDestinations', () => {
+  const creates = (/** @type {string[]} */ paths) =>
+    paths.map((file) => ({ path: file, content: '' }));
+
+  it('finds paths that are the same once normalized or apart from case', () => {
+    expect(
+      duplicateDestinations(
+        creates([
+          'src/views/user/ReviewCheck/A1/index.tsx',
+          'src/views/user/ReviewCheck/a1/index.tsx',
+          'src/views/user/ReviewCheck/./Review.test.tsx',
+          'src/views/user/ReviewCheck/Review.test.tsx',
+          'src/views/user/ReviewCheck/B1/index.tsx',
+        ]),
+      ),
+    ).toEqual([
+      [
+        'src/views/user/ReviewCheck/A1/index.tsx',
+        'src/views/user/ReviewCheck/a1/index.tsx',
+      ],
+      [
+        'src/views/user/ReviewCheck/./Review.test.tsx',
+        'src/views/user/ReviewCheck/Review.test.tsx',
+      ],
+    ]);
+  });
+
+  it('accepts distinct paths', () => {
+    expect(
+      duplicateDestinations(
+        creates(['src/a/A1/index.tsx', 'src/a/A2/index.tsx']),
+      ),
     ).toEqual([]);
   });
 });
@@ -172,6 +208,23 @@ describe('runPlan preflight', () => {
       expect(refusal).toContain(
         `src/i18n/locales/${locale}.json: "errors.startup" is a text`,
       );
+    }
+  });
+
+  it('rejects a plan that creates the same file twice before its first write', () => {
+    const before = snapshot();
+    const step = {
+      path: 'src/views/user/ReviewCheck/A1/index.tsx',
+      content: '',
+    };
+    for (const dryRun of [true, false]) {
+      errors = [];
+      const refusal = attempt(plan({ creates: [step, { ...step }] }), dryRun);
+      expect(refusal).toContain(
+        'src/views/user/ReviewCheck/A1/index.tsx and src/views/user/ReviewCheck/A1/index.tsx',
+      );
+      expect(refusal).toContain('Nothing was changed.');
+      expect(snapshot()).toEqual(before);
     }
   });
 

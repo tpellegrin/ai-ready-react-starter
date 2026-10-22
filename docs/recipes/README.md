@@ -28,8 +28,9 @@ example.
 ## Generators
 
 `pnpm gen <kind> --dry-run` prints the plan after the same checks a real
-run makes. Generators validate names, paths and collisions before writing,
-never overwrite files, and only add copy: an existing translation is never
+run makes. Generators validate names, paths and collisions before writing
+(including inputs that become the same name, such as flow steps `a-1` and
+`a1`), never overwrite files, and only add copy: an existing translation is never
 replaced, turned into a group or turned from a group into a text (the
 refusal names the locale and key). They format what they write. They register code at `starter:gen` markers in
 the existing registries:

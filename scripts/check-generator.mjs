@@ -5,9 +5,10 @@
  * (`pnpm gen:check`; the checkout itself is never modified):
  *
  * 1. --dry-run writes nothing, for every generator; unsafe names, paths,
- *    groups, duplicate components, existing features, paths and flows, and
- *    copy that would replace or reshape an existing translation are refused
- *    without writing anything, in dry runs and real runs alike.
+ *    groups, duplicate components, existing features, paths and flows,
+ *    flow steps that normalize to the same names, and copy that would
+ *    replace or reshape an existing translation are refused without
+ *    writing anything, in dry runs and real runs alike.
  * 2. Every generator runs (feature, shared and feature components, user and
  *    guest pages, a flow) and refuses to run twice; registrations land in
  *    the existing registries (paths, routes, navigation, mock handlers) and
@@ -184,6 +185,10 @@ try {
     [
       ['flow', 'sample-flow', '--group', 'user', '--steps', 'a,a'],
       'duplicate steps',
+    ],
+    [
+      ['flow', 'sample-flow', '--group', 'user', '--steps', 'a-1,a1'],
+      'steps that normalize to the same key, component and folder',
     ],
     [
       ['flow', 'gen-check', '--group', 'user', '--steps', 'existing-text,b'],
