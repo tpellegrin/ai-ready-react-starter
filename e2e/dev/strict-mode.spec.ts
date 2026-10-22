@@ -7,6 +7,14 @@ import { expect, expectFlowSettled, gotoApp, test } from '../fixtures';
  * session restore and focus handling survive the replay. Uses the
  * development setup (.env.development: in-browser mock API).
  */
+test.use({
+  // With the session adapter (the development setup once the demo is
+  // removed), a guest's startup check answers 401: "signed out".
+  allowedConsoleErrors: [
+    /Failed to load resource: the server responded with a status of 401/,
+  ],
+});
+
 test('a flow works under Strict Mode: steps settle forward and back, then onboarding completes', async ({
   page,
 }) => {
