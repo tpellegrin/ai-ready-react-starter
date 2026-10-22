@@ -70,7 +70,6 @@ replace the cookie-session auth adapter, replace the placeholder screens.
 | Decisions                 | [docs/decisions/](docs/decisions/) (ADRs 0001–0016)                            |
 | Migrating older copies    | [docs/migration-notes.md](docs/migration-notes.md)                             |
 | Security and dependencies | [SECURITY.md](SECURITY.md)                                                     |
-| Upgrade plan and log      | [docs/starter-upgrade-plan.md](docs/starter-upgrade-plan.md)                   |
 | Mobile (optional)         | [docs/mobile-capacitor.md](docs/mobile-capacitor.md)                           |
 
 ## Deployment

@@ -40,3 +40,23 @@ run.
 
 Raise floors and tighten rules freely; loosening one needs a reason in the
 same change. Keep `pnpm verify`, CI and `docs/guardrails.md` in sync.
+
+## Amendment (2026-10): dependency rationale
+
+Why each dependency added by the foundation exists (the full upgrade log of
+that change lives in its pull request, not in the repository):
+
+| Dependency                                                           | Why existing tools could not cover it                                                        |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `zod`                                                                | Runtime parsing at every boundary (config, API payloads, forms); TS types vanish at runtime. |
+| `react-hook-form` + `@hookform/resolvers`                            | Field-level and server errors, focus on error; hand-rolled state did not scale.              |
+| `@radix-ui/react-dialog`, `-alert-dialog`, `-toast`                  | Focus trap/return, Escape, portals and live regions without hand-built a11y.                 |
+| `msw`                                                                | Mock API in dev/demo/tests through the real HTTP client (fakes skip validation).             |
+| Storybook + `@storybook/addon-vitest` + `@vitest/browser-playwright` | Component states, interactions and axe in real browsers.                                     |
+| `@playwright/test`, `@axe-core/playwright`                           | Routing, focus, reduced motion and base paths in built apps; jsdom cannot.                   |
+| `eslint-plugin-boundaries`, `eslint-import-resolver-typescript`      | Layer, feature and component-API rules resolved through aliases and `import()`.              |
+| `@vitest/coverage-v8`, `@types/node`                                 | Coverage floors; typechecked tooling.                                                        |
+
+Targeted upgrades: Vitest 3.2 → 4.1 (required by the Storybook Vitest addon)
+and TypeScript 5.8 → 5.9 (required by MSW 3). Security updates and the one
+`pnpm.overrides` entry are recorded in `SECURITY.md`.
