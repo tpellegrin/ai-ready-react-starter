@@ -167,6 +167,40 @@ const perform = async (page: Page, step: Step) => {
   }
 };
 
+/**
+ * The box a person sees, in CSS pixels: the element's own box when it
+ * paints something (background, border, shadow) or is a control or media,
+ * otherwise the extent of its content (a heading's text, a list's items).
+ * Runs in the page.
+ */
+const visibleBox = (element: Element): Box => {
+  const rect = element.getBoundingClientRect();
+  const style = getComputedStyle(element);
+  const paints =
+    /^(img|svg|canvas|video|input|select|textarea|button|iframe)$/i.test(
+      element.tagName,
+    ) ||
+    !/^(transparent|rgba\(0, 0, 0, 0\))$/.test(style.backgroundColor) ||
+    style.backgroundImage !== 'none' ||
+    style.boxShadow !== 'none' ||
+    ['top', 'right', 'bottom', 'left'].some(
+      (side) =>
+        parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 &&
+        style.getPropertyValue(`border-${side}-style`) !== 'none',
+    );
+  const box = (r: DOMRect) => ({
+    x: r.x,
+    y: r.y,
+    width: r.width,
+    height: r.height,
+  });
+  if (paints) return box(rect);
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  const content = range.getBoundingClientRect();
+  return content.width && content.height ? box(content) : box(rect);
+};
+
 /** Fonts loaded, images decoded, transitions and motion finished. */
 const settle = async (page: Page) => {
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
@@ -212,11 +246,13 @@ for (const scenario of manifest.scenarios) {
       locale: scenario.locale,
       colorScheme: scenario.colorScheme,
       reducedMotion: scenario.reducedMotion,
-      // Error states the scenario declares log the failed request.
+      // Error states the scenario declares log the failed request, and so
+      // does a guest's session check (401), as in the production e2e specs.
       allowedConsoleErrors: [
-        ...new Set(
-          scenario.api.filter((a) => a.status >= 400).map((a) => a.status),
-        ),
+        ...new Set([
+          ...scenario.api.filter((a) => a.status >= 400).map((a) => a.status),
+          ...(scenario.session === 'guest' ? [401] : []),
+        ]),
       ].map(
         (status) =>
           new RegExp(
@@ -298,7 +334,7 @@ for (const scenario of manifest.scenarios) {
               };
             }
             const first = locator.first();
-            const box: Box | null = await first.boundingBox();
+            const box: Box | null = await first.evaluate(visibleBox);
             return {
               id: region.id,
               found: true,

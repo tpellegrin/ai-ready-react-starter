@@ -11,6 +11,8 @@
  * plan's review) and human review (recorded by a person; tools never set it).
  */
 
+import { describeSides } from './geometry.mjs';
+
 /**
  * @typedef {import('./plan.mjs').Plan} Plan
  * @typedef {import('./plan.mjs').Mapping} Mapping
@@ -39,11 +41,16 @@ const toText = (/** @type {unknown} */ value) =>
 export const escapeHtml = (value) =>
   toText(value).replace(/[&<>"']/g, (c) => HTML_ESCAPES[c] ?? c);
 
-/** Text for a Markdown table cell or line: no HTML, pipes or line breaks. */
+/**
+ * Text for a Markdown line or table cell: no HTML (tags, entities), no
+ * pipes, code spans, links or line breaks.
+ */
 export const escapeMarkdown = (/** @type {unknown} */ value) =>
-  escapeHtml(value)
-    .replace(/\|/g, '\\|')
-    .replace(/[`*_[\]]/g, (c) => `\\${c}`)
+  toText(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/[|`[\]]/g, (c) => `\\${c}`)
     .replace(/\s*\n\s*/g, ' ');
 
 /** Marks trusted, already-escaped HTML. */
@@ -301,7 +308,7 @@ figure { margin: 0; } figcaption { font-size: .8rem; color: var(--muted); margin
 .frame img { width: 100%; height: auto; display: block; }
 .frame .over { position: absolute; top: 0; left: 0; mix-blend-mode: difference; }
 .region { position: absolute; border: 2px solid var(--box); box-sizing: border-box; }
-.region span { position: absolute; top: 0; left: 0; font: 600 11px/1.3 system-ui, sans-serif; background: var(--box); color: #fff; padding: 0 .25rem; }
+.region span { position: absolute; bottom: 100%; left: -2px; font: 600 11px/1.3 system-ui, sans-serif; background: var(--box); color: #fff; padding: 0 .25rem; white-space: nowrap; }
 .chips span { display: inline-block; margin: 0 .5rem .25rem 0; padding: .1rem .5rem; border: 1px solid var(--line); border-radius: 999px; font-size: .8rem; }
 details { margin: .75rem 0; } summary { cursor: pointer; }
 `;
@@ -509,11 +516,8 @@ const scenarioSection = (scenario, /** @type {RunReport} */ run) => {
                         html`<li
                           class="${r.status === 'mismatch' ? 'bad' : 'note'}"
                         >
-                          ${r.a} is
-                          ${r.reference.join(' and ') || 'overlapping'} ${r.b}
-                          in the reference,
-                          ${r.render.join(' and ') || 'overlapping'} it in the
-                          render
+                          ${r.a} is ${describeSides(r.reference)} ${r.b} in the
+                          reference, ${describeSides(r.render)} it in the render
                           (${r.status === 'deviation'
                             ? 'documented deviation'
                             : 'mismatch'})
@@ -626,7 +630,11 @@ ${
             <td>
               ${run.observations.length} recorded in the plan's review;
               ${run.remaining.length} difference(s)
-              left${run.remaining.length ? `: ${run.remaining.join('; ')}` : ''}
+              left${run.remaining.length
+                ? html`<ul>
+                    ${run.remaining.map((text) => html`<li>${text}</li>`)}
+                  </ul>`
+                : ''}
             </td>
           </tr>
           <tr>
@@ -693,7 +701,7 @@ export const runSummaryMarkdown = (run, reportPath) => {
 /**
  * Index of a task's runs (regenerated; the runs themselves never change).
  * @param {string} task
- * @param {Array<{ label: string, mode: string, createdAt: string, ok: boolean, commit: string | null }>} runs
+ * @param {Array<{ label: string, href: string, mode: string, createdAt: string, ok: boolean, commit: string | null }>} runs
  */
 export const indexHtml = (task, runs) =>
   `<!doctype html>
@@ -723,7 +731,7 @@ ${
           ${runs.map(
             (r) =>
               html`<tr>
-                <td><a href="${`${r.label}/report.html`}">${r.label}</a></td>
+                <td><a href="${r.href}">${r.label}</a></td>
                 <td>${r.mode}</td>
                 <td>${r.createdAt}</td>
                 <td>${r.commit?.slice(0, 12) ?? 'unknown'}</td>

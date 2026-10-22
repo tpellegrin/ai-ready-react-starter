@@ -9,7 +9,9 @@
  *
  * Reference boxes are the plan's approximate `bounds` (image pixels);
  * render boxes are CSS pixels from the browser. Each is compared within its
- * own frame, so a sketch's scale does not matter.
+ * own frame, so a sketch's scale does not matter. Render boxes are what a
+ * person sees (e2e/design/capture.spec.ts measures the painted box, or the
+ * content's extent), comparable to bounds read off an image.
  */
 
 /**
@@ -44,16 +46,30 @@ const TOLERANCE = 0.02;
 /** Size differences above this share of the frame width are pointed out. */
 export const SIZE_NOTE_THRESHOLD = 0.08;
 
-/** @param {Box} a @param {Box} b @param {number} tolerance @returns {Side[]} */
+/**
+ * Where `a` is relative to `b`: above or below when one ends before the
+ * other starts; otherwise (they share a row) left or right. Boxes on
+ * different rows are not compared sideways: a header link and a footnote
+ * are in reading order, not in a left/right relation.
+ * @param {Box} a @param {Box} b @param {number} tolerance @returns {Side[]}
+ */
 export const sides = (a, b, tolerance) => {
-  /** @type {Side[]} */
-  const result = [];
-  if (a.y + a.height <= b.y + tolerance) result.push('above');
-  else if (b.y + b.height <= a.y + tolerance) result.push('below');
-  if (a.x + a.width <= b.x + tolerance) result.push('left');
-  else if (b.x + b.width <= a.x + tolerance) result.push('right');
-  return result;
+  if (a.y + a.height <= b.y + tolerance) return ['above'];
+  if (b.y + b.height <= a.y + tolerance) return ['below'];
+  if (a.x + a.width <= b.x + tolerance) return ['left'];
+  if (b.x + b.width <= a.x + tolerance) return ['right'];
+  return [];
 };
+
+const SIDE_WORDS = {
+  above: 'above',
+  below: 'below',
+  left: 'left of',
+  right: 'right of',
+};
+/** "above", "left of", or "overlapping" for no clear side. */
+export const describeSides = (/** @type {Side[]} */ list) =>
+  list.map((side) => SIDE_WORDS[side]).join(' and ') || 'overlapping';
 
 /** @param {Box} box @param {Frame} frame @returns {Shares} */
 const shares = (box, frame) => ({
@@ -63,12 +79,21 @@ const shares = (box, frame) => ({
   height: box.height / frame.width,
 });
 
-/** @param {Box} inner @param {Box} outer @param {number} tolerance */
-const inside = (inner, outer, tolerance) =>
-  inner.x >= outer.x - tolerance &&
-  inner.y >= outer.y - tolerance &&
-  inner.x + inner.width <= outer.x + outer.width + tolerance &&
-  inner.y + inner.height <= outer.y + outer.height + tolerance;
+/**
+ * A child is inside its parent when at least half of its area is (a badge
+ * may overlap the border it sits on).
+ * @param {Box} inner @param {Box} outer
+ */
+const inside = (inner, outer) => {
+  const width =
+    Math.min(inner.x + inner.width, outer.x + outer.width) -
+    Math.max(inner.x, outer.x);
+  const height =
+    Math.min(inner.y + inner.height, outer.y + outer.height) -
+    Math.max(inner.y, outer.y);
+  const area = inner.width * inner.height;
+  return width > 0 && height > 0 && area > 0 && (width * height) / area >= 0.5;
+};
 
 /**
  * @param {{ regions: RegionInput[], referenceFrame: Frame | null, renderFrame: Frame }} input
@@ -146,7 +171,7 @@ export const compareGeometry = ({ regions, referenceFrame, renderFrame }) => {
             : 'mismatch';
         if (status === 'mismatch') {
           failures.push(
-            `"${a.id}" is ${reference.join(' and ') || 'overlapping'} "${b.id}" in the reference but ${render.join(' and ') || 'overlapping'} it in the render`,
+            `"${a.id}" is ${describeSides(reference)} "${b.id}" in the reference but ${describeSides(render)} it in the render`,
           );
         }
         relations.push({ a: a.id, b: b.id, reference, render, status });
@@ -162,13 +187,18 @@ export const compareGeometry = ({ regions, referenceFrame, renderFrame }) => {
     const box = region.measured?.box;
     const parentBox = parent?.measured?.box;
     if (!parent || !box || !parentBox) continue;
-    const ok = inside(box, parentBox, TOLERANCE * renderFrame.width);
+    const ok = inside(box, parentBox);
+    // Outside in the reference too: that is the design, not a defect.
+    const expected =
+      region.reference && parent.reference
+        ? inside(region.reference, parent.reference)
+        : true;
     containment.push({
       child: region.id,
       parent: parent.id,
       status: ok ? 'inside' : 'outside',
     });
-    if (!ok) {
+    if (!ok && expected) {
       failures.push(
         `region "${region.id}" is not inside its parent "${parent.id}" in the render`,
       );

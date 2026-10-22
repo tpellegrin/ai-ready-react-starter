@@ -52,6 +52,17 @@ describe('pnpm catalog', () => {
     expect(button?.docs).toContain('docs/ui/foundation.md');
   }, 30_000);
 
+  it('lists the page shells of view groups as layouts', () => {
+    const result = catalog(['UserPageLayout', '--json']);
+    const [shell] = entriesOf(result.stdout);
+    expect(shell).toMatchObject({
+      name: 'UserPageLayout',
+      kind: 'layout',
+      importPath: 'views/user/common/UserPageLayout',
+    });
+    expect(shell?.exports.map((e) => e.name)).toEqual(['UserPageLayout']);
+  }, 30_000);
+
   it('finds building blocks by prop name', () => {
     const result = catalog(['legend', '--json']);
     const names = entriesOf(result.stdout).map((e) => e.name);

@@ -65,6 +65,10 @@ describe('region geometry', () => {
       'left',
     ]);
     expect(sides(box([0, 0, 10, 10]), box([5, 5, 10, 10]), 1)).toEqual([]);
+    // Different rows: only the vertical order counts.
+    expect(sides(box([0, 0, 10, 10]), box([40, 30, 10, 10]), 1)).toEqual([
+      'above',
+    ]);
   });
 
   it('passes a render that keeps the arrangement at another scale', () => {
@@ -101,11 +105,30 @@ describe('region geometry', () => {
       renderFrame: { width: 1200, height: 900 },
     });
     expect(compareGeometry(input('')).failures).toEqual([
-      '"title" is left "action" in the reference but above it in the render',
+      '"title" is left of "action" in the reference but above it in the render',
     ]);
     const documented = compareGeometry(input('action'));
     expect(documented.failures).toEqual([]);
     expect(documented.relations[0]?.status).toBe('deviation');
+  });
+
+  it('accepts a child half over its parent, and one outside it as in the reference', () => {
+    const geometry = compareGeometry({
+      regions: regions([
+        ['card', [100, 100, 200, 200], [100, 100, 200, 200]],
+        // A badge centered on the top border: half inside.
+        ['badge', [120, 90, 60, 20], [120, 90, 60, 20], 'card'],
+        // A tooltip drawn above the card in the reference, and rendered so.
+        ['tip', [100, 40, 80, 30], [100, 40, 80, 30], 'card'],
+      ]),
+      referenceFrame: { width: 400, height: 400 },
+      renderFrame: { width: 400, height: 400 },
+    });
+    expect(geometry.failures).toEqual([]);
+    expect(geometry.containment.map((c) => c.status)).toEqual([
+      'inside',
+      'outside',
+    ]);
   });
 
   it('fails missing regions and children outside their parent; notes size differences', () => {
@@ -123,6 +146,9 @@ describe('region geometry', () => {
       'region "list" (list) is missing in the render',
       'region "footer" is not inside its parent "page" in the render',
     ]);
+    expect(
+      geometry.containment.find((c) => c.child === 'summary')?.status,
+    ).toBe('inside');
     // 90% of the width in the sketch, 25% in the render.
     expect(geometry.regions.find((r) => r.id === 'summary')?.sizeDiffers).toBe(
       true,
@@ -292,7 +318,9 @@ describe('capture runs', () => {
           : `${dir}/${file}`;
       expect(project.exists(at), at).toBe(true);
     }
-    expect(project.exists(`${dir}/references/desktop.png`)).toBe(true);
+    expect(project.exists(`${dir}/references/notes-page/desktop.png`)).toBe(
+      true,
+    );
     expect(project.read('reports/verify/report.json')).toBe(
       '{"caller":"kept"}',
     );
@@ -438,6 +466,37 @@ describe('capture runs', () => {
     expect(calls.filter((c) => c[0]?.endsWith('playwright')).at(-1)).toContain(
       '--update-snapshots=all',
     );
+  });
+
+  it('writes a page per task and an index when one regression run covers several tasks', () => {
+    const raw = withChanges(completePlan(), {
+      'captures.0.regression': true,
+    });
+    const other = withChanges(raw, { task: 'notes-two' });
+    const { run, project } = setup(() => captured, { raw });
+    project.write('design/notes-two/references/desktop.png', makePng(400, 300));
+    const outcome = run({
+      mode: 'regression',
+      plans: [
+        { plan: parse(raw), source: JSON.stringify(raw) },
+        { plan: parse(other), source: JSON.stringify(other) },
+      ],
+    });
+    expect(outcome.runs.map((r) => r.task)).toEqual([
+      'notes-page',
+      'notes-two',
+    ]);
+    const dir = 'reports/design/_regression/run-1';
+    const index = project.read(`${dir}/report.html`);
+    expect(index).toContain('href="notes-page.html"');
+    expect(index).toContain('href="notes-two.html"');
+    for (const task of ['notes-page', 'notes-two']) {
+      const page = project.read(`${dir}/${task}.html`);
+      expect(page.match(/<!doctype html>/g)).toHaveLength(1);
+      expect(project.exists(`${dir}/references/${task}/desktop.png`)).toBe(
+        task === 'notes-page' || task === 'notes-two',
+      );
+    }
   });
 
   it('says when there is nothing to compare', () => {

@@ -317,7 +317,9 @@ export const scenarioResult = ({
   const measured = new Map((result.regions ?? []).map((r) => [r.id, r]));
   const regions = (screen?.regions ?? [])
     .filter(
-      (region) => !region.states || region.states.includes(scenario.state),
+      (region) =>
+        region.component?.use !== 'omitted' &&
+        (!region.states || region.states.includes(scenario.state)),
     )
     .map((region) => {
       const box = compare ? region.bounds?.[compare] : undefined;
@@ -380,7 +382,9 @@ export const scenarioResult = ({
     ...(result.error ? { error: result.error } : {}),
     ...(screenshot ? { screenshot } : {}),
     ...(reference
-      ? { referenceImage: `references/${path.basename(reference.file)}` }
+      ? {
+          referenceImage: `references/${scenario.task}/${path.basename(reference.file)}`,
+        }
       : {}),
     ...(frame ? { frame } : {}),
     environment: result.environment,
@@ -466,12 +470,20 @@ export const runScenarios = ({
     fs.mkdirSync(path.join(run.dir, dir), { recursive: true });
   }
   for (const { plan } of work) {
+    fs.mkdirSync(path.join(run.dir, 'references', plan.task), {
+      recursive: true,
+    });
     for (const reference of plan.references) {
       const source = path.join(root, taskPaths(plan.task).dir, reference.file);
       if (fs.existsSync(source)) {
         fs.copyFileSync(
           source,
-          path.join(run.dir, 'references', path.basename(reference.file)),
+          path.join(
+            run.dir,
+            'references',
+            plan.task,
+            path.basename(reference.file),
+          ),
         );
       }
     }
@@ -559,6 +571,7 @@ export const runScenarios = ({
       runSummaryMarkdown(report, `${run.relative}/report.html`),
     );
   } else {
+    // Several tasks in one regression run: a page per task and an index.
     write(
       'report.json',
       `${JSON.stringify(
@@ -567,11 +580,29 @@ export const runScenarios = ({
         2,
       )}\n`,
     );
-    write('report.html', runs.map((r) => runReportHtml(r.report)).join('\n'));
+    for (const { task, report } of runs) {
+      write(`${task}.html`, runReportHtml(report));
+    }
+    write(
+      'report.html',
+      indexHtml(
+        'regression',
+        runs.map(({ task, report }) => ({
+          label: task,
+          href: `${task}.html`,
+          mode: report.mode,
+          createdAt: report.createdAt,
+          ok: report.ok,
+          commit: report.revision.commit,
+        })),
+      ),
+    );
     write(
       'summary.md',
       runs
-        .map((r) => runSummaryMarkdown(r.report, `${run.relative}/report.html`))
+        .map(({ task, report }) =>
+          runSummaryMarkdown(report, `${run.relative}/${task}.html`),
+        )
         .join('\n'),
     );
   }
@@ -606,6 +637,7 @@ const writeIndex = (/** @type {string} */ root, /** @type {string} */ task) => {
         return [
           {
             label: entry.name,
+            href: `${entry.name}/report.html`,
             mode: report.mode,
             createdAt: report.createdAt,
             ok: report.ok === true,
