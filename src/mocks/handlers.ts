@@ -22,6 +22,8 @@ export const handlers: RequestHandler[] = [
 
 /** Reset every feature's in-memory mock data (called between tests). */
 export const resetMockData = () => {
+  // Mocks that keep mutable data (an in-memory store behind mutations)
+  // export a reset and call it here.
   // starter:reference-start
   resourceDb.reset();
   // starter:reference-end

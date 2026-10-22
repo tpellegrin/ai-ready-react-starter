@@ -1,5 +1,5 @@
 {
-  "$comment": "Provenance and adoption map for this starter. `pnpm adopt` reads the groups below and records what it removed under `adoption`. Keep this file in adopted projects: it tells maintainers and AI agents which starter version the code came from.",
+  "$comment": "Provenance and adoption map for this starter. `pnpm adopt` reads the groups below and records under `adoption` what it removed, when, and the starter commit the project started from (`starterRevision`). `adoption: null` means this is the starter itself; once set, it is a product built from it (see AGENTS.md). Keep this file in adopted projects.",
   "starter": {
     "name": "ai-ready-react-starter",
     "source": "https://github.com/tpellegrin/ai-ready-react-starter",
@@ -24,7 +24,8 @@
       "delete": [
         "src/features/resources",
         "src/views/user/Resources",
-        "e2e/demo/resources.spec.ts"
+        "e2e/demo/resources.spec.ts",
+        "e2e/production/resources.spec.ts"
       ],
       "packageScripts": [],
       "i18nKeys": [
