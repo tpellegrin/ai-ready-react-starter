@@ -454,7 +454,7 @@ describe('pnpm design check', () => {
       ]);
     });
 
-    it('treats exports of a feature this task will generate as open, not wrong', () => {
+    it('keeps exports of a feature this task will generate open, asking to map them as new', () => {
       const { result, open } = check({
         'screens.0.feature': 'expenses',
         'screens.0.regions.2.component': {
@@ -466,7 +466,7 @@ describe('pnpm design check', () => {
       expect(result.ok).toBe(true);
       expect(open).toEqual([
         expect.stringMatching(
-          /cannot be verified until the feature exists \(`pnpm gen feature expenses`\)/,
+          /ExpensesPanel from 'features\/expenses' does not exist yet: map it as "use": "new" until `pnpm gen feature expenses`/,
         ),
       ]);
       expect(
@@ -633,12 +633,19 @@ describe('pnpm design check', () => {
       );
     });
 
-    it('warns when regions with bounds cannot be measured', () => {
+    it('warns when regions with bounds cannot be measured (unless omitted on purpose)', () => {
       expect(
         check({ 'screens.0.regions.2.locator': undefined }).warnings,
       ).toEqual([
         expect.stringMatching(/"list" have bounds in "desktop" but no locator/),
       ]);
+      expect(
+        check({
+          'screens.0.regions.2.locator': undefined,
+          'screens.0.regions.2.component': { use: 'omitted', reason: 'note' },
+          'deviations.0.region': 'list',
+        }).warnings,
+      ).toEqual([]);
     });
   });
 

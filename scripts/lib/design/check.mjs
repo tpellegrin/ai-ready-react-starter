@@ -524,7 +524,7 @@ export const checkTask = (root, task, { catalog }) => {
         report(
           'open',
           [...at, 'import'],
-          `${name} from 'features/${feature}' cannot be verified until the feature exists (\`pnpm gen feature ${feature}\`).`,
+          `${name} from 'features/${feature}' does not exist yet: map it as "use": "new" until \`pnpm gen feature ${feature}\` (or \`pnpm gen component … --feature ${feature}\`) creates it, then as "existing".`,
         );
       } else {
         report(
@@ -1059,7 +1059,10 @@ export const checkTask = (root, task, { catalog }) => {
           );
         }
         const measurable = screen.regions.filter(
-          (region) => region.bounds?.[compare] && !region.locator,
+          (region) =>
+            region.bounds?.[compare] &&
+            !region.locator &&
+            region.component?.use !== 'omitted',
         );
         if (measurable.length) {
           report(
