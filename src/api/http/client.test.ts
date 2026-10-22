@@ -244,4 +244,93 @@ describe('createHttpClient', () => {
     await withCookies.request({ path: '/items/1', schema: itemSchema });
     expect(fetchSpy.mock.calls[0]?.[1]?.credentials).toBe('include');
   });
+
+  describe('timeouts', () => {
+    const hang = () =>
+      server.use(
+        http.get('/api/items', async () => {
+          await delay('infinite');
+          return HttpResponse.json([]);
+        }),
+      );
+
+    it('fails a request that gets no response in time with a "timeout" error (not retried automatically)', async () => {
+      hang();
+      const withTimeout = createHttpClient({ baseUrl: '/api', timeoutMs: 20 });
+      const error = await rejectionOf(
+        withTimeout.request({ path: '/items', schema: z.array(itemSchema) }),
+      );
+      expect(error.kind).toBe('timeout');
+      expect(isRetryableError(error)).toBe(false);
+    });
+
+    it('lets one request use a longer timeout than the client default', async () => {
+      server.use(
+        http.get('/api/items', async () => {
+          await delay(40);
+          return HttpResponse.json([]);
+        }),
+      );
+      const withTimeout = createHttpClient({ baseUrl: '/api', timeoutMs: 10 });
+      await expect(
+        withTimeout.request({
+          path: '/items',
+          schema: z.array(itemSchema),
+          timeoutMs: 1000,
+        }),
+      ).resolves.toEqual([]);
+    });
+
+    it('still reports the caller’s own cancellation as "aborted"', async () => {
+      hang();
+      const withTimeout = createHttpClient({
+        baseUrl: '/api',
+        timeoutMs: 1000,
+      });
+      const controller = new AbortController();
+      const pending = withTimeout.request({
+        path: '/items',
+        schema: z.array(itemSchema),
+        signal: controller.signal,
+      });
+      controller.abort();
+      expect((await rejectionOf(pending)).kind).toBe('aborted');
+    });
+
+    it('honors a signal that was aborted before the request started', async () => {
+      hang();
+      const withTimeout = createHttpClient({
+        baseUrl: '/api',
+        timeoutMs: 1000,
+      });
+      const controller = new AbortController();
+      controller.abort();
+      const error = await rejectionOf(
+        withTimeout.request({
+          path: '/items',
+          schema: z.array(itemSchema),
+          signal: controller.signal,
+        }),
+      );
+      expect(error.kind).toBe('aborted');
+    });
+  });
+
+  it('gives the headers hook the method and path of each request', async () => {
+    const headers = vi.fn(() => ({}));
+    const fetchSpy = vi.fn<typeof fetch>(() =>
+      Promise.resolve(Response.json({ id: '1', name: 'One' })),
+    );
+    const client = createHttpClient({
+      baseUrl: '/api',
+      headers,
+      fetch: fetchSpy,
+    });
+    await client.request({
+      method: 'PUT',
+      path: '/items/1',
+      schema: itemSchema,
+    });
+    expect(headers).toHaveBeenCalledWith({ method: 'PUT', path: '/items/1' });
+  });
 });

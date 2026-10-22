@@ -45,6 +45,13 @@
       "error": "Correo electrónico o contraseña inválidos",
       "submit": "Iniciar sesión",
       "submitting": "Iniciando sesión..."
+    },
+    "session": {
+      "expired": "Tu sesión ha caducado. Inicia sesión de nuevo para continuar."
+    },
+    "signOut": {
+      "pending": "Cerrando sesión…",
+      "error": "No pudimos cerrar tu sesión. Comprueba tu conexión e inténtalo de nuevo."
     }
   },
   "onboarding": {
@@ -62,7 +69,8 @@
       "heading": "Paso 3 de 3",
       "title": "Todo listo",
       "body": "La configuración está completa. Todo está listo para ti.",
-      "cta": "Ir al Panel"
+      "cta": "Ir al Panel",
+      "pending": "Finalizando la configuración…"
     }
   },
   "user": {
@@ -108,13 +116,14 @@
       "network": "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
       "aborted": "La solicitud se canceló.",
       "unexpectedResponse": "El servidor envió una respuesta que no pudimos leer. Inténtalo más tarde.",
-      "unauthorized": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
+      "unauthorized": "El servidor no aceptó tu sesión para esta solicitud. Inténtalo de nuevo o vuelve a iniciar sesión si sigue ocurriendo.",
       "forbidden": "No tienes permiso para hacer eso.",
       "notFound": "No encontramos lo que buscabas.",
       "conflict": "Otra persona cambió esto. Actualiza e inténtalo de nuevo.",
       "validation": "Algunos datos requieren tu atención.",
       "rateLimited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
-      "server": "Algo salió mal por nuestra parte. Inténtalo de nuevo."
+      "server": "Algo salió mal por nuestra parte. Inténtalo de nuevo.",
+      "timeout": "El servidor tardó demasiado en responder. Inténtalo de nuevo."
     }
   },
   "common": {

@@ -12,6 +12,8 @@ export const getErrorMessageKey = (error: unknown): I18nKey => {
   switch (error.kind) {
     case 'network':
       return 'errors.api.network';
+    case 'timeout':
+      return 'errors.api.timeout';
     case 'aborted':
       return 'errors.api.aborted';
     case 'parse':

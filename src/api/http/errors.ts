@@ -2,12 +2,19 @@ import { z } from 'zod';
 
 /**
  * - network: the request never produced a response (offline, DNS, CORS).
+ * - timeout: no response within the request's timeout (see HttpClientOptions).
  * - aborted: the caller's AbortSignal fired (navigation, query cancellation).
  * - http: the server answered with a non-2xx status (`status`, `body`).
  * - parse: a 2xx body claimed to be JSON but was not.
  * - schema: a 2xx body did not match the request's response schema (`issues`).
  */
-export type ApiErrorKind = 'network' | 'aborted' | 'http' | 'parse' | 'schema';
+export type ApiErrorKind =
+  | 'network'
+  | 'timeout'
+  | 'aborted'
+  | 'http'
+  | 'parse'
+  | 'schema';
 
 type ApiErrorInit = {
   kind: ApiErrorKind;
@@ -60,9 +67,11 @@ export const isApiError = (error: unknown): error is ApiError =>
   error instanceof ApiError;
 
 /**
- * Whether retrying could help: connectivity problems, 408/429 and 5xx.
- * Client errors, validation failures and contract violations never are.
- * TanStack Query owns the retry loop (see api/queryClient.ts).
+ * Whether retrying automatically could help: connectivity problems, 408/429
+ * and 5xx. Client errors, validation failures and contract violations never
+ * are. Timeouts are not retried automatically either: the user already
+ * waited the full timeout, so the UI offers "Try again" instead. TanStack
+ * Query owns the retry loop (see api/queryClient.ts).
  */
 export const isRetryableError = (error: unknown): boolean => {
   if (!isApiError(error)) return false;
@@ -70,6 +79,15 @@ export const isRetryableError = (error: unknown): boolean => {
   if (error.kind !== 'http' || error.status === undefined) return false;
   return error.status === 408 || error.status === 429 || error.status >= 500;
 };
+
+/**
+ * A 401: the server did not accept the request's credentials. For a cookie
+ * session this usually means the session expired; the app re-checks the
+ * session before ending it (containers/session/SessionMonitor.tsx), because
+ * an individual endpoint may answer 401 for other reasons.
+ */
+export const isUnauthenticatedError = (error: unknown): boolean =>
+  isApiError(error) && error.kind === 'http' && error.status === 401;
 
 /**
  * Validation problem body returned by the reference API with 422:

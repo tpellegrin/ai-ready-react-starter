@@ -17,6 +17,12 @@ export type HttpRequest<TSchema extends z.ZodType> = {
   /** Pass TanStack Query's signal so cancellation aborts the request. */
   signal?: AbortSignal | undefined;
   /**
+   * Fail with ApiError('timeout') after this many milliseconds (overrides
+   * the client's `timeoutMs`). Use a longer value for slow endpoints such
+   * as uploads.
+   */
+  timeoutMs?: number | undefined;
+  /**
    * Validates the successful response. The client never trusts a payload's
    * shape: every request names the schema it expects. Use `emptyResponse`
    * for endpoints that return no body (e.g. 204).
@@ -37,8 +43,19 @@ export type HttpClientOptions = {
   fetch?: typeof fetch | undefined;
   /** Use 'include' for cookie sessions on a different origin (needs CORS). */
   credentials?: RequestCredentials | undefined;
-  /** Extra headers per request (e.g. Authorization from an auth SDK). */
-  headers?: (() => HeadersInit) | undefined;
+  /**
+   * Extra headers per request, e.g. a CSRF token for unsafe methods
+   * (api/csrf.ts) or Authorization from an auth SDK.
+   */
+  headers?:
+    | ((request: { method: HttpMethod; path: string }) => HeadersInit)
+    | undefined;
+  /**
+   * Default request timeout in milliseconds (none when omitted). A timed-out
+   * request fails with ApiError('timeout'); the caller's own AbortSignal
+   * still produces 'aborted'.
+   */
+  timeoutMs?: number | undefined;
   /** Origin for root-relative base URLs. Defaults to window.location.origin. */
   origin?: (() => string) | undefined;
 };
@@ -96,10 +113,40 @@ const parseErrorBody = (text: string, contentType: string | null): unknown => {
 };
 
 /**
+ * Combines the caller's signal with a timeout. `timedOut()` tells the two
+ * apart after an abort; `dispose()` clears the timer and listener.
+ */
+const withTimeout = (
+  callerSignal: AbortSignal | undefined,
+  timeoutMs: number | undefined,
+) => {
+  if (timeoutMs === undefined) {
+    return { signal: callerSignal, timedOut: () => false, dispose: () => {} };
+  }
+  const controller = new AbortController();
+  const forward = () => controller.abort(callerSignal?.reason);
+  if (callerSignal?.aborted) forward();
+  else callerSignal?.addEventListener('abort', forward, { once: true });
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  return {
+    signal: controller.signal,
+    timedOut: () => timedOut,
+    dispose: () => {
+      clearTimeout(timer);
+      callerSignal?.removeEventListener('abort', forward);
+    },
+  };
+};
+
+/**
  * Thin fetch wrapper: base URL handling, JSON bodies, AbortSignal
- * propagation, empty-body support, normalized errors (ApiError) and
- * per-request response validation. It does not retry; TanStack Query owns
- * retries for queries, and mutations are not retried automatically.
+ * propagation, timeouts, empty-body support, normalized errors (ApiError)
+ * and per-request response validation. It does not retry; TanStack Query
+ * owns retries for queries, and mutations are not retried automatically.
  */
 export const createHttpClient = (options: HttpClientOptions): HttpClient => {
   const fetchImpl: typeof fetch =
@@ -112,19 +159,23 @@ export const createHttpClient = (options: HttpClientOptions): HttpClient => {
     const method = req.method ?? 'GET';
     const url = buildUrl(options.baseUrl, req.path, req.query, origin());
 
-    const headers = new Headers(options.headers?.());
+    const headers = new Headers(options.headers?.({ method, path: req.path }));
     new Headers(req.headers).forEach((value, key) => headers.set(key, value));
     if (!headers.has('Accept')) headers.set('Accept', 'application/json');
 
     const init: RequestInit = { method, headers };
     if (options.credentials) init.credentials = options.credentials;
-    if (req.signal) init.signal = req.signal;
+    const deadline = withTimeout(
+      req.signal,
+      req.timeoutMs ?? options.timeoutMs,
+    );
+    if (deadline.signal) init.signal = deadline.signal;
     if (req.body !== undefined) {
       headers.set('Content-Type', 'application/json');
       init.body = JSON.stringify(req.body);
     }
 
-    const fail = (kind: 'network' | 'aborted', cause: unknown) =>
+    const fail = (kind: 'network' | 'aborted' | 'timeout', cause: unknown) =>
       new ApiError({ kind, method, url, cause });
 
     let response: Response;
@@ -134,9 +185,15 @@ export const createHttpClient = (options: HttpClientOptions): HttpClient => {
       text = await response.text();
     } catch (cause) {
       throw fail(
-        req.signal?.aborted || isAbortError(cause) ? 'aborted' : 'network',
+        deadline.timedOut()
+          ? 'timeout'
+          : req.signal?.aborted || isAbortError(cause)
+            ? 'aborted'
+            : 'network',
         cause,
       );
+    } finally {
+      deadline.dispose();
     }
 
     const contentType = response.headers.get('Content-Type');
