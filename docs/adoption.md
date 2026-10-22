@@ -129,6 +129,37 @@ demo/mock code). Static hosting works anywhere thanks to hash routing; for a
 sub-path set `BASE_PATH=/sub/`. Add a deployment workflow for your host —
 the removed GitHub Pages workflow only published the starter's demo.
 
+## 6. Own the performance budgets
+
+From adoption on, the size budgets in `scripts/check-build.mjs` are your
+product's: `BUDGETS.production` (gzip kB of the initial JS, all JS, CSS and
+the largest lazy chunk) and `LAZY_MODULES.production` (modules that must
+stay out of the initial bundle). `pnpm check:build`, `pnpm verify` and CI
+enforce them on every change. The starter set them just above its own
+measured build, so there is little headroom: expect the first product code
+that reaches the initial bundle to need a decision. (`BUDGETS.demo` only
+applies to the starter's demo builds.)
+
+To change them deliberately:
+
+1. **Measure.** `pnpm build && pnpm check:build` prints each measured size
+   next to its budget; `reports/build/dist.json` lists the source modules
+   of every chunk, so you can see what entered the initial bundle.
+2. **Keep weight off the initial bundle first.** Pages are lazy routes by
+   default (`pnpm gen view`); load heavy, rarely used code with `import()`.
+   Add the pages and modules that must stay lazy to
+   `LAZY_MODULES.production` (the view generator prints this step); the
+   check fails when one is imported statically. The `product` adoption
+   scenario does this for its generated page.
+3. **Raise a budget only in the change that adds the weight**, with the
+   measured sizes before and after and the cause in the commit or pull
+   request, and a comment next to the number (for example "auth SDK,
+   needed at startup: +12 kB"). Set it a little above the new measurement,
+   not to a round number far above it.
+4. **Never raise one to turn an unexplained failure green:** find what grew
+   first. Lower a budget when you remove weight, so it keeps catching
+   regressions.
+
 ## Checklist
 
 - [ ] `pnpm adopt --remove-demo` (and later `--remove-reference`)
@@ -136,6 +167,7 @@ the removed GitHub Pages workflow only published the starter's demo.
       (cookies, CORS, CSRF)
 - [ ] Placeholder screens replaced, copy translated
 - [ ] Theme, fonts, app name updated; README describes your product
+- [ ] Budgets in `scripts/check-build.mjs` measured and set for your product
 - [ ] `pnpm verify` passes
 - [ ] `starter.manifest.json` kept for provenance
 

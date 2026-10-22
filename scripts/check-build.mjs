@@ -24,6 +24,8 @@ import { gzipSync } from 'node:zlib';
 /**
  * Gzip budgets in kB. Set a little above the measured size (see
  * docs/guardrails.md). Raise one only in the change that explains why.
+ * After adoption these are the product's own budgets: measure and change
+ * them as docs/adoption.md ("Own the performance budgets") describes.
  */
 const BUDGETS = {
   production: {
