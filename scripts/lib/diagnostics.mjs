@@ -194,9 +194,8 @@ export const markedLines = ({ log }) =>
         (/^\[i18n-(check|pseudo)\] /.test(line) && !/ OK\b/.test(line)),
     )
     .map((line) => {
-      const located = /^✗ ((?:src|e2e|scripts|docs)\/[^\s:]+):(\d+) (.*)$/.exec(
-        line,
-      );
+      const located =
+        /^✗ ((?:src|e2e|scripts|docs|design)\/[^\s:]+):(\d+) (.*)$/.exec(line);
       return located
         ? {
             file: located[1],

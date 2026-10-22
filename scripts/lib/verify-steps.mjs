@@ -99,6 +99,13 @@ export const steps = [
     group: 'validate',
   },
   {
+    id: 'design',
+    label: 'composition plans (design/)',
+    script: 'design:check',
+    parser: 'markedLines',
+    group: 'validate',
+  },
+  {
     id: 'tooling',
     label: 'tooling tests',
     script: 'test:tooling',
@@ -173,6 +180,12 @@ export const steps = [
     },
     artifact: 'e2e.json',
     parser: 'playwright',
+  },
+  {
+    id: 'design-regression',
+    label: 'design baselines (visual regression)',
+    script: 'design:regress',
+    parser: 'markedLines',
   },
   {
     id: 'generator',
