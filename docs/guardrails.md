@@ -22,10 +22,23 @@ required. `pnpm docs:check` fails when the two drift apart.
 their problems as `file:line rule message` with the full log path, and
 `reports/verify/report.json` records every step. Useful options: `--only`,
 `--skip`, `--bail`, `--json`, `--list`, and `--affected [--base <ref>]`,
-which picks a conservative subset for the current diff (shared
-infrastructure, configuration, dependency or unclassified changes select
-everything; it says what it skipped and why). `--affected` is for iterating;
-merge readiness is `pnpm verify` and CI.
+which picks a conservative subset for the current diff and says what it
+skipped and why:
+
+- Tooling, configuration, dependencies, a deleted or renamed asset, or a
+  file type it does not classify: everything.
+- Production code, locales or assets: the builds, every Storybook story
+  (which stories a change reaches cannot be told from folders: stories
+  render shared components, and the preview loads providers, copy, fonts
+  and every feature's mocks) and the end-to-end tests. Assets also rebuild
+  Storybook and are never passed to Prettier.
+- Unit tests: `vitest related` (the real module graph); all of them for
+  locales, deletions or shared test infrastructure. ESLint is narrowed only
+  for tests, stories and e2e files; production code re-lints everything
+  (type-aware rules re-check importers).
+- Stories alone: only those stories.
+
+`--affected` is for iterating; merge readiness is `pnpm verify` and CI.
 
 Browsers: `pnpm exec playwright install chromium webkit`.
 
