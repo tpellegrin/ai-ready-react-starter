@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 
-import { getLocale } from 'i18n';
+import { defaultCurrency, getLocale } from 'i18n';
 import { useI18n } from 'i18n/provider';
 import {
   formatTypedNumber,
@@ -81,6 +81,8 @@ export const useInputLogic = (
     [format, maximumFractionDigits],
   );
   const decimalsExpected = effectiveMaxFrac > 0;
+  const typedCurrency =
+    format === 'currency' ? (currency ?? defaultCurrency(locale)) : undefined;
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const composingRef = useRef(false);
@@ -140,14 +142,18 @@ export const useInputLogic = (
       typed &&
       typeof value === 'number' &&
       typed.value === value &&
-      format === 'number' &&
       typed.fractionDigits <= effectiveMaxFrac &&
       decimalsExpected
     ) {
       setDisplay(
         formatTypedNumber(
           { ...typed, value },
-          { locale, maximumFractionDigits: effectiveMaxFrac, useGrouping },
+          {
+            locale,
+            maximumFractionDigits: effectiveMaxFrac,
+            useGrouping,
+            currency: typedCurrency,
+          },
         ),
       );
       return;
@@ -182,6 +188,7 @@ export const useInputLogic = (
     locale,
     format,
     currency,
+    typedCurrency,
     maximumFractionDigits,
     useGrouping,
     effectiveMaxFrac,
@@ -220,11 +227,11 @@ export const useInputLogic = (
         ? countFractionDigitsBefore(raw, caretBefore, locale)
         : undefined;
 
-    // Decimal fields keep in-progress input ("1.", "1.50") while typing.
-    const typed =
-      format === 'number' && decimalsExpected
-        ? parseTypedNumber(raw, locale, effectiveMaxFrac)
-        : null;
+    // Decimal fields (numbers and amounts) keep in-progress input ("1.",
+    // "1.50") while typing.
+    const typed = decimalsExpected
+      ? parseTypedNumber(raw, locale, effectiveMaxFrac)
+      : null;
     const parsed = typed ? typed.value : parseLocaleNumber(raw, locale);
     emittedRef.current = parsed;
     typedRef.current = typed;
@@ -246,7 +253,12 @@ export const useInputLogic = (
     const next = typed
       ? formatTypedNumber(
           { ...typed, value: parsed },
-          { locale, maximumFractionDigits: effectiveMaxFrac, useGrouping },
+          {
+            locale,
+            maximumFractionDigits: effectiveMaxFrac,
+            useGrouping,
+            currency: typedCurrency,
+          },
         )
       : formatWithIntl(parsed, {
           locale,

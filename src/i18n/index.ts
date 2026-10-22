@@ -98,6 +98,10 @@ const currencyByLocale: Record<Locale, string> = {
   pseudo: 'USD',
 };
 
+/** The currency a locale formats amounts in when none is given. */
+export const defaultCurrency = (locale: Locale): string =>
+  currencyByLocale[locale] ?? 'USD';
+
 export const formatCurrency = (
   value: number,
   opts?: {
@@ -107,7 +111,7 @@ export const formatCurrency = (
   },
 ): string => {
   const locale = opts?.locale ?? getLocale();
-  const currency = opts?.currency ?? currencyByLocale[locale] ?? 'USD';
+  const currency = opts?.currency ?? defaultCurrency(locale);
   const maximumFractionDigits = opts?.maximumFractionDigits ?? 2;
   return new Intl.NumberFormat(locale, {
     style: 'currency',
