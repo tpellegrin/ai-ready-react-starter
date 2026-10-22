@@ -34,12 +34,18 @@ test('a new user signs in, completes onboarding and signs out', async ({
     page.getByRole('heading', { level: 1, name: 'Starter overview' }),
   ).toBeVisible();
 
-  // Signed out for real: protected pages ask for sign-in again after reload.
-  await gotoApp(page, '/resources');
+  // Signed out for real: a reload does not restore the session.
   await page.reload();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Starter overview' }),
+  ).toBeVisible();
+  // starter:reference-start
+  // ...and protected pages ask for sign-in again.
+  await gotoApp(page, '/resources');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Sign in' }),
   ).toBeVisible();
+  // starter:reference-end
 });
 
 test('invalid credentials keep the user on the form with an error', async ({
