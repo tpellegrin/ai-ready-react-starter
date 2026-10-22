@@ -1,7 +1,7 @@
 import { flowPaths } from 'globals/paths';
 
 // Reserved keys that should not be treated as step keys inside a flow object
-const RESERVED_KEYS = new Set<string>(['_meta', '__order']);
+export const RESERVED_KEYS: ReadonlySet<string> = new Set(['_meta', '__order']);
 
 // Generic Flow Definition based on paths
 // Note: This expects a 'flow' object in paths if you want to use these helpers
