@@ -8,9 +8,14 @@
  *   registries (paths.ts, route tables, mock handlers, navigation). A
  *   required marker that is missing stops the run; an optional one becomes
  *   a manual step in the report.
- * - Copy is merged into every locale (en-US text in each, to translate)
- *   without replacing an existing key; the pseudo-locale is regenerated.
+ * - Copy is merged into every locale (en-US text in each, to translate):
+ *   new keys join existing groups, but an existing text is never replaced,
+ *   turned into a group, or the reverse. The pseudo-locale is regenerated.
  * - Everything written is formatted with Prettier, so output is predictable.
+ *
+ * Dry runs and real runs share the same checks. They cover what the plan
+ * can know before writing; a file system error during the writes can still
+ * leave a partial result.
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -99,28 +104,59 @@ export const fromTemplate = (templateDir, targetDir, tokens, include) =>
       ),
     }));
 
+/** @param {unknown} value @returns {value is Record<string, unknown>} */
+const isGroup = (value) =>
+  !!value && typeof value === 'object' && !Array.isArray(value);
+
 /** @param {unknown} value @param {string} [prefix] @returns {string[]} */
 const leafKeys = (value, prefix = '') =>
-  value && typeof value === 'object' && !Array.isArray(value)
+  isGroup(value)
     ? Object.entries(value).flatMap(([key, child]) =>
         leafKeys(child, prefix ? `${prefix}.${key}` : key),
       )
     : [prefix];
 
+/** @param {string[]} keys */
+const listKeys = (keys) =>
+  keys.length > 3 ? `${keys.slice(0, 3).join(', ')}, …` : keys.join(', ');
+
+/**
+ * Where merging `copy` into `messages` would change an existing
+ * translation instead of adding one: a text the plan would replace, a text
+ * that would become a group, or a group that would become a text. New keys
+ * inside existing groups are compatible and not reported.
+ * @param {Record<string, unknown>} messages  a locale (or a group of it)
+ * @param {Record<string, unknown>} copy  the plan's copy at the same level
+ * @param {string} [prefix]
+ * @returns {string[]} one explanation per conflicting key
+ */
+export const copyConflicts = (messages, copy, prefix = '') =>
+  Object.entries(copy).flatMap(([key, value]) => {
+    if (!Object.hasOwn(messages, key)) return [];
+    const at = prefix ? `${prefix}.${key}` : key;
+    const existing = messages[key];
+    if (isGroup(existing) && isGroup(value)) {
+      return copyConflicts(existing, value, at);
+    }
+    if (isGroup(value)) {
+      return [
+        `"${at}" is a text; the plan would turn it into a group (${listKeys(leafKeys(value, at))})`,
+      ];
+    }
+    if (isGroup(existing)) {
+      return [
+        `"${at}" is a group (${listKeys(leafKeys(existing, at))}); the plan would replace it with a text`,
+      ];
+    }
+    return [`"${at}" already exists; the plan would replace its text`];
+  });
+
 /** @param {Record<string, unknown>} target @param {Record<string, unknown>} source */
 const merge = (target, source) => {
   for (const [key, value] of Object.entries(source)) {
     const existing = target[key];
-    if (
-      value &&
-      typeof value === 'object' &&
-      existing &&
-      typeof existing === 'object'
-    ) {
-      merge(
-        /** @type {Record<string, unknown>} */ (existing),
-        /** @type {Record<string, unknown>} */ (value),
-      );
+    if (isGroup(value) && isGroup(existing)) {
+      merge(existing, value);
     } else {
       target[key] = value;
     }
@@ -157,14 +193,19 @@ export const runPlan = (root, plan, { dryRun }) => {
     }
   }
   const newKeys = leafKeys(plan.copy);
-  for (const file of localeFiles) {
-    const existing = new Set(leafKeys(readJson(file)));
-    const taken = newKeys.filter((key) => existing.has(key));
-    if (taken.length) {
-      fail(
-        `${path.relative(root, file)} already has ${taken.join(', ')}. Choose another name. Nothing was changed.`,
-      );
-    }
+  const conflicts = localeFiles.flatMap((file) =>
+    copyConflicts(readJson(file), plan.copy).map(
+      (conflict) => `  ${path.relative(root, file)}: ${conflict}`,
+    ),
+  );
+  if (conflicts.length) {
+    fail(
+      [
+        `${plan.title} cannot add its copy without changing existing translations:`,
+        ...conflicts,
+        'Generated copy only adds keys: replacing or reshaping one would break the screens that use it. Choose another name (the copy keys come from it). Nothing was changed.',
+      ].join('\n'),
+    );
   }
   /** @type {Map<string, string>} */
   const edited = new Map();

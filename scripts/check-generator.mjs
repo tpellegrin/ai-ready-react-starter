@@ -5,11 +5,14 @@
  * (`pnpm gen:check`; the checkout itself is never modified):
  *
  * 1. --dry-run writes nothing, for every generator; unsafe names, paths,
- *    groups, duplicate components, existing features, paths and flows are
- *    refused without writing anything.
+ *    groups, duplicate components, existing features, paths and flows, and
+ *    copy that would replace or reshape an existing translation are refused
+ *    without writing anything, in dry runs and real runs alike.
  * 2. Every generator runs (feature, shared and feature components, user and
  *    guest pages, a flow) and refuses to run twice; registrations land in
- *    the existing registries (paths, routes, navigation, mock handlers).
+ *    the existing registries (paths, routes, navigation, mock handlers) and
+ *    new copy merges into existing groups, leaving every translation as it
+ *    was.
  * 3. Everything generated passes the same gates as hand-written code:
  *    typecheck, lint (type-aware, boundaries, component rules), Stylelint,
  *    Prettier, i18n checks, the flow contract and its own tests.
@@ -26,6 +29,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { flattenMessages } from './lib/i18n.mjs';
 import { createReport, createWorkspace } from './lib/workspace.mjs';
 
 const projectRoot = path.resolve(
@@ -90,6 +94,29 @@ const PLACEHOLDERS = [
     'export const GenCheckExisting = () => null;\n',
   ],
 ];
+/**
+ * Placeholder copy in every locale for the translation-conflict cases (the
+ * flow "gen-check" writes genCheck.<step>.title/body), restored before
+ * generating.
+ */
+const PLACEHOLDER_COPY = {
+  genCheck: {
+    existingText: 'A text that must not become a group',
+    existingGroup: { title: { short: 'A group that must not become a text' } },
+    existingStep: { title: 'A text that must not be replaced' },
+  },
+};
+const LOCALES = 'src/i18n/locales';
+const localeFiles = fs
+  .readdirSync(path.join(workspace.dir, LOCALES))
+  .filter((file) => file.endsWith('.json') && file !== 'pseudo.json')
+  .map((file) => `${LOCALES}/${file}`);
+/** @param {string} text @returns {unknown} */
+const parseJson = (text) => JSON.parse(text);
+/** @param {string} file */
+const readLocale = (file) =>
+  /** @type {Record<string, unknown>} */ (parseJson(read(file)));
+const originalLocales = new Map(localeFiles.map((file) => [file, read(file)]));
 
 try {
   for (const [file, content] of PLACEHOLDERS) {
@@ -97,6 +124,12 @@ try {
       recursive: true,
     });
     fs.writeFileSync(path.join(workspace.dir, file), content);
+  }
+  for (const file of localeFiles) {
+    fs.writeFileSync(
+      path.join(workspace.dir, file),
+      `${JSON.stringify({ ...readLocale(file), ...PLACEHOLDER_COPY }, null, 2)}\n`,
+    );
   }
 
   const before = workspace.snapshot();
@@ -152,15 +185,30 @@ try {
       ['flow', 'sample-flow', '--group', 'user', '--steps', 'a,a'],
       'duplicate steps',
     ],
+    [
+      ['flow', 'gen-check', '--group', 'user', '--steps', 'existing-text,b'],
+      'copy that would turn an existing text into a group',
+    ],
+    [
+      ['flow', 'gen-check', '--group', 'user', '--steps', 'existing-group,b'],
+      'copy that would turn an existing group into a text',
+    ],
+    [
+      ['flow', 'gen-check', '--group', 'user', '--steps', 'existing-step,b'],
+      'copy that would replace an existing text',
+    ],
     [['widget', 'sample'], 'an unknown generator'],
   ];
+  // Dry runs and real runs share the preflight checks: both must refuse.
   for (const [args, why] of refusals) {
-    const result = gen(args);
-    report.step(
-      `refuses ${why} (${args.join(' ')})`,
-      result.status !== 0 && workspace.snapshot() === before,
-      result.output,
-    );
+    for (const mode of [['--dry-run'], []]) {
+      const result = gen([...args, ...mode]);
+      report.step(
+        `refuses ${why}${mode.length ? ' (dry run)' : ''} (${args.join(' ')})`,
+        result.status !== 0 && workspace.snapshot() === before,
+        result.output,
+      );
+    }
   }
 
   // The gates below run on the real project, without the placeholders.
@@ -170,6 +218,12 @@ try {
       force: true,
     });
   }
+  for (const [file, text] of originalLocales) {
+    fs.writeFileSync(path.join(workspace.dir, file), text);
+  }
+  const copyBefore = new Map(
+    localeFiles.map((file) => [file, flattenMessages(readLocale(file))]),
+  );
 
   for (const [label, args] of GENERATED) {
     const unchanged = workspace.snapshot();
@@ -261,6 +315,25 @@ try {
   ];
   for (const [what, ok] of registrations) {
     report.step(`registers ${what}`, ok);
+  }
+
+  // The pages' copy joins existing groups (user, user.nav): a compatible
+  // merge adds keys and leaves every existing translation as it was.
+  for (const file of localeFiles) {
+    const after = flattenMessages(readLocale(file));
+    const changed = [...(copyBefore.get(file) ?? [])]
+      .filter(([key, value]) => after.get(key) !== value)
+      .map(([key]) => key);
+    const added = [
+      'user.sampleItems.title',
+      'user.nav.sampleItems',
+      'sampleSetup.details.body',
+    ].filter((key) => typeof after.get(key) === 'string');
+    report.step(
+      `merges new copy into ${file} without changing existing translations`,
+      changed.length === 0 && added.length === 3,
+      `changed: ${changed.join(', ') || 'none'}; added: ${added.join(', ')}`,
+    );
   }
 
   const generated = [
