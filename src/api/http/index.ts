@@ -12,6 +12,7 @@ export {
   getFieldErrors,
   isApiError,
   isRetryableError,
+  isUnauthenticatedError,
   type ApiErrorKind,
   type FieldErrors,
 } from './errors';

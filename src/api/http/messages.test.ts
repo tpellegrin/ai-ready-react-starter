@@ -1,4 +1,4 @@
-import { ApiError, type ApiErrorKind } from './errors';
+import { ApiError, isUnauthenticatedError, type ApiErrorKind } from './errors';
 import { getErrorMessageKey } from './messages';
 
 const apiError = (kind: ApiErrorKind, status?: number) =>
@@ -7,6 +7,7 @@ const apiError = (kind: ApiErrorKind, status?: number) =>
 describe('getErrorMessageKey', () => {
   it.each([
     [apiError('network'), 'errors.api.network'],
+    [apiError('timeout'), 'errors.api.timeout'],
     [apiError('aborted'), 'errors.api.aborted'],
     [apiError('parse', 200), 'errors.api.unexpectedResponse'],
     [apiError('schema', 200), 'errors.api.unexpectedResponse'],
@@ -22,5 +23,14 @@ describe('getErrorMessageKey', () => {
     ['not an error', 'errors.generic.description'],
   ])('%s → %s', (error, key) => {
     expect(getErrorMessageKey(error)).toBe(key);
+  });
+});
+
+describe('isUnauthenticatedError', () => {
+  it('is true for an HTTP 401 only', () => {
+    expect(isUnauthenticatedError(apiError('http', 401))).toBe(true);
+    expect(isUnauthenticatedError(apiError('http', 403))).toBe(false);
+    expect(isUnauthenticatedError(apiError('network'))).toBe(false);
+    expect(isUnauthenticatedError(new Error('401'))).toBe(false);
   });
 });

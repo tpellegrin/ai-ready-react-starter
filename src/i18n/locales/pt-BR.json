@@ -45,6 +45,13 @@
       "error": "E-mail ou senha inválidos",
       "submit": "Entrar",
       "submitting": "Entrando..."
+    },
+    "session": {
+      "expired": "Sua sessão expirou. Entre novamente para continuar."
+    },
+    "signOut": {
+      "pending": "Saindo…",
+      "error": "Não foi possível encerrar sua sessão. Verifique sua conexão e tente novamente."
     }
   },
   "onboarding": {
@@ -62,7 +69,8 @@
       "heading": "Passo 3 de 3",
       "title": "Tudo pronto",
       "body": "A configuração está completa. Tudo está pronto para você.",
-      "cta": "Ir para o Painel"
+      "cta": "Ir para o Painel",
+      "pending": "Concluindo a configuração…"
     }
   },
   "user": {
@@ -108,13 +116,14 @@
       "network": "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
       "aborted": "A solicitação foi cancelada.",
       "unexpectedResponse": "O servidor enviou uma resposta que não conseguimos ler. Tente novamente mais tarde.",
-      "unauthorized": "Sua sessão expirou. Entre novamente.",
+      "unauthorized": "O servidor não aceitou seu acesso para esta solicitação. Tente novamente ou entre outra vez se isso continuar.",
       "forbidden": "Você não tem permissão para fazer isso.",
       "notFound": "Não encontramos o que você procurava.",
       "conflict": "Outra pessoa alterou isto. Atualize e tente novamente.",
       "validation": "Alguns dados precisam da sua atenção.",
       "rateLimited": "Muitas solicitações. Aguarde um momento e tente novamente.",
-      "server": "Algo deu errado do nosso lado. Tente novamente."
+      "server": "Algo deu errado do nosso lado. Tente novamente.",
+      "timeout": "O servidor demorou demais para responder. Tente novamente."
     }
   },
   "common": {

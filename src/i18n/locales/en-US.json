@@ -45,6 +45,13 @@
       "error": "Invalid email or password",
       "submit": "Sign In",
       "submitting": "Signing in..."
+    },
+    "session": {
+      "expired": "Your session has expired. Sign in again to continue."
+    },
+    "signOut": {
+      "pending": "Signing out…",
+      "error": "We couldn't sign you out. Check your connection and try again."
     }
   },
   "onboarding": {
@@ -62,7 +69,8 @@
       "heading": "Step 3 of 3",
       "title": "You are all set",
       "body": "Setup is complete. Everything is ready for you.",
-      "cta": "Go to Dashboard"
+      "cta": "Go to Dashboard",
+      "pending": "Finishing setup…"
     }
   },
   "user": {
@@ -108,13 +116,14 @@
       "network": "We couldn't reach the server. Check your connection and try again.",
       "aborted": "The request was cancelled.",
       "unexpectedResponse": "The server sent a response we could not read. Please try again later.",
-      "unauthorized": "Your session has expired. Please sign in again.",
+      "unauthorized": "The server did not accept your sign-in for this request. Try again, or sign in again if it keeps happening.",
       "forbidden": "You don't have permission to do that.",
       "notFound": "We couldn't find what you were looking for.",
       "conflict": "Someone else changed this. Refresh and try again.",
       "validation": "Some details need your attention.",
       "rateLimited": "Too many requests. Please wait a moment and try again.",
-      "server": "Something went wrong on our side. Please try again."
+      "server": "Something went wrong on our side. Please try again.",
+      "timeout": "The server took too long to respond. Please try again."
     }
   },
   "common": {
