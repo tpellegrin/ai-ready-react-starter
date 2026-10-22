@@ -1,5 +1,5 @@
-name: Set up Playwright Chromium
-description: Restores the browser cache for the locked Playwright version and installs Chromium with its system dependencies.
+name: Set up Playwright browsers
+description: Restores the browser cache for the locked Playwright version and installs Chromium and WebKit with their system dependencies.
 runs:
   using: composite
   steps:
@@ -11,6 +11,6 @@ runs:
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.version.outputs.version }}
-    - name: Install Chromium
+    - name: Install Chromium and WebKit
       shell: bash
-      run: pnpm exec playwright install --with-deps chromium
+      run: pnpm exec playwright install --with-deps chromium webkit

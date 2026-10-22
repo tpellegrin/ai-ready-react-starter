@@ -16,7 +16,7 @@ concurrency:
 # Every job is required; none is allowed to fail. See docs/guardrails.md.
 jobs:
   validate:
-    name: Validate (format, lint, architecture, types, i18n, unit tests)
+    name: Validate (format, lint, styles, types, i18n, docs, architecture, tooling and unit tests)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -79,7 +79,7 @@ jobs:
       # starter:demo-end
 
   storybook:
-    name: Storybook (interaction and accessibility tests, static build)
+    name: Storybook (interaction and accessibility tests in Chromium and WebKit, static build)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -96,7 +96,7 @@ jobs:
           retention-days: 7
 
   e2e:
-    name: End-to-end (built apps, accessibility)
+    name: End-to-end (built apps, mobile WebKit, dev Strict Mode, accessibility)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -114,12 +114,27 @@ jobs:
             test-results/
           retention-days: 7
 
-  scaffolding:
-    name: Generator and adoption checks (temporary copies)
+  generator:
+    name: Generator check (temporary copy)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm gen:check
-      - run: pnpm adopt:check
+
+  adoption:
+    # Each scenario adopts a temporary copy and runs that project's own
+    # pnpm verify (minus the adoption check, so verification never recurses).
+    name: Adoption check (${{ matrix.scenario }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [demo, reference, all, product]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/playwright
+      - run: pnpm adopt:check --scenario ${{ matrix.scenario }}
