@@ -25,6 +25,10 @@ export type TextElement =
   | 'legend';
 
 export type Props = {
+  /**
+   * Element to render; on a `styled(Text)` wrapper, pass `forwardedAs` instead.
+   * There `as` replaces Text itself (docs/ui/foundation.md).
+   */
   as?: TextElement;
   /** Typography token. Omit to inherit the surrounding typography. */
   variant?: TextVariant;
