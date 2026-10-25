@@ -195,6 +195,57 @@ describe('writes never follow a symlink', () => {
       false,
     );
   });
+
+  it('refuses an update when a baseline it could remove is a link, before Playwright starts', () => {
+    const raw = withChanges(completePlan(), {
+      'captures.0.regression': true,
+      'captures.0.extent': 'scroll',
+    });
+    const project = projectWithPlan(raw);
+    dirs.push(project.root);
+    const base = 'design/notes-page/baselines';
+    project.write(
+      `${base}/desktop-content-chromium-${process.platform}.png`,
+      DESKTOP,
+    );
+    // A later scroll position, which the update may remove, is a link.
+    fs.symlinkSync(
+      path.join(project.root, 'src/globals/paths.ts'),
+      path.join(
+        project.root,
+        `${base}/desktop-content--scroll-1-chromium-${process.platform}.png`,
+      ),
+    );
+    const parsed = parsePlan(JSON.stringify(raw));
+    if (!parsed.ok) throw new Error('fixture plan is invalid');
+    /** @type {string[]} */
+    const started = [];
+    expect(() =>
+      runScenarios({
+        root: project.root,
+        plans: [{ plan: parsed.plan, source: JSON.stringify(raw) }],
+        mode: 'regression',
+        update: true,
+        spawn: (command) => {
+          started.push(command);
+          return { status: 0 };
+        },
+      }),
+    ).toThrow(
+      `${base}/desktop-content--scroll-1-chromium-${process.platform}.png is a symlink (to src/globals/paths.ts); design commands do not write through links.`,
+    );
+    expect(started).toEqual([]);
+    expect(
+      fs
+        .lstatSync(
+          path.join(
+            project.root,
+            `${base}/desktop-content--scroll-1-chromium-${process.platform}.png`,
+          ),
+        )
+        .isSymbolicLink(),
+    ).toBe(true);
+  });
 });
 
 describe('supported arrangements', () => {

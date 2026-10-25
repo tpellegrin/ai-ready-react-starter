@@ -287,6 +287,26 @@ actual image after review). `pnpm verify` and CI run `pnpm design:regress`.
 This is regression against your own implementation — separate from the
 comparison with the references in step 6.
 
+The set of screenshots is compared too. A scenario's reviewed set is its
+baselines for that browser and platform, and the render must produce
+exactly those:
+
+- a screenshot without a baseline (the page grew) fails with `no baseline
+at …`, and nothing is written;
+- a reviewed screenshot the render no longer produces (content at the end
+  of the page is gone or shorter) fails with `screenshot set changed: …`,
+  even when every remaining screenshot matches. The report shows the
+  reviewed images that disappeared, and no baseline changes.
+
+`--update` writes the produced screenshots and removes the scenario's
+baselines it no longer produces on this browser and platform, and only
+when the scenario passed. Other scenarios, browsers and platforms keep
+theirs. Every path is checked before anything is written or removed (no
+links, nothing outside `design/<task>/baselines/`). Review the removals in
+`git diff` like the new images. Baselines of a scenario you removed from
+the plan, or that is no longer `regression`, are never compared or
+removed: delete them yourself.
+
 ## 9. Finish
 
 `pnpm validate`, and `pnpm verify` for UI behavior. In the pull request,

@@ -26,7 +26,9 @@ import { captureScroll } from './scroll';
  * records screenshots at the requested viewport (never resized: one, or
  * one per scroll position with "extent": "scroll", see scroll.ts), the
  * boxes of the plan's regions, axe results and the environment. Regression
- * runs also compare every screenshot with its reviewed baseline.
+ * runs also compare every screenshot with its reviewed baseline; whether
+ * the render still produces every reviewed screenshot is checked after the
+ * run (scripts/lib/design/capture.mjs).
  * Results go to the run folder even when a phase fails, so the report can
  * say which phase failed and why.
  */

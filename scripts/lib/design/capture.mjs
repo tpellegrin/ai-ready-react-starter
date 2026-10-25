@@ -17,9 +17,13 @@
  * - capture: screenshots, measured region boxes, axe results and the
  *   environment of every scenario; the comparison with the references.
  * - regression: each `regression: true` scenario against its reviewed
- *   baseline in design/<task>/baselines/ with Playwright's own screenshot
- *   comparison and default thresholds. Missing baselines fail and are not
- *   written; `--update` (explicit) writes them for review.
+ *   baselines in design/<task>/baselines/ with Playwright's own screenshot
+ *   comparison and default thresholds, one per screenshot. The set counts
+ *   too: a reviewed screenshot the render no longer produces (content at
+ *   the end of the page is gone) fails, like a missing baseline for a new
+ *   one. Nothing is written or removed unless `--update` (explicit) asks:
+ *   then the produced screenshots are written and the scenario's reviewed
+ *   ones it no longer produces are removed, for review.
  */
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -28,7 +32,12 @@ import path from 'node:path';
 
 import { stripAnsi } from '../diagnostics.mjs';
 import { compareGeometry } from './geometry.mjs';
-import { createRunDir, preflight, writeOwnedFile } from './output.mjs';
+import {
+  createRunDir,
+  preflight,
+  removeOwnedFile,
+  writeOwnedFile,
+} from './output.mjs';
 import {
   describeMapping,
   indexHtml,
@@ -135,6 +144,42 @@ const manifestScenarios = ({ plan, captures, runDir, mode }) =>
           : null,
     };
   });
+
+/**
+ * A scenario's baseline for one screenshot, as Playwright names it for this
+ * browser and platform (snapshotPathTemplate): position 0 is the first
+ * screenshot, later scroll positions are <id>--scroll-<n>.
+ * @param {{ task: string, id: string, browser: string }} scenario
+ * @param {number} position
+ */
+const baselineFile = ({ task, id, browser }, position) =>
+  `${taskPaths(task).baselines}/${id}${position ? `--scroll-${position}` : ''}-${browser}-${process.platform}.png`;
+
+/**
+ * The reviewed set: the baselines on disk for exactly this task, scenario,
+ * browser and platform, by screenshot position. Other scenarios (ids are
+ * kebab-case, so `desktop` never matches `desktop-yearly`), browsers and
+ * platforms are not part of it.
+ * @param {string} root
+ * @param {{ task: string, id: string, browser: string }} scenario
+ * @returns {Array<{ position: number, file: string }>}
+ */
+const reviewedBaselines = (root, scenario) => {
+  const dir = taskPaths(scenario.task).baselines;
+  if (!fs.existsSync(path.join(root, dir))) return [];
+  const pattern = new RegExp(
+    `^${scenario.id}(?:--scroll-([1-9]\\d*))?-${scenario.browser}-${process.platform}\\.png$`,
+  );
+  return fs
+    .readdirSync(path.join(root, dir))
+    .flatMap((name) => {
+      const match = pattern.exec(name);
+      return match
+        ? [{ position: Number(match[1] ?? 0), file: `${dir}/${name}` }]
+        : [];
+    })
+    .sort((a, b) => a.position - b.position);
+};
 
 /**
  * Starts Playwright on the design config. Never throws: a failure to start
@@ -342,16 +387,19 @@ const comparisonImages = (runDir, scenario) => {
  * A scenario passes only when the spec's result and Playwright agree: a test
  * that failed after saving a successful result (a console error found at
  * teardown, a late assertion) fails the scenario.
- * @param {{ plan: Plan, scenario: ManifestScenario, result: SpecResult | null, outcome: TestOutcome | null, runDir: string, mode: Mode, playwright: { output: string, startError: string | null } }} input
+ * @param {{ root: string, plan: Plan, scenario: ManifestScenario, result: SpecResult | null, outcome: TestOutcome | null, runDir: string, mode: Mode, update: boolean, reviewed: Array<{ position: number, file: string }>, playwright: { output: string, startError: string | null } }} input
  * @returns {ScenarioResult}
  */
 const scenarioResult = ({
+  root,
   plan,
   scenario,
   result,
   outcome,
   runDir,
   mode,
+  update,
+  reviewed,
   playwright,
 }) => {
   const capture = plan.captures.find((c) => c.id === scenario.id);
@@ -456,16 +504,47 @@ const scenarioResult = ({
   let status = result.status;
   /** @type {string[] | undefined} */
   let baselines;
+  /** @type {ScenarioResult['screenshotSet']} */
+  let screenshotSet;
   if (mode === 'regression') {
     // One baseline per screenshot (scroll positions after the first are
     // named <id>--scroll-<n>).
-    const suffix = `-${scenario.browser}-${process.platform}.png`;
     baselines = (result.screenshots ?? [{ scrollTop: 0 }]).map((_, index) =>
-      path.join(
-        taskPaths(scenario.task).baselines,
-        `${scenario.id}${index ? `--scroll-${index}` : ''}${suffix}`,
-      ),
+      baselineFile(scenario, index),
     );
+    // The set, once the screenshots were taken: reviewed positions past the
+    // last one produced have disappeared.
+    const produced = result.screenshots?.length ?? 0;
+    if (result.status === 'captured' && produced) {
+      const disappeared = reviewed.filter((r) => r.position >= produced);
+      screenshotSet = {
+        reviewed: reviewed.map((r) => r.file),
+        produced: baselines,
+        disappeared: disappeared.map((r) => r.file),
+        // The reviewed images, kept with the run's evidence.
+        images: disappeared.flatMap((r) => {
+          const source = path.join(root, r.file);
+          if (!fs.lstatSync(source, { throwIfNoEntry: false })?.isFile()) {
+            return [];
+          }
+          const copy = path.join(
+            'reviewed',
+            scenario.task,
+            path.basename(r.file),
+          );
+          fs.mkdirSync(path.dirname(path.join(runDir, copy)), {
+            recursive: true,
+          });
+          fs.copyFileSync(source, path.join(runDir, copy));
+          return [copy];
+        }),
+      };
+      if (disappeared.length && !update) {
+        failures.push(
+          `screenshot set changed: ${disappeared.length} reviewed screenshot(s) no longer produced (${screenshotSet.disappeared.join(', ')}); this render has ${produced} of the ${reviewed.length} reviewed. Content at the end of the page is gone or shorter: if that is intended, review the render and run \`pnpm design regress ${scenario.task} --update\``,
+        );
+      }
+    }
     const error = result.regression?.error ?? null;
     const errors = result.regression?.errors ?? (error ? [error] : []);
     if (result.status === 'captured') {
@@ -494,6 +573,13 @@ const scenarioResult = ({
       }
       if (status === 'failed' && error) {
         failures.push(error.split('\n')[0] ?? error);
+      }
+      if (
+        status === 'matched' &&
+        screenshotSet?.disappeared.length &&
+        !update
+      ) {
+        status = 'different';
       }
     }
   }
@@ -548,7 +634,39 @@ const scenarioResult = ({
     unexpectedRequests: result.unexpectedRequests,
     failures,
     ...(baselines ? { baselines } : {}),
+    ...(screenshotSet ? { screenshotSet } : {}),
   };
+};
+
+/**
+ * `--update`: removes the reviewed baselines a scenario no longer produces,
+ * only that scenario's on this browser and platform, and only when it
+ * passed (a failed render proves nothing about the set). Each path is
+ * checked again (inside design/<task>/baselines/, no link) before removal.
+ * @param {string} root
+ * @param {string} task
+ * @param {ScenarioResult} result
+ * @returns {string[]} the removed baselines
+ */
+const reconcileBaselines = (root, task, result) => {
+  const set = result.screenshotSet;
+  if (!set?.disappeared.length) return [];
+  if (result.failures.length || result.status !== 'matched') {
+    result.failures.push(
+      `the ${set.disappeared.length} reviewed baseline(s) this render no longer produces were kept (${set.disappeared.join(', ')}): the scenario failed, so its set was not updated`,
+    );
+    return [];
+  }
+  const base = taskPaths(task).baselines;
+  const blocked = preflight(root, base, set.disappeared, { replace: true });
+  if (blocked.length) {
+    result.failures.push(...blocked);
+    result.status = 'failed';
+    return [];
+  }
+  for (const file of set.disappeared) removeOwnedFile(root, base, file);
+  set.removed = set.disappeared;
+  return set.removed;
 };
 
 /**
@@ -609,8 +727,9 @@ export const runScenarios = ({
   if (mode === 'capture' && work.length > 1) {
     return { ok: false, runs: [], messages: ['Capture one task at a time.'] };
   }
-  // Baselines Playwright would write (--update), checked before it starts:
-  // inside design/<task>/baselines/, through no link.
+  // Baselines Playwright would write or this run would remove (--update),
+  // checked before it starts: inside design/<task>/baselines/, through no
+  // link.
   if (mode === 'regression' && update) {
     const blocked = preflight(
       root,
@@ -624,7 +743,8 @@ export const runScenarios = ({
       { replace: true },
     );
     // Files already there (later scroll positions are only known after the
-    // run): none may be a link either.
+    // run, and any of them may be removed as no longer produced): none may
+    // be a link either.
     const existing = work.flatMap(({ plan }) => {
       const dir = path.join(root, taskPaths(plan.task).baselines);
       return fs.existsSync(dir)
@@ -639,6 +759,13 @@ export const runScenarios = ({
   const run = createRunDir(root, scope, label);
   const scenarios = work.flatMap(({ plan, captures }) =>
     manifestScenarios({ plan, captures, runDir: run.dir, mode }),
+  );
+  // The reviewed sets, as they are before Playwright runs (--update
+  // rewrites them).
+  const reviewed = new Map(
+    mode === 'regression'
+      ? scenarios.map((s) => [testKey(s), reviewedBaselines(root, s)])
+      : [],
   );
   for (const dir of ['captures', 'results', 'references']) {
     fs.mkdirSync(path.join(run.dir, dir), { recursive: true });
@@ -710,6 +837,7 @@ export const runScenarios = ({
       .filter((s) => s.task === plan.task)
       .map((scenario) =>
         scenarioResult({
+          root,
           plan,
           scenario,
           result: fs.existsSync(scenario.output.result)
@@ -718,9 +846,21 @@ export const runScenarios = ({
           outcome: outcomes?.tests.get(testKey(scenario)) ?? null,
           runDir: run.dir,
           mode,
+          update,
+          reviewed: reviewed.get(testKey(scenario)) ?? [],
           playwright,
         }),
       );
+    if (mode === 'regression' && update) {
+      for (const result of results) {
+        const removed = reconcileBaselines(root, plan.task, result);
+        if (removed.length) {
+          messages.push(
+            `Removed ${removed.length} baseline(s) ${plan.task}/${result.id} no longer produces: ${removed.join(', ')} (copies in the run's reviewed/ folder).`,
+          );
+        }
+      }
+    }
     /** @type {RunReport} */
     const report = {
       task: plan.task,

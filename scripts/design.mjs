@@ -24,8 +24,9 @@
  *   pnpm design regress [<task>…] [--all] [--update] [--label <name>] [--json]
  *       Compares `regression: true` scenarios with reviewed baselines in
  *       design/<task>/baselines/ (Playwright screenshots, default
- *       thresholds). Missing baselines fail; --update writes them, for
- *       review.
+ *       thresholds). Missing baselines, and reviewed screenshots a render
+ *       no longer produces, fail; --update writes the produced set and
+ *       removes the scenario's baselines no longer produced, for review.
  *
  * Exit codes: 0 success, 1 problems found, 2 usage or unsafe output.
  */
@@ -259,7 +260,7 @@ const capture = (mode, names) => {
   for (const message of outcome.messages) console.log(`[design] ${message}`);
   if (mode === 'regression' && values.update && outcome.runs.length) {
     console.log(
-      `[design] Baselines were written for ${process.platform}. Review them (git diff) and commit them; they are compared on this platform only.`,
+      `[design] Baselines were written for ${process.platform}, and those no longer produced removed. Review them (git diff) and commit them; they are compared on this platform only.`,
     );
   }
   if (mode === 'capture') {

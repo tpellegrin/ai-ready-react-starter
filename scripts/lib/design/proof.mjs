@@ -18,12 +18,18 @@
  *    scrolling; a scenario that never gets ready fails and says which
  *    condition; an unexpected console error fails a capture;
  * 5. regression: missing baselines fail and nothing is written; `--update`
- *    writes them; a deliberate visual change fails the comparison.
+ *    writes them; a deliberate visual change fails the comparison;
+ * 6. the screenshot set: a page that loses its lower sections (three
+ *    screenshots to one, the first unchanged) fails and changes no
+ *    baseline; `--update` removes exactly the two no longer produced, the
+ *    next run passes, and other scenarios', browsers', platforms' and
+ *    tasks' baselines stay as they were.
  *
  * The adopted project's own verify (run by the caller) then validates the
  * product code, its unit and browser tests, budgets and the regression
  * step. Evidence is copied out for CI artifacts.
  */
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -348,6 +354,165 @@ export const runDesignProof = ({ projectRoot, workspace, report, name }) => {
       ),
     regression.output,
   );
+
+  // 6. The screenshot set, on the Pricing page at a tall phone viewport
+  // (phone emulation: no scrollbar to tell the renders apart). With
+  // sections appended below the fold it needs three screenshots; without
+  // them one, and that one looks the same.
+  const setTask = 'set-probe';
+  const setDir = ws(`design/${setTask}`);
+  fs.cpSync(ws('design/pricing'), setDir, { recursive: true });
+  fs.rmSync(path.join(setDir, 'baselines'), { recursive: true, force: true });
+  const setPlan =
+    /** @type {{ task: string, captures: Array<Record<string, unknown>>, review: unknown }} */ (
+      readJson(path.join(setDir, 'plan.json'))
+    );
+  const { compare: _compare, ...pricingCapture } = setPlan.captures[0] ?? {};
+  setPlan.task = setTask;
+  setPlan.review = {
+    rounds: [],
+    best: null,
+    remaining: [],
+    human: { status: 'not-reviewed' },
+  };
+  setPlan.captures = [
+    {
+      ...pricingCapture,
+      id: 'tall',
+      viewport: { width: 390, height: 1700 },
+      deviceScaleFactor: 1,
+      mobile: true,
+      extent: 'scroll',
+      regression: true,
+    },
+    {
+      ...pricingCapture,
+      id: 'top',
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 1,
+      mobile: true,
+      extent: 'viewport',
+      regression: true,
+    },
+  ];
+  fs.writeFileSync(
+    path.join(setDir, 'plan.json'),
+    `${JSON.stringify(setPlan, null, 2)}\n`,
+  );
+  const platform = process.platform;
+  const setBaseline = (/** @type {string} */ name) =>
+    `design/${setTask}/baselines/${name}`;
+  const tall = [0, 1, 2].map((n) =>
+    setBaseline(`tall${n ? `--scroll-${n}` : ''}-chromium-${platform}.png`),
+  );
+  // Not tall's on this browser and platform: they must stay as they are.
+  const unrelated = [
+    setBaseline(`top-chromium-${platform}.png`),
+    setBaseline(`tall--scroll-1-webkit-${platform}.png`),
+    setBaseline(
+      `tall--scroll-1-chromium-${platform === 'linux' ? 'darwin' : 'linux'}.png`,
+    ),
+    ...tasks.flatMap((task) =>
+      filesUnder(ws(`design/${task}/baselines`)).map((file) =>
+        path.relative(workspace.dir, file),
+      ),
+    ),
+  ];
+  /** sha256 of each file that exists, by project-relative path. */
+  const hashes = (/** @type {string[]} */ files) =>
+    Object.fromEntries(
+      files
+        .filter((file) => fs.existsSync(ws(file)))
+        .map((file) => [
+          file,
+          createHash('sha256')
+            .update(fs.readFileSync(ws(file)))
+            .digest('hex'),
+        ]),
+    );
+  const scenarioOf = (
+    /** @type {string} */ label,
+    /** @type {string} */ id,
+  ) => {
+    const file = ws(`reports/design/_regression/${label}/report.json`);
+    if (!fs.existsSync(file)) return null;
+    const run =
+      /** @type {{ scenarios: Array<{ id: string, status: string, failures: string[], screenshotSet?: { produced: string[], disappeared: string[], removed?: string[] } }> }} */ (
+        readJson(file)
+      );
+    return run.scenarios.find((s) => s.id === id) ?? null;
+  };
+
+  const sections = Array.from(
+    { length: 12 },
+    (_, n) =>
+      `<p key="${n}" style={{ height: 200, margin: 0 }}>Section ${n + 1}</p>`,
+  ).join('');
+  const footnoteEnd = '</_PricingContent>';
+  fs.writeFileSync(
+    view,
+    source.replace(
+      footnoteEnd,
+      `<section aria-label="More" style={{ marginTop: 160 }}>${sections}</section>${footnoteEnd}`,
+    ),
+  );
+  const long = design(['regress', setTask, '--update', '--label', 'set-long']);
+  fs.writeFileSync(view, source);
+  // Fakes of another browser and platform, written like reviewed ones.
+  for (const file of unrelated.slice(1, 3)) {
+    fs.copyFileSync(ws(tall[1] ?? ''), ws(file));
+  }
+  report.step(
+    `${name}: the long page's reviewed set: 3 screenshots of "tall", 1 of "top"`,
+    source.includes(footnoteEnd) &&
+      long.status === 0 &&
+      Object.keys(hashes([...tall, ...unrelated.slice(0, 3)])).length === 6,
+    long.output,
+  );
+
+  const before = hashes([...tall, ...unrelated]);
+  const shortened = design(['regress', setTask, '--label', 'set-short']);
+  const short = scenarioOf('set-short', 'tall');
+  report.step(
+    `${name}: the shortened page (3 screenshots to 1, the first matching) fails because 2 reviewed screenshots disappeared, and no baseline changes`,
+    shortened.status === 1 &&
+      short?.status === 'different' &&
+      short.failures.length === 1 &&
+      /^screenshot set changed: 2 reviewed screenshot\(s\) no longer produced/.test(
+        short.failures[0] ?? '',
+      ) &&
+      short.screenshotSet?.produced.length === 1 &&
+      scenarioOf('set-short', 'top')?.status === 'matched' &&
+      JSON.stringify(hashes([...tall, ...unrelated])) ===
+        JSON.stringify(before),
+    shortened.output,
+  );
+
+  const reconciled = design([
+    'regress',
+    setTask,
+    '--update',
+    '--label',
+    'set-update',
+  ]);
+  const after = hashes([...tall, ...unrelated]);
+  report.step(
+    `${name}: --update removes exactly tall's 2 baselines no longer produced; every other baseline stays`,
+    reconciled.status === 0 &&
+      JSON.stringify(
+        scenarioOf('set-update', 'tall')?.screenshotSet?.removed,
+      ) === JSON.stringify(tall.slice(1)) &&
+      Object.keys(after).join() === [tall[0], ...unrelated].join() &&
+      unrelated.every((file) => after[file] === before[file]),
+    reconciled.output,
+  );
+  const again = design(['regress', setTask, '--label', 'set-again']);
+  report.step(
+    `${name}: the next run of the shortened page passes`,
+    again.status === 0,
+    again.output,
+  );
+  fs.rmSync(setDir, { recursive: true, force: true });
 
   // Evidence for CI artifacts, in a new folder of the caller's reports.
   const relative = `reports/adoption/design/${new Date().toISOString().replace(/[:.]/g, '-')}`;
