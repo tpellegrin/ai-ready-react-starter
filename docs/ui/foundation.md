@@ -39,6 +39,21 @@ Rules (enforced: `pnpm lint`, fixtures in `pnpm arch:check`):
   `styles.ts`, on theme tokens. Do not rebuild existing controls (buttons,
   fields, dialogs) — you would lose their accessibility, states and
   behavior.
+- **Change a wrapper's element with `forwardedAs`, never `as`.** On a
+  `styled(Component)` wrapper, `as` is styled-components' own prop and
+  replaces the wrapped component: `<_PageTitle as="h2" variant="headingLg">`
+  renders a bare `h2`, without Text's typography and with `variant` as a DOM
+  attribute, and types and lint accept it. `forwardedAs` hands `as` on to
+  the component (`Button` does this for its label):
+
+  <!-- prettier-ignore -->
+  ```tsx
+  export const _PageTitle = styled(Text)`margin: 0;`; // Page/styles.ts
+  <_PageTitle forwardedAs="h2" variant="headingLg">{title}</_PageTitle>; // Page/index.tsx
+  ```
+
+  A unit test keeps this true across styled-components upgrades
+  (`src/components/Text/__tests__/Page`).
 
 Before adding a building block: `pnpm catalog <name or prop>` lists what
 exists (props, stories, usages). See [Adding a building
