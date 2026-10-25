@@ -3,7 +3,8 @@
  * `pnpm design init`: prepares a task folder from local reference images.
  * It records facts (format, pixel size, sha256) and writes a plan skeleton;
  * it does not interpret the images. Everything is validated before the
- * first write, and nothing is ever overwritten:
+ * first write (including that no symlink redirects a destination), and
+ * nothing is ever overwritten:
  *
  * - new task: copies the images into design/<task>/references/ and writes
  *   design/<task>/plan.json;
@@ -19,7 +20,7 @@ import path from 'node:path';
 import * as prettier from 'prettier';
 
 import { inspectImage } from './images.mjs';
-import { writeNewFile } from './output.mjs';
+import { preflight, resolveInside, writeNewFile } from './output.mjs';
 import {
   DESIGN_DIR,
   KEBAB,
@@ -71,6 +72,14 @@ export const initTask = async ({ root, task, images, title }) => {
     ]);
   }
   const paths = taskPaths(task);
+  // The task folder and its parents are checked before anything is read
+  // from them or written: no link may redirect them (e.g. design/ → src/).
+  try {
+    resolveInside(root, DESIGN_DIR, paths.references);
+    resolveInside(root, DESIGN_DIR, paths.plan);
+  } catch (error) {
+    return fail([messageOf(error)]);
+  }
   const planFile = path.join(root, paths.plan);
   const planExists = fs.existsSync(planFile);
   const referencesDir = path.join(root, paths.references);
@@ -164,6 +173,14 @@ export const initTask = async ({ root, task, images, title }) => {
       role: null,
     };
   });
+
+  // Every destination, checked before the first write.
+  const destinations = [
+    ...fresh.filter((p) => p.copy).map((p) => `${paths.references}/${p.name}`),
+    ...(planExists ? [] : [paths.plan]),
+  ];
+  const blocked = preflight(root, DESIGN_DIR, destinations);
+  if (blocked.length) return fail(blocked);
 
   /** @type {string[]} */
   const copied = [];

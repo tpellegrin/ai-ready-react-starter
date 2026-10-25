@@ -32,9 +32,13 @@ not how well an agent reads unfamiliar images.
 
 ## Evidence index
 
-From the run on the agent's machine (Chromium 156, macOS); every CI run of
-the `design` scenario uploads its own reports as the `design-evidence`
-artifact. Mechanical results come from `pnpm design capture`; observations
+From the runs on the agent's machine (Chromium 156, macOS); every CI run
+of the `design` scenario uploads its own reports as the `design-evidence`
+artifact. Every image is a screenshot at the scenario's requested viewport,
+except one marked below: the "after" images were taken again from the
+final code by `pnpm adopt:check --scenario design` once captures stopped
+resizing the viewport (the first version grew it to the content height,
+which changes `vh` units and height media queries). Mechanical results come from `pnpm design capture`; observations
 are the agent's, recorded in each plan's `review`; no person has reviewed
 the designs (`review.human`: not-reviewed).
 
@@ -66,9 +70,12 @@ Before and after round 1, desktop:
 ![Expenses before round 1](evidence/expense-desktop-before.png)
 ![Expenses after round 2](evidence/expense-desktop-after.png)
 
-Phone (assumed layout, no reference) and the dialog after Save with empty
-fields (compared with the second sketch):
+Phone (assumed layout, no reference), 390×844 at scale 2: the first and
+last of two screenshots of the layout's content area (scrolled 0 and
+89 px), then the dialog after Save with empty fields (compared with the
+second sketch):
 ![Expenses on a phone after round 2](evidence/expense-mobile-after.png)
+![Expenses on a phone after round 2, scrolled to the end](evidence/expense-mobile-after-end.png)
 ![Add expense dialog with validation errors](evidence/expense-validation-after.png)
 
 Documented deviations: the add button sits on the intro row (the page
@@ -84,9 +91,17 @@ type in the medium Select, rows ~8 px taller.
 | 1     | the lead ~40 px under the heading, plan names far above their descriptions (heading margins) | no heading margins in the hero and cards                                     |
 | 2     | after round 1 the plans start ~80 px higher than in the export                               | section spacing raised to the largest spacer; still ~55 px higher (accepted) |
 
+Before round 1, from the first tooling version, which grew the 1280×800
+viewport to 856 px (kept as recorded; not evidence of 1280×800):
 ![Pricing before round 1](evidence/pricing-desktop-before.png)
+
+After round 2 at 1280×800 (the last 12 px of content are in the run's
+second screenshot), and on a phone at 390×844, scale 2: the first and last
+of three screenshots (scrolled 0 and 794 of 1575 px; the one at 781 px is
+in the run):
 ![Pricing after round 2](evidence/pricing-desktop-after.png)
 ![Pricing on a phone after round 2](evidence/pricing-mobile-after.png)
+![Pricing on a phone after round 2, scrolled to the end](evidence/pricing-mobile-after-end.png)
 
 Documented deviations: radios instead of the segmented billing control,
 theme colors and type instead of the blue accent and Helvetica, "Contact

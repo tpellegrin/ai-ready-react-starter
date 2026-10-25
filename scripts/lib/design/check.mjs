@@ -997,6 +997,13 @@ export const checkTask = (root, task, { catalog }) => {
         `Locale "${capture.locale}" is not one of the project's (${locales.join(', ')}).`,
       );
     }
+    if (capture.scrollContainer && capture.extent !== 'scroll') {
+      report(
+        'warning',
+        [...at, 'scrollContainer'],
+        'scrollContainer only applies to "extent": "scroll".',
+      );
+    }
     if (
       capture.path !== undefined &&
       !capture.path.startsWith(screen.route.path)

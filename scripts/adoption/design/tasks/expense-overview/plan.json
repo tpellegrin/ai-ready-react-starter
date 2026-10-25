@@ -659,7 +659,7 @@
       },
       "deviceScaleFactor": 2,
       "mobile": true,
-      "fullPage": true,
+      "extent": "scroll",
       "session": "signed-in",
       "api": [
         {

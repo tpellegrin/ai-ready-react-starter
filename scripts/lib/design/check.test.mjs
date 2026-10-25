@@ -633,6 +633,26 @@ describe('pnpm design check', () => {
       );
     });
 
+    it('refuses the removed fullPage with the replacement, and accepts scroll extents', () => {
+      expect(check({ 'captures.0.fullPage': true }).errors).toEqual([
+        expect.stringMatching(
+          /^"fullPage" was removed: it grew the viewport to the content height, which changes vh units, height media queries and sticky elements\. Use "extent": "scroll"/,
+        ),
+      ]);
+      expect(
+        check({
+          'captures.0.extent': 'scroll',
+          'captures.0.scrollContainer': { role: 'main' },
+        }).result.diagnostics,
+      ).toEqual([]);
+      expect(
+        check({ 'captures.0.scrollContainer': { role: 'main' } }).warnings,
+      ).toEqual(['scrollContainer only applies to "extent": "scroll".']);
+      expect(check({ 'captures.0.extent': 'document' }).errors).toEqual([
+        expect.stringMatching(/Invalid option/),
+      ]);
+    });
+
     it('warns when regions with bounds cannot be measured (unless omitted on purpose)', () => {
       expect(
         check({ 'screens.0.regions.2.locator': undefined }).warnings,

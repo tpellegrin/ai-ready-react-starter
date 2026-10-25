@@ -89,6 +89,8 @@ export default defineConfig({
       devices['iPhone 14'],
     ),
     project('dev', servers.dev, 'dev/**/*.spec.ts'),
+    // The design capture contract, on static pages (setContent).
+    project('design-contract', servers.production, 'design/scroll.spec.ts'),
     // starter:demo-start
     project('demo', servers.demo, 'demo/**/*.spec.ts'),
     project('demo-subpath', servers.demoSubpath, 'demo/smoke.spec.ts'),

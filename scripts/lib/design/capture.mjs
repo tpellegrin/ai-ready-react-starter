@@ -1,7 +1,10 @@
 // @ts-check
 /**
  * Runs a plan's capture scenarios in a real browser and turns the results
- * into evidence (`pnpm design capture` / `pnpm design regress`).
+ * into evidence (`pnpm design capture` / `pnpm design regress`). A run
+ * passes only when Playwright exits 0 and every scenario passed: its exit
+ * status and per-test verdicts (read from its JSON report) override result
+ * files that look successful.
  *
  * The browser work is a Playwright spec (e2e/design/capture.spec.ts, config
  * playwright.design.config.ts) against a fresh production build with the
@@ -25,7 +28,7 @@ import path from 'node:path';
 
 import { stripAnsi } from '../diagnostics.mjs';
 import { compareGeometry } from './geometry.mjs';
-import { createRunDir } from './output.mjs';
+import { createRunDir, preflight, writeOwnedFile } from './output.mjs';
 import {
   describeMapping,
   indexHtml,
@@ -45,7 +48,8 @@ import { taskPaths } from './plan.mjs';
  *   browser: Capture['browser'], viewport: Capture['viewport'],
  *   deviceScaleFactor: number, mobile: boolean, locale: string,
  *   colorScheme: Capture['colorScheme'], reducedMotion: Capture['reducedMotion'],
- *   fullPage: boolean, session: Capture['session'], api: Capture['api'],
+ *   extent: Capture['extent'], scrollContainer: import('./plan.mjs').Locator | null,
+ *   session: Capture['session'], api: Capture['api'],
  *   steps: Capture['steps'], ready: Capture['ready'], timeoutMs: number,
  *   regions: Array<{ id: string, label: string, locator: import('./plan.mjs').Locator }>,
  *   output: { screenshot: string, result: string },
@@ -113,7 +117,8 @@ const manifestScenarios = ({ plan, captures, runDir, mode }) =>
       locale: capture.locale,
       colorScheme: capture.colorScheme,
       reducedMotion: capture.reducedMotion,
-      fullPage: capture.fullPage,
+      extent: capture.extent,
+      scrollContainer: capture.scrollContainer ?? null,
       session: capture.session,
       api: capture.api,
       steps: capture.steps,
@@ -211,6 +216,73 @@ const tail = (output, lines = 12) =>
     .slice(-lines)
     .join('\n');
 
+/** @param {string} text */
+const firstLine = (text) =>
+  stripAnsi(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .find(Boolean) ?? '';
+
+/**
+ * @typedef {{ status: 'passed' | 'failed' | 'skipped', error: string | null }} TestOutcome
+ * @typedef {{ tests: Map<string, TestOutcome>, errors: string[] }} Outcomes
+ */
+
+/** The key of a scenario's test in Playwright's report. */
+const testKey = (
+  /** @type {{ task: string, id: string, browser: string }} */ scenario,
+) => `${scenario.task}/${scenario.id}|${scenario.browser}`;
+
+/**
+ * What Playwright's JSON report says about each scenario's test, and the
+ * errors outside any test (web server, configuration). Null when there is
+ * no readable report (Playwright did not get that far).
+ * @param {string} file
+ * @returns {Outcomes | null}
+ */
+export const readOutcomes = (file) => {
+  /**
+   * @typedef {{ message?: string }} JsonError
+   * @typedef {{ projectName: string, status: string, results?: Array<{ error?: JsonError, errors?: JsonError[] }> }} JsonTest
+   * @typedef {{ title: string, specs?: Array<{ title: string, tests: JsonTest[] }>, suites?: JsonSuite[] }} JsonSuite
+   */
+  /** @type {{ suites?: JsonSuite[], errors?: JsonError[] }} */
+  let report;
+  try {
+    report = /** @type {typeof report} */ (readJson(file));
+  } catch {
+    return null;
+  }
+  /** @type {Map<string, TestOutcome>} */
+  const tests = new Map();
+  /** @param {JsonSuite} suite */
+  const visit = (suite) => {
+    for (const spec of suite.specs ?? []) {
+      for (const test of spec.tests) {
+        const errors = (test.results ?? []).flatMap((r) => [
+          ...(r.errors ?? []),
+          ...(r.error ? [r.error] : []),
+        ]);
+        tests.set(`${suite.title}|${test.projectName}`, {
+          status:
+            test.status === 'skipped'
+              ? 'skipped'
+              : test.status === 'expected'
+                ? 'passed'
+                : 'failed',
+          error: errors.find((e) => e.message)?.message ?? null,
+        });
+      }
+    }
+    for (const child of suite.suites ?? []) visit(child);
+  };
+  for (const suite of report.suites ?? []) visit(suite);
+  return {
+    tests,
+    errors: (report.errors ?? []).map((e) => e.message ?? 'unknown error'),
+  };
+};
+
 /**
  * @typedef {{
  *   status: 'captured' | 'failed', phase?: string, error?: string,
@@ -219,47 +291,65 @@ const tail = (output, lines = 12) =>
  *   regions?: Array<{ id: string, found: boolean, visible: boolean, count: number, box: { x: number, y: number, width: number, height: number } | null }>,
  *   a11y?: Array<{ id: string, impact: string, help: string, targets: string[] }>,
  *   unexpectedRequests?: string[],
- *   regression?: { error: string | null },
+ *   regression?: { error: string | null, errors?: string[] },
+ *   screenshots?: Array<{ file: string, scrollTop: number }>,
+ *   extent?: { kind: 'viewport' } | { kind: 'scroll', container: string, clientHeight: number, scrollHeight: number, positions: number[], complete: boolean, missing: number },
+ *   content?: { width: number, height: number },
  * }} SpecResult  written by e2e/design/capture.spec.ts
  */
 
 /**
- * Playwright's expected/actual/diff images of a failed baseline comparison
- * (relative to the run folder), if it wrote them.
+ * Playwright's expected/actual/diff images of failed baseline comparisons
+ * (relative to the run folder), per screenshot, if it wrote any.
  * @param {string} runDir
  * @param {ManifestScenario} scenario
+ * @returns {Array<{ shot: string, expected?: string, actual?: string, diff?: string }> | null}
  */
 const comparisonImages = (runDir, scenario) => {
   const output = path.join(runDir, 'playwright');
   if (!fs.existsSync(output)) return null;
-  const suffix = path.join(scenario.task, 'baselines', scenario.id);
-  /** @type {Record<string, string>} */
-  const found = {};
+  const pattern = new RegExp(
+    `${scenario.task}[\\\\/]baselines[\\\\/](${scenario.id}(?:--scroll-\\d+)?)-(expected|actual|diff)\\.png$`,
+  );
+  /** @type {Map<string, Record<string, string>>} */
+  const shots = new Map();
   /** @param {string} dir */
   const visit = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) visit(full);
-      for (const kind of ['expected', 'actual', 'diff']) {
-        if (full.endsWith(`${suffix}-${kind}.png`)) {
-          found[kind] = path.relative(runDir, full);
-        }
+      if (entry.isDirectory()) {
+        visit(full);
+        continue;
+      }
+      const match = pattern.exec(full);
+      if (match?.[1] && match[2]) {
+        const images = shots.get(match[1]) ?? {};
+        images[match[2]] = path.relative(runDir, full);
+        shots.set(match[1], images);
       }
     }
   };
   visit(output);
-  return Object.keys(found).length ? found : null;
+  return shots.size
+    ? [...shots.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([shot, images]) => ({ shot, ...images }))
+    : null;
 };
 
 /**
  * Turns what the spec wrote (or did not write) into a scenario result.
- * @param {{ plan: Plan, scenario: ManifestScenario, result: SpecResult | null, runDir: string, mode: Mode, playwright: { output: string, startError: string | null } }} input
+ * A scenario passes only when the spec's result and Playwright agree: a test
+ * that failed after saving a successful result (a console error found at
+ * teardown, a late assertion) fails the scenario.
+ * @param {{ plan: Plan, scenario: ManifestScenario, result: SpecResult | null, outcome: TestOutcome | null, runDir: string, mode: Mode, playwright: { output: string, startError: string | null } }} input
  * @returns {ScenarioResult}
  */
 const scenarioResult = ({
   plan,
   scenario,
   result,
+  outcome,
   runDir,
   mode,
   playwright,
@@ -276,20 +366,28 @@ const scenarioResult = ({
     state: scenario.state,
     compare,
   };
+  const testError =
+    outcome?.status === 'failed' ? firstLine(outcome.error ?? 'failed') : null;
   if (!result) {
     const said = stripAnsi(playwright.output)
       .split('\n')
       .find((line) => /error/i.test(line))
       ?.trim();
+    const screenshot = fs.existsSync(scenario.output.screenshot)
+      ? path.relative(runDir, scenario.output.screenshot)
+      : undefined;
     return {
       ...base,
       status: 'failed',
       error:
         playwright.startError ??
         `No result was written for this scenario. Playwright said:\n${tail(playwright.output)}`,
+      ...(screenshot ? { screenshot } : {}),
       failures: [
         playwright.startError ??
-          `the scenario did not run to completion${said ? `: ${said}` : ''}`,
+          (testError
+            ? `Playwright reported the test failed: ${testError}`
+            : `the scenario did not run to completion${said ? `: ${said}` : ''}`),
       ],
     };
   }
@@ -339,33 +437,79 @@ const scenarioResult = ({
     : null;
   const geometry =
     mode === 'capture' && frame && result.status === 'captured'
-      ? compareGeometry({ regions, referenceFrame, renderFrame: frame })
+      ? compareGeometry({
+          regions,
+          referenceFrame,
+          // The scrolled content's frame: boxes below the fold count too.
+          renderFrame: result.content ?? frame,
+        })
       : null;
   failures.push(...(geometry?.failures ?? []));
+  const extent = result.extent;
+  if (extent?.kind === 'scroll' && !extent.complete) {
+    failures.push(
+      `incomplete capture: the last ${extent.missing} px of ${extent.container} were never in view after ${extent.positions.length} screenshot(s)`,
+    );
+  }
 
   /** @type {ScenarioResult['status']} */
   let status = result.status;
-  let baseline;
+  /** @type {string[] | undefined} */
+  let baselines;
   if (mode === 'regression') {
-    baseline = path.join(
-      taskPaths(scenario.task).baselines,
-      `${scenario.id}-${scenario.browser}-${process.platform}.png`,
+    // One baseline per screenshot (scroll positions after the first are
+    // named <id>--scroll-<n>).
+    const suffix = `-${scenario.browser}-${process.platform}.png`;
+    baselines = (result.screenshots ?? [{ scrollTop: 0 }]).map((_, index) =>
+      path.join(
+        taskPaths(scenario.task).baselines,
+        `${scenario.id}${index ? `--scroll-${index}` : ''}${suffix}`,
+      ),
     );
     const error = result.regression?.error ?? null;
+    const errors = result.regression?.errors ?? (error ? [error] : []);
     if (result.status === 'captured') {
       status = error ? classifyRegression(error) : 'matched';
-      if (status === 'missing') {
+      const missing = errors
+        .filter((e) => classifyRegression(e) === 'missing')
+        .map((e) => {
+          const at =
+            /A snapshot doesn't exist at (\S+?\.png)/.exec(e)?.[1] ?? '';
+          return at.includes('design/')
+            ? at.slice(at.lastIndexOf('design/'))
+            : at;
+        });
+      const different = errors.filter(
+        (e) => classifyRegression(e) === 'different',
+      ).length;
+      if (missing.length) {
         failures.push(
-          `no baseline at ${baseline}: create it deliberately with \`pnpm design regress ${scenario.task} --update\` on the platform that checks it, review it and commit it`,
+          `no baseline at ${missing.join(', ')}: create it deliberately with \`pnpm design regress ${scenario.task} --update\` on the platform that checks it, review it and commit it`,
         );
-      } else if (status === 'different') {
+      }
+      if (different) {
         failures.push(
-          `the render differs from the reviewed baseline ${baseline}`,
+          `${different} screenshot(s) differ from the reviewed baselines (${baselines.join(', ')})`,
         );
-      } else if (status === 'failed' && error) {
+      }
+      if (status === 'failed' && error) {
         failures.push(error.split('\n')[0] ?? error);
       }
     }
+  }
+  // Playwright's verdict, unless it only repeats what the result says.
+  if (testError) {
+    const known = [
+      result.error,
+      result.regression?.error,
+      ...(result.unexpectedRequests?.length ? ['undeclared API requests'] : []),
+    ].some((message) => !!message && testError.includes(firstLine(message)));
+    if (!known) {
+      failures.push(
+        `Playwright reported the test failed after the scenario was recorded: ${testError}`,
+      );
+    }
+    if (status === 'captured' || status === 'matched') status = 'failed';
   }
   const screenshot = fs.existsSync(scenario.output.screenshot)
     ? path.relative(runDir, scenario.output.screenshot)
@@ -384,6 +528,12 @@ const scenarioResult = ({
         }
       : {}),
     ...(frame ? { frame } : {}),
+    ...(result.content ? { contentFrame: result.content } : {}),
+    ...(extent ? { extent } : {}),
+    screenshots: (result.screenshots ?? []).map((shot) => ({
+      file: `captures/${shot.file}`,
+      scrollTop: shot.scrollTop,
+    })),
     environment: result.environment,
     regions: regions.map((r) => ({
       id: r.id,
@@ -397,7 +547,7 @@ const scenarioResult = ({
     a11y: result.a11y,
     unexpectedRequests: result.unexpectedRequests,
     failures,
-    ...(baseline ? { baseline } : {}),
+    ...(baselines ? { baselines } : {}),
   };
 };
 
@@ -459,6 +609,33 @@ export const runScenarios = ({
   if (mode === 'capture' && work.length > 1) {
     return { ok: false, runs: [], messages: ['Capture one task at a time.'] };
   }
+  // Baselines Playwright would write (--update), checked before it starts:
+  // inside design/<task>/baselines/, through no link.
+  if (mode === 'regression' && update) {
+    const blocked = preflight(
+      root,
+      'design',
+      work.flatMap(({ plan, captures }) =>
+        captures.map(
+          (capture) =>
+            `${taskPaths(plan.task).baselines}/${capture.id}-${capture.browser}-${process.platform}.png`,
+        ),
+      ),
+      { replace: true },
+    );
+    // Files already there (later scroll positions are only known after the
+    // run): none may be a link either.
+    const existing = work.flatMap(({ plan }) => {
+      const dir = path.join(root, taskPaths(plan.task).baselines);
+      return fs.existsSync(dir)
+        ? fs
+            .readdirSync(dir)
+            .map((name) => `${taskPaths(plan.task).baselines}/${name}`)
+        : [];
+    });
+    blocked.push(...preflight(root, 'design', existing, { replace: true }));
+    if (blocked.length) throw new Error(blocked.join('\n'));
+  }
   const run = createRunDir(root, scope, label);
   const scenarios = work.flatMap(({ plan, captures }) =>
     manifestScenarios({ plan, captures, runDir: run.dir, mode }),
@@ -500,6 +677,31 @@ export const runScenarios = ({
     spawn,
   });
   if (playwright.startError) messages.push(playwright.startError);
+  const outcomes = readOutcomes(path.join(run.dir, 'playwright.json'));
+  /** @type {string[]} */
+  const runFailures = [];
+  if (playwright.startError) {
+    runFailures.push(playwright.startError);
+  } else if (playwright.status !== 0) {
+    // A failed scenario test explains the exit (its own result says so, and
+    // the other tasks of a regression run keep theirs); anything else fails
+    // every task of the run.
+    const outside = outcomes?.errors ?? [];
+    const attributed = scenarios.some(
+      (s) => outcomes?.tests.get(testKey(s))?.status === 'failed',
+    );
+    if (outside.length || !attributed) {
+      runFailures.push(`Playwright exited with status ${playwright.status}.`);
+    }
+    for (const error of outside) {
+      runFailures.push(`Error outside any scenario: ${firstLine(error)}`);
+    }
+    if (!attributed && !outside.length) {
+      runFailures.push(
+        `No scenario's test failed in Playwright's report${outcomes ? '' : ' (there is none)'}, so the failure is not attributed to one. Playwright said:\n${tail(playwright.output)}`,
+      );
+    }
+  }
 
   const revision = revisionOf(root, spawn);
   const createdAt = now().toISOString();
@@ -513,6 +715,7 @@ export const runScenarios = ({
           result: fs.existsSync(scenario.output.result)
             ? /** @type {SpecResult} */ (readJson(scenario.output.result))
             : null,
+          outcome: outcomes?.tests.get(testKey(scenario)) ?? null,
           runDir: run.dir,
           mode,
           playwright,
@@ -528,11 +731,12 @@ export const runScenarios = ({
       revision,
       planSha256: createHash('sha256').update(source).digest('hex'),
       ok:
-        !playwright.startError &&
+        !runFailures.length &&
         results.every(
           (r) =>
             !r.failures.length && ['captured', 'matched'].includes(r.status),
         ),
+      runFailures,
       scenarios: results,
       observations: plan.review.rounds.flatMap((round) =>
         round.findings.map((f) => ({
@@ -605,7 +809,7 @@ export const runScenarios = ({
   }
   if (mode === 'capture') writeIndex(root, scope);
   return {
-    ok: runs.every((r) => r.report.ok) && !playwright.startError,
+    ok: runs.every((r) => r.report.ok) && !runFailures.length,
     runs,
     messages: [...messages, `Evidence: ${run.relative}/report.html`],
   };
@@ -646,5 +850,10 @@ const writeIndex = (/** @type {string} */ root, /** @type {string} */ task) => {
       }
     })
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  fs.writeFileSync(path.join(dir, 'index.html'), indexHtml(task, runs));
+  writeOwnedFile(
+    root,
+    'reports/design',
+    `${taskPaths(task).evidence}/index.html`,
+    indexHtml(task, runs),
+  );
 };
