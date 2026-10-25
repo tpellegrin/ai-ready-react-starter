@@ -317,6 +317,19 @@ for (const name of selected) {
       );
     }
 
+    // Deployment coverage that is not demo code stays: the nested verify
+    // runs it, and this says it is still there to run.
+    const subpath = workspace.run(
+      'playwright',
+      ['test', '--list', '--project', 'production-subpath'],
+      { quiet: true },
+    );
+    report.step(
+      `${name}: the production build's sub-path smoke test is kept`,
+      subpath.status === 0 && subpath.output.includes('subpath/smoke.spec.ts'),
+      subpath.output,
+    );
+
     const adoption =
       /** @type {{ adoption?: { removed?: unknown, starterRevision?: unknown } }} */ (
         readJson(path.join(workspace.dir, 'starter.manifest.json'))
