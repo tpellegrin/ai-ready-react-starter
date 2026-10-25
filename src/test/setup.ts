@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
+import { setLocale } from 'i18n';
 import { getUnhandledRequest } from 'mocks/frames';
 import { resetMockData } from 'mocks/handlers';
 import { server } from 'mocks/node';
@@ -34,6 +35,20 @@ beforeAll(() => {
       defaults.error();
     },
   });
+});
+
+/**
+ * Tests are written in English and run in it, whatever the product's
+ * default language (DEFAULT_LOCALE) or detection policy: the provider
+ * restores the saved choice first (`app.lang`, src/i18n/provider.tsx).
+ * Tests of language detection set up storage and the browser language
+ * themselves.
+ */
+const TEST_LOCALE = 'en-US';
+
+beforeEach(() => {
+  localStorage.setItem('app.lang', TEST_LOCALE);
+  setLocale(TEST_LOCALE);
 });
 
 afterEach(() => {

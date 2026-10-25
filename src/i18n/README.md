@@ -18,3 +18,8 @@ This folder manages the application's multi-language support.
 ## Extension guidance
 
 To add a new translation, add the key-value pair to all JSON files in `src/i18n/locales/`. Use the `useI18n` hook to access the translations in your components.
+
+The default language is `DEFAULT_LOCALE` in `index.ts`; how the first
+language is chosen (saved choice, browser language, default) is
+`detectInitial` in `provider.tsx`. Unit tests always run in English
+(`src/test/setup.ts`).

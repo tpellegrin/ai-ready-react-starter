@@ -30,10 +30,14 @@ const locales = {
 
 export type Locale = keyof typeof locales;
 
-// Base UI language for fallbacks — choose intentionally
-const baseLocale: Locale = 'en-US';
+/**
+ * The product's default language — choose intentionally: the app starts in
+ * it when no choice is saved and the browser's language is not supported
+ * (provider.tsx), and it fills in keys missing from another locale.
+ */
+export const DEFAULT_LOCALE: Locale = 'en-US';
 
-let currentLocale: Locale = 'en-US';
+let currentLocale: Locale = DEFAULT_LOCALE;
 
 export const getLocale = (): Locale => currentLocale;
 export const setLocale = (locale: Locale) => {
@@ -65,7 +69,7 @@ const interpolate = (
 
 export type TranslationParams = Record<string, string | number>;
 
-/** Pure lookup for an explicit locale (falls back to the base locale). */
+/** Pure lookup for an explicit locale (falls back to DEFAULT_LOCALE). */
 export const translate = (
   locale: Locale,
   key: I18nKey,
@@ -73,7 +77,7 @@ export const translate = (
 ): string => {
   const candidate = getByPath(locales[locale], key);
   if (typeof candidate === 'string') return interpolate(candidate, params);
-  const fallback = getByPath(locales[baseLocale], key);
+  const fallback = getByPath(locales[DEFAULT_LOCALE], key);
   if (typeof fallback === 'string') return interpolate(fallback, params);
   if (IS_DEV) {
     // Surface missing keys during development.
