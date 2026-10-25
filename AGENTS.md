@@ -18,12 +18,12 @@ Look at `starter.manifest.json` → `adoption`.
   in features, views, copy and tests. Architecture rules still apply;
   starter-only rules do not:
 
-| Rule                                                                    | Starter                   | Product                                                    |
-| ----------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------- |
-| Domain-neutral names                                                    | Everywhere                | Shared layers (`src/components`, `src/api`, …) only        |
-| Demo and reference code                                                 | Keep removable (manifest) | Removed; remove leftovers with `pnpm adopt`                |
-| `starter:demo-*` / `starter:reference-*` markers                        | Keep balanced             | Gone (`starter:gen` markers stay: the generators use them) |
-| Layers, component APIs, data, forms, session, i18n, a11y, tests, checks | Apply                     | Apply                                                      |
+| Rule                                                                       | Starter                   | Product                                                    |
+| -------------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------- |
+| Domain-neutral names                                                       | Everywhere                | Shared layers (`src/components`, `src/api`, …) only        |
+| Demo and reference code                                                    | Keep removable (manifest) | Removed; remove leftovers with `pnpm adopt`                |
+| `starter:demo-*` / `starter:reference-*` / `starter:maintenance-*` markers | Keep balanced             | Gone (`starter:gen` markers stay: the generators use them) |
+| Layers, component APIs, data, forms, session, i18n, a11y, tests, checks    | Apply                     | Apply                                                      |
 
 ## Stack and map
 

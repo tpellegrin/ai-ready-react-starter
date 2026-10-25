@@ -26,7 +26,8 @@
  *
  * Nested runs: `pnpm adopt:check` runs this script inside each adopted copy
  * with STARTER_NESTED_VERIFY=1, which skips `nested: false` steps (the
- * adoption check itself, so verify → adopt:check → verify cannot recurse).
+ * dependency audit). The adoption check is starter-only: adoption removes
+ * its step, so verify → adopt:check → verify cannot recurse.
  */
 import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';

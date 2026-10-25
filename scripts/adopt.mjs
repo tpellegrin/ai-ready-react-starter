@@ -11,6 +11,9 @@
  *                     first real feature follows its patterns).
  * --dry-run           Print every change without writing anything.
  *
+ * Every run also removes the groups without a flag (`maintenance`: the
+ * adoption check's verify step and CI job, which only the starter passes).
+ *
  * What each group removes is declared in starter.manifest.json (files,
  * package scripts, i18n keys) and in marker regions inside files:
  *
@@ -49,7 +52,7 @@ const exit = (message) => {
 };
 
 /**
- * @typedef {{ flag: string, description: string, delete: string[], packageScripts: string[], i18nKeys: string[] }} Group
+ * @typedef {{ flag?: string, description: string, delete: string[], packageScripts: string[], i18nKeys: string[] }} Group
  * @typedef {{ starter: Record<string, string>, groups: Record<string, Group>, adoption: unknown }} Manifest
  */
 /** @param {string} file @returns {unknown} */
@@ -73,16 +76,27 @@ if (values.help || !groups.length) {
     'Usage: pnpm adopt --remove-demo [--remove-reference] [--dry-run]\n',
   );
   for (const group of Object.values(manifest.groups)) {
-    console.log(`  ${group.flag.padEnd(20)} ${group.description}`);
+    console.log(
+      `  ${(group.flag ?? '(always)').padEnd(20)} ${group.description}`,
+    );
   }
   process.exit(values.help ? 0 : 1);
 }
 const dryRun = values['dry-run'];
+/** The chosen groups plus those every adoption removes (no flag). */
+const removing = [
+  ...groups,
+  ...Object.keys(manifest.groups).filter(
+    (name) => !manifest.groups[name]?.flag,
+  ),
+];
 
 // --- Collect files ------------------------------------------------------
 const trackedFiles = listProjectFiles(projectRoot);
 
-const deletions = groups.flatMap((name) => manifest.groups[name]?.delete ?? []);
+const deletions = removing.flatMap(
+  (name) => manifest.groups[name]?.delete ?? [],
+);
 const isDeleted = (/** @type {string} */ file) =>
   deletions.some((target) => file === target || file.startsWith(`${target}/`));
 
@@ -127,7 +141,7 @@ const applyMarkers = (file, text, marker) => {
           line: index + 1,
           phase: 'start',
           prefix,
-          remove: groups.includes(group),
+          remove: removing.includes(group),
         };
         if (!open.remove) output.push(line);
         return;
@@ -187,10 +201,10 @@ const packagePath = path.join(projectRoot, 'package.json');
 const pkg = /** @type {{ scripts: Record<string, string> }} */ (
   readJson(packagePath)
 );
-const scripts = groups
+const scripts = removing
   .flatMap((name) => manifest.groups[name]?.packageScripts ?? [])
   .filter((name) => name in pkg.scripts);
-const i18nKeys = groups.flatMap(
+const i18nKeys = removing.flatMap(
   (name) => manifest.groups[name]?.i18nKeys ?? [],
 );
 
@@ -249,7 +263,7 @@ const starterRevision =
 // --- Report ------------------------------------------------------------
 const rel = (/** @type {string} */ file) => file;
 console.log(
-  `[adopt] Removing: ${groups.join(', ')}${dryRun ? ' (dry run)' : ''}`,
+  `[adopt] Removing: ${removing.join(', ')}${dryRun ? ' (dry run)' : ''}`,
 );
 console.log(
   `  record  starter.manifest.json › adoption (starter revision ${
@@ -324,6 +338,6 @@ run(path.join(projectRoot, 'node_modules/.bin/prettier'), [
 ]);
 
 console.log(`[adopt] Done. Next steps:
-  1. Run pnpm validate (and pnpm adopt:check in CI) to confirm everything passes.
+  1. Run pnpm validate, then pnpm verify (what CI runs), to confirm everything passes.
   2. Wire your real auth (docs/recipes/real-auth-adapter.md) and API base URL.
   3. Review docs/adoption.md for the remaining replaceable pieces.`);

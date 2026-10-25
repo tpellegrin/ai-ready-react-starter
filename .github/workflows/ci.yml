@@ -127,9 +127,12 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm gen:check
 
+  # starter:maintenance-start
+  # Starter only: it verifies adopting the starter, so `pnpm adopt` removes
+  # this job (and the matching verify step).
   adoption:
     # Each scenario adopts a temporary copy and runs that project's own
-    # pnpm verify (minus the adoption check, so verification never recurses).
+    # pnpm verify, which no longer has this check.
     name: Adoption check (${{ matrix.scenario }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -150,3 +153,4 @@ jobs:
           path: reports/adoption/design/
           if-no-files-found: ignore
           retention-days: 7
+  # starter:maintenance-end

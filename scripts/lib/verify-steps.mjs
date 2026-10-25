@@ -10,9 +10,11 @@
  * - `group: 'validate'` steps are the fast set (`pnpm validate`).
  * - `needs` skips a step when a step it depends on failed.
  * - `nested: false` steps are skipped when the adoption check runs verify
- *   inside an adopted copy (STARTER_NESTED_VERIFY=1): the adoption check
- *   itself (never verify → adopt:check → verify) and the audit (adoption
- *   does not change dependencies).
+ *   inside an adopted copy (STARTER_NESTED_VERIFY=1): the audit (adoption
+ *   does not change dependencies) and the adoption check, which adoption
+ *   removes anyway (never verify → adopt:check → verify).
+ * - Steps between `starter:maintenance` markers only make sense in the
+ *   starter: `pnpm adopt` removes them, as it removes their CI job.
  * - `{artifact}` in args/env is replaced by reports/verify/<artifact>.
  */
 
@@ -193,6 +195,7 @@ export const steps = [
     script: 'gen:check',
     parser: 'markedLines',
   },
+  // starter:maintenance-start
   {
     id: 'adoption',
     label: 'adoption check',
@@ -200,4 +203,5 @@ export const steps = [
     parser: 'markedLines',
     nested: false,
   },
+  // starter:maintenance-end
 ];

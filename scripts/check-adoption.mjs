@@ -19,14 +19,20 @@
  *
  * - --dry-run writes nothing, and the real run leaves no markers or paths of
  *   the removed groups behind and records the starter revision;
+ * - this check is gone from the adopted project's own setup (its
+ *   `pnpm verify` steps and CI; `starter:maintenance` markers), and running
+ *   it there is refused: it verifies the starter only;
  * - the adopted project passes everything an adopted project's own
  *   `pnpm verify` runs: validate (format, lint + boundaries, styles, types,
  *   i18n, docs, architecture fixtures, unit tests), coverage floors,
  *   production build + inspection, Storybook tests and build, end-to-end
- *   tests and the generator check. The nested verify skips its own adoption
- *   check (and the dependency audit), so verification never recurses.
+ *   tests and the generator check. The nested verify skips the dependency
+ *   audit (adoption does not change dependencies).
  *
  *   node scripts/check-adoption.mjs [--scenario demo|reference|all|product|design] [--keep]
+ *
+ * In an adopted project (starter.manifest.json › adoption set) it refuses to
+ * run and exits with 2.
  */
 import {
   copyFileSync,
@@ -54,6 +60,25 @@ const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
 );
+/** @param {string} file @returns {unknown} */
+const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
+const manifest =
+  /** @type {{ groups: Record<string, { flag?: string, delete: string[] }>, adoption: unknown }} */ (
+    readJson(path.join(projectRoot, 'starter.manifest.json'))
+  );
+
+// It proves that the starter can be adopted. An adopted project has its own
+// adoption record and history, so the check has nothing to verify there.
+if (manifest.adoption !== null) {
+  console.error(
+    [
+      '[adopt:check] Refusing to run: adopt:check verifies the starter itself, and this project was adopted from it (starter.manifest.json › adoption is set).',
+      'Your project is verified by pnpm verify. If your verify steps or CI still run this check, remove the "adoption" step from scripts/lib/verify-steps.mjs and the "adoption" job from .github/workflows/ci.yml (docs/migration-notes.md).',
+    ].join('\n'),
+  );
+  process.exit(2);
+}
+
 const { values } = parseArgs({
   options: {
     scenario: { type: 'string', multiple: true },
@@ -137,12 +162,10 @@ const selected = values.scenario?.length
   ? values.scenario
   : Object.keys(SCENARIOS);
 
-/** @param {string} file @returns {unknown} */
-const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
-const manifest =
-  /** @type {{ groups: Record<string, { delete: string[] }> }} */ (
-    readJson(path.join(projectRoot, 'starter.manifest.json'))
-  );
+/** Groups every adoption run removes (no flag): the starter-only checks. */
+const ALWAYS_REMOVED = Object.keys(manifest.groups).filter(
+  (group) => !manifest.groups[group]?.flag,
+);
 
 const report = createReport('adopt:check');
 
@@ -270,7 +293,7 @@ for (const name of selected) {
       adopted.output,
     );
 
-    for (const group of groups) {
+    for (const group of [...groups, ...ALWAYS_REMOVED]) {
       const markers = workspace.run(
         'git',
         [
@@ -332,6 +355,38 @@ for (const name of selected) {
       JSON.stringify(adoption),
     );
 
+    // The adopted project's own setup, as its team runs it (no
+    // STARTER_NESTED_VERIFY): this check verifies the starter and cannot
+    // pass there, so neither verify nor CI may run it, and running it by
+    // hand is refused. The scenario name is unknown on purpose: a copy that
+    // does not refuse fails at once instead of starting its own scenarios.
+    const steps = workspace.run('node', ['scripts/verify.mjs', '--list'], {
+      quiet: true,
+    });
+    const ci = readFileSync(
+      path.join(workspace.dir, '.github/workflows/ci.yml'),
+      'utf8',
+    );
+    report.step(
+      `${name}: the adopted project's verify and CI do not run the adoption check`,
+      steps.status === 0 &&
+        !/^\s*adoption\s/m.test(steps.output) &&
+        !ci.includes('adopt:check'),
+      `${steps.output}\nci.yml mentions adopt:check: ${ci.includes('adopt:check')}`,
+    );
+    const refused = workspace.run(
+      'node',
+      ['scripts/check-adoption.mjs', '--scenario', 'adopted-project'],
+      { quiet: true },
+    );
+    report.step(
+      `${name}: adopt:check refuses to run in the adopted project`,
+      refused.status === 2 &&
+        refused.output.includes('verifies the starter') &&
+        !refused.output.includes('manifest records'),
+      `exit ${refused.status}\n${refused.output}`,
+    );
+
     if (scenario.product || scenario.design) brand(workspace);
     if (scenario.design) {
       const { evidence } = runDesignProof({
@@ -365,9 +420,9 @@ for (const name of selected) {
       );
     }
 
-    // What an adopted project's own `pnpm verify` runs, minus the adoption
-    // check itself (STARTER_NESTED_VERIFY) — never verify → adopt:check →
-    // verify.
+    // What an adopted project's own `pnpm verify` runs, minus the audit
+    // (STARTER_NESTED_VERIFY, which also refuses verify → adopt:check →
+    // verify).
     console.log(`[adopt:check] ${name}: running the adopted project's verify…`);
     const verified = workspace.run(
       'node',

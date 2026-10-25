@@ -1,5 +1,5 @@
 {
-  "$comment": "Provenance and adoption map for this starter. `pnpm adopt` reads the groups below and records under `adoption` what it removed, when, and the starter commit the project started from (`starterRevision`). `adoption: null` means this is the starter itself; once set, it is a product built from it (see AGENTS.md). Keep this file in adopted projects.",
+  "$comment": "Provenance and adoption map for this starter. `pnpm adopt` reads the groups below and records under `adoption` what it removed (the groups chosen by flag), when, and the starter commit the project started from (`starterRevision`); a group without a flag is removed by every adoption run. `adoption: null` means this is the starter itself; once set, it is a product built from it (see AGENTS.md). Keep this file in adopted projects.",
   "starter": {
     "name": "ai-ready-react-starter",
     "source": "https://github.com/tpellegrin/ai-ready-react-starter",
@@ -36,6 +36,12 @@
         "user.dashboard.resourcesLink",
         "demoHub.entries.resources"
       ]
+    },
+    "maintenance": {
+      "description": "Checks that only the starter can pass: the adoption check's `pnpm verify` step and CI job. Removed by every adoption run; `pnpm adopt:check` then refuses to run.",
+      "delete": [],
+      "packageScripts": [],
+      "i18nKeys": []
     }
   },
   "adoption": null
