@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures';
 
+import { waitForImagesInView } from './images';
 import { captureScroll } from './scroll';
 
 /**
@@ -9,7 +10,8 @@ import { captureScroll } from './scroll';
  * static pages: whole-content evidence never resizes the viewport, reaches
  * the end of the content (document or nested scroller), leaves height-based
  * layout as it is at the requested size, and says when it could not reach
- * the end instead of claiming it did.
+ * the end instead of claiming it did. Settling waits for the images in view,
+ * never for lazy ones out of view, and names the images it gave up on.
  */
 const VIEWPORT = { width: 800, height: 600 };
 test.use({ viewport: VIEWPORT });
@@ -25,7 +27,11 @@ type Shot = {
 const record = async (
   page: Page,
   probe: () => Record<string, number | boolean>,
-  options: { container?: string; maxScreenshots?: number } = {},
+  options: {
+    container?: string;
+    maxScreenshots?: number;
+    settle?: () => Promise<void>;
+  } = {},
 ) => {
   const shots: Shot[] = [];
   const extent = await captureScroll(page, {
@@ -35,11 +41,13 @@ const record = async (
     ...(options.maxScreenshots
       ? { maxScreenshots: options.maxScreenshots }
       : {}),
-    settle: async () => {
-      await page.evaluate(
-        () => new Promise((resolve) => requestAnimationFrame(resolve)),
-      );
-    },
+    settle:
+      options.settle ??
+      (async () => {
+        await page.evaluate(
+          () => new Promise((resolve) => requestAnimationFrame(resolve)),
+        );
+      }),
     shoot: async (index, scrollTop) => {
       shots.push({
         index,
@@ -216,4 +224,74 @@ test('an unnamed scroll container is described by its size and place', async ({
     container: 'div (800×536 at y 64)',
     complete: true,
   });
+});
+
+/** A 1×1 PNG, served for every image URL below. */
+const PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64',
+);
+
+test('settling waits for images in view, and for lazy ones once scrolling brings them into view', async ({
+  page,
+}) => {
+  const requested: string[] = [];
+  await page.route('http://images.invalid/*.png', async (route) => {
+    const file = new URL(route.request().url()).pathname;
+    requested.push(file);
+    // The image in view arrives late: settling has to wait for it.
+    if (file === '/top.png') await new Promise((r) => setTimeout(r, 300));
+    await route.fulfill({ contentType: 'image/png', body: PIXEL });
+  });
+  // Like MainLayout: a nested scroller with content far below the fold.
+  await page.setContent(
+    `<style>
+      html, body { margin: 0; height: 100%; overflow: hidden }
+      main { height: 100vh; overflow: auto } .spacer { height: 4000px }
+    </style>
+    <main aria-label="Content">
+      <img id="top" src="http://images.invalid/top.png" width="40" height="40" alt="">
+      <img src="http://images.invalid/hidden.png" loading="lazy" style="display: none" alt="">
+      <div class="spacer"></div>
+      <img id="below" src="http://images.invalid/below.png" loading="lazy" width="40" height="40" alt="">
+    </main>`,
+    { waitUntil: 'domcontentloaded' },
+  );
+  const loaded = (id: string) => {
+    const image = document.getElementById(id) as HTMLImageElement | null;
+    return !!image && image.complete && image.naturalWidth > 0;
+  };
+
+  await waitForImagesInView(page, 5_000);
+  expect(await page.evaluate(loaded, 'top')).toBe(true);
+  expect(requested).toEqual(['/top.png']);
+
+  const { extent, shots } = await record(
+    page,
+    () => {
+      const image = document.getElementById('below') as HTMLImageElement;
+      return { below: image.complete && image.naturalWidth > 0 };
+    },
+    { settle: () => waitForImagesInView(page, 5_000) },
+  );
+
+  expect(extent).toMatchObject({
+    container: 'main[aria-label="Content"]',
+    complete: true,
+  });
+  expect(shots.at(-1)?.probe.below).toBe(true);
+  expect(requested).not.toContain('/hidden.png');
+});
+
+test('settling names the images it gave up waiting for', async ({ page }) => {
+  // Never answered: the image stays loading.
+  await page.route('http://images.invalid/stuck.png', () => undefined);
+  await page.setContent(
+    '<img src="http://images.invalid/stuck.png" width="40" height="40" alt="">',
+    { waitUntil: 'domcontentloaded' },
+  );
+
+  await expect(waitForImagesInView(page, 500)).rejects.toThrow(
+    'images still loading after 500 ms: http://images.invalid/stuck.png',
+  );
 });
