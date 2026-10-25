@@ -234,9 +234,15 @@ It builds the production app, then for every scenario waits for the ready
 conditions, fonts, images, route transitions and motion (no fixed sleeps)
 and records a screenshot, the regions' visible boxes, axe results and the
 environment (browser, versions, viewport, scale, locale, fonts, revision).
-The report, `reports/design/<task>/<label>/report.html`, shows each
-reference next to its render with region boxes, an overlay view, measured
-sizes, and the plan's deviations; `summary.md` is the pull-request version.
+It waits for the images a person would see at that moment: eager images,
+and lazy ones (`loading="lazy"`) in view. A lazy image out of view is not
+requested until it nears the viewport, so it is never waited for; with
+`"extent": "scroll"` each scroll position waits for the lazy images it
+brings into view. An image still loading after the scenario's `timeoutMs`
+(10 s by default) fails the capture, and the error names it. The report,
+`reports/design/<task>/<label>/report.html`, shows each reference next to
+its render with region boxes, an overlay view, measured sizes, and the
+plan's deviations; `summary.md` is the pull-request version.
 
 Mechanical checks (pass/fail): the capture completed and Playwright
 reported its test as passed (a console error, page error or failure after

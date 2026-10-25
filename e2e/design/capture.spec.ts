@@ -14,6 +14,7 @@ import {
   waitForRouteTransition,
 } from '../fixtures';
 
+import { waitForImagesInView } from './images';
 import { captureScroll } from './scroll';
 
 /**
@@ -22,7 +23,8 @@ import { captureScroll } from './scroll';
  * scripts/lib/design/capture.mjs). Each scenario sets up its route,
  * session, declared API responses, viewport, scale, locale, color scheme
  * and motion preference; performs its steps; waits for its explicit
- * readiness conditions, fonts, images, route transitions and motion; then
+ * readiness conditions, fonts, the images in view (images.ts), route
+ * transitions and motion; then
  * records screenshots at the requested viewport (never resized: one, or
  * one per scroll position with "extent": "scroll", see scroll.ts), the
  * boxes of the plan's regions, axe results and the environment. Regression
@@ -220,21 +222,13 @@ const visibleBox = (element: Element): Box => {
     : box(rect, overflow);
 };
 
-/** Fonts loaded, images decoded, transitions and motion finished. */
-const settle = async (page: Page) => {
+/**
+ * Fonts loaded, the images in view loaded (lazy ones out of view are not
+ * requested yet: images.ts), transitions and motion finished.
+ */
+const settle = async (page: Page, timeoutMs: number) => {
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
-  await page.evaluate(() =>
-    Promise.all(
-      Array.from(document.images).map((image) =>
-        image.complete
-          ? undefined
-          : new Promise((resolve) => {
-              image.addEventListener('load', resolve, { once: true });
-              image.addEventListener('error', resolve, { once: true });
-            }),
-      ),
-    ).then(() => undefined),
-  );
+  await waitForImagesInView(page, timeoutMs);
   await waitForRouteTransition(page);
   await settleMotion(page);
 };
@@ -306,7 +300,7 @@ for (const scenario of manifest.scenarios) {
         }
 
         phase = 'settle';
-        await settle(page);
+        await settle(page, scenario.timeoutMs);
 
         // Screenshots first, at the requested viewport (never resized): one,
         // or one per scroll position of the page's scroll container.
@@ -351,7 +345,7 @@ for (const scenario of manifest.scenarios) {
                 container: scenario.scrollContainer
                   ? find(page, scenario.scrollContainer)
                   : undefined,
-                settle: () => settle(page),
+                settle: () => settle(page, scenario.timeoutMs),
                 shoot,
               })
             : null;
