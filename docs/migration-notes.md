@@ -186,3 +186,19 @@ For projects that already have the 2026-10 foundation:
   `reports/`.
 - `e2e/fixtures.ts` exports `axeViolations(page)`;
   `expectNoA11yViolations` is unchanged.
+
+# Migration notes (adopted projects)
+
+For products already adopted from the starter (`starter.manifest.json` ›
+`adoption` is set) that take later changes from it.
+
+## One default language; unit tests in English [0007]
+
+- `src/i18n/index.ts` exports `DEFAULT_LOCALE`, used for the fallback
+  translations, the initial locale and the provider's last fallback
+  (`detectInitial` in `src/i18n/provider.tsx`). If you changed those three
+  `'en-US'` values by hand, set `DEFAULT_LOCALE` instead.
+- `src/test/setup.ts` saves and sets `en-US` before every unit test, so
+  tests no longer take their language from jsdom's browser language. Tests
+  that check language detection clear `app.lang` from storage and stub
+  `navigator.language` themselves (see `src/i18n/provider.test.tsx`).

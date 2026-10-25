@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  DEFAULT_LOCALE,
   setLocale as setI18nLocale,
   translate,
   type I18nKey,
@@ -32,7 +33,8 @@ function detectInitial(): Locale {
     // Storage can be unavailable (privacy modes, blocked cookies): fall through.
   }
 
-  // 2) Optional: navigator hint
+  // 2) Optional: navigator hint. A product whose language should not follow
+  // the browser's deletes this block (docs/adoption.md).
   if (typeof navigator !== 'undefined') {
     const n =
       navigator.language || (navigator.languages && navigator.languages[0]);
@@ -44,8 +46,8 @@ function detectInitial(): Locale {
     }
   }
 
-  // 3) Base language (see i18n/index.ts)
-  return 'en-US';
+  // 3) The product's default language (see i18n/index.ts)
+  return DEFAULT_LOCALE;
 }
 
 /**

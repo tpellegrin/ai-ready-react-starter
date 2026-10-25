@@ -120,6 +120,14 @@ changing demo or reference code.
 - Fonts in `src/assets/fonts` + `src/styles/fonts.ts`.
 - Locales in `src/i18n/locales` (keep every locale in sync;
   `pnpm i18n:check`).
+- Language: `DEFAULT_LOCALE` in `src/i18n/index.ts` is the language the
+  app starts in when nobody has chosen one and the browser's language is
+  not supported, and it fills in missing keys. To stop following the
+  browser's language (a single-market product), delete the navigator hint
+  in `detectInitial` (`src/i18n/provider.tsx`); a language the person
+  chose is still restored. Unit tests run in English either way
+  (`src/test/setup.ts`); only the detection tests in
+  `src/i18n/provider.test.tsx` describe the policy, so update them with it.
 - `package.json` `name`, README and LICENSE are yours to change.
 - Capacitor is optional ([mobile-capacitor.md](mobile-capacitor.md)); remove
   `@capacitor/core` and `capacitor.config.ts` if you do not need it.
