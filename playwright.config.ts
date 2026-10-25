@@ -8,10 +8,12 @@ import { defineConfig, devices, type Project } from '@playwright/test';
  *   with page.route. Runs in desktop Chromium and, because the custom
  *   scrolling, transitions, focus handling and native inputs are riskiest
  *   there, in mobile WebKit (iPhone viewport).
+ * - production-subpath: the same production build deployed under a
+ *   sub-path (BASE_PATH): start page and a lazy route, every request under
+ *   the base, no failed asset, image or font (subpath/).
  * - dev: the Vite dev server, i.e. React's development build with Strict
  *   Mode's effect replay (main.tsx), which built apps never exercise.
- * - demo / demo-subpath: the starter's labelled demo build (MSW in the
- *   browser), at the root and under a GitHub Pages-style sub-path.
+ * - design-contract: the design capture contract, on static pages.
  */
 const isCI = !!process.env.CI;
 
@@ -35,12 +37,22 @@ const servers = {
     command: build('production', 'production', 4175),
     env: { VITE_API_BASE_URL: '/api' },
   },
+  // The API lives under the base too, so every request must be there.
+  productionSubpath: {
+    port: 4178,
+    base: '/app/',
+    command: build('production-subpath', 'production', 4178),
+    env: { BASE_PATH: '/app/', VITE_API_BASE_URL: '/app/api' },
+  },
   dev: {
     port: 4176,
     base: '/',
     command: 'vite --mode development --port 4176 --strictPort',
   },
   // starter:demo-start
+  // demo / demo-subpath: the starter's labelled demo build (MSW in the
+  // browser), at the root and under a GitHub Pages-style sub-path, where
+  // the mock service worker's scope must follow the base.
   demo: { port: 4173, base: '/', command: build('demo', 'demo', 4173) },
   demoSubpath: {
     port: 4174,
@@ -87,6 +99,11 @@ export default defineConfig({
       servers.production,
       'production/**/*.spec.ts',
       devices['iPhone 14'],
+    ),
+    project(
+      'production-subpath',
+      servers.productionSubpath,
+      'subpath/**/*.spec.ts',
     ),
     project('dev', servers.dev, 'dev/**/*.spec.ts'),
     // The design capture contract, on static pages (setContent).

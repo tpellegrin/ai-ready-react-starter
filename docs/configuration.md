@@ -84,8 +84,10 @@ Assets are served from `/` unless:
   `GITHUB_REPOSITORY`.
 
 Routing uses hash URLs (`/#/resources`), so only asset URLs depend on the
-base. `pnpm check:build --base /sub/` verifies `index.html` references, and
-the e2e suite runs the demo build under a sub-path.
+base. `pnpm check:build --base /sub/` verifies `index.html` references.
+`pnpm test:e2e` serves the production build under `/app/` (`e2e/subpath`)
+and opens the start page and a lazy route: every request must stay under
+the base, and no script, style, font or image may fail.
 
 ## Adding a variable
 

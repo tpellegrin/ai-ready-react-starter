@@ -45,3 +45,15 @@ on journeys and deployment properties.
 - Generic accessibility and reduced-motion e2e checks live with the
   production target, so they survive adoption.
 - Tooling (scripts) has its own Vitest project with fixture tests.
+
+## Amendment (2026-10): sub-path deployment survives adoption
+
+- The production build is also served under a sub-path (`/app/`, project
+  `production-subpath`, `e2e/subpath`). Its smoke test opens the start page
+  and a lazy route. It fails on a request outside the base, a response of
+  400 or more, a broken image (lazy ones are made eager first) or a font
+  that does not load. Why: only the demo's sub-path project proved this in
+  a browser, so adoption removed the coverage, and `check:build --base`
+  reads only `index.html`.
+- `demo-subpath` stays for the demo: its mock service worker's scope
+  follows the base.
