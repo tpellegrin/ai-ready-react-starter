@@ -13,8 +13,10 @@
  *    generated files are checked by hash, so template changes fail here);
  * 3. the plans the agent wrote match the references init recorded and pass
  *    `pnpm design check --ready`;
- * 4. both tasks capture with every mechanical check passing; a scenario that
- *    never gets ready fails and says which condition;
+ * 4. both tasks capture with every mechanical check passing, every
+ *    screenshot at the requested viewport and the whole content reached by
+ *    scrolling; a scenario that never gets ready fails and says which
+ *    condition; an unexpected console error fails a capture;
  * 5. regression: missing baselines fail and nothing is written; `--update`
  *    writes them; a deliberate visual change fails the comparison.
  *
@@ -26,6 +28,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { planOverlay } from '../overlay.mjs';
+import { readImageInfo } from './images.mjs';
+import { resolveInside } from './output.mjs';
 
 /**
  * @typedef {{ dir: string, run: (command: string, args: string[], options?: { quiet?: boolean, env?: Record<string, string> }) => { status: number, output: string } }} Workspace
@@ -43,6 +47,45 @@ const filesUnder = (dir) =>
         return entry.isDirectory() ? filesUnder(full) : [full];
       })
     : [];
+
+/**
+ * What a capture run's evidence says about its viewport: every screenshot
+ * has the requested size (it was never resized) and scroll extents reached
+ * the end. Returns the problems.
+ * @param {string} runDir
+ * @param {string} planFile
+ * @returns {string[]}
+ */
+const viewportProblems = (runDir, planFile) => {
+  const plan =
+    /** @type {{ captures: Array<{ id: string, viewport: { width: number, height: number }, deviceScaleFactor?: number, extent?: string }> }} */ (
+      readJson(planFile)
+    );
+  const report =
+    /** @type {{ scenarios: Array<{ id: string, screenshots: Array<{ file: string }>, extent?: { kind: string, complete?: boolean } }> }} */ (
+      readJson(path.join(runDir, 'report.json'))
+    );
+  return report.scenarios.flatMap((scenario) => {
+    const capture = plan.captures.find((c) => c.id === scenario.id);
+    if (!capture) return [`${scenario.id}: not in the plan`];
+    const scale = capture.deviceScaleFactor ?? 1;
+    const expected = `${capture.viewport.width * scale}×${capture.viewport.height * scale}`;
+    const sizes = scenario.screenshots.map((shot) => {
+      const info = readImageInfo(fs.readFileSync(path.join(runDir, shot.file)));
+      return info ? `${info.width}×${info.height}` : `${shot.file}: not a PNG`;
+    });
+    return [
+      ...(sizes.length ? [] : [`${scenario.id}: no screenshots`]),
+      ...sizes
+        .filter((size) => size !== expected)
+        .map((size) => `${scenario.id}: a ${size} screenshot, not ${expected}`),
+      ...(capture.extent === 'scroll' &&
+      !(scenario.extent?.kind === 'scroll' && scenario.extent.complete)
+        ? [`${scenario.id}: the scroll extent did not reach the end`]
+        : []),
+    ];
+  });
+};
 
 /**
  * @param {{ projectRoot: string, workspace: Workspace, report: Report, name: string }} input
@@ -148,7 +191,8 @@ export const runDesignProof = ({ projectRoot, workspace, report, name }) => {
     ready.output,
   );
 
-  // 4. Captures, and one that never gets ready.
+  // 4. Captures at the requested viewport, one that never gets ready and
+  // one with a console error.
   for (const task of tasks) {
     const capture = design(['capture', task, '--label', 'adoption-check']);
     const run = ws(`reports/design/${task}/adoption-check`);
@@ -159,6 +203,14 @@ export const runDesignProof = ({ projectRoot, workspace, report, name }) => {
       `${name}: pnpm design capture ${task}: every mechanical check passes, evidence written`,
       capture.status === 0 && evidence,
       capture.output,
+    );
+    const problems = evidence
+      ? viewportProblems(run, ws(`design/${task}/plan.json`))
+      : ['no report'];
+    report.step(
+      `${name}: ${task}: every screenshot at the requested viewport, scrolled content reached to its end`,
+      problems.length === 0,
+      problems.join('\n'),
     );
   }
   const probe = ws('design/readiness-probe');
@@ -199,6 +251,45 @@ export const runDesignProof = ({ projectRoot, workspace, report, name }) => {
   );
   fs.rmSync(probe, { recursive: true, force: true });
 
+  // A console error fails the browser test in teardown, after the scenario
+  // recorded its result: the capture must still fail, keeping the screenshot.
+  const view = ws('src/views/guest/Pricing/index.tsx');
+  const source = fs.readFileSync(view, 'utf8');
+  const anchor = 'export function Pricing() {';
+  fs.writeFileSync(
+    view,
+    source.replace(
+      anchor,
+      `${anchor}\n  console.error('design probe: an unexpected console error');`,
+    ),
+  );
+  const noisy = design([
+    'capture',
+    'pricing',
+    '--scenario',
+    'desktop',
+    '--label',
+    'console-error-probe',
+  ]);
+  fs.writeFileSync(view, source);
+  const noisyRun = ws('reports/design/pricing/console-error-probe');
+  const noisyScenario = fs.existsSync(path.join(noisyRun, 'report.json'))
+    ? /** @type {{ ok: boolean, scenarios: Array<{ status: string, screenshot?: string }> }} */ (
+        readJson(path.join(noisyRun, 'report.json'))
+      )
+    : null;
+  report.step(
+    `${name}: an unexpected console error fails the capture, and the screenshot is kept`,
+    source.includes(anchor) &&
+      noisy.status === 1 &&
+      /console: design probe: an unexpected console error/.test(noisy.output) &&
+      noisyScenario?.ok === false &&
+      noisyScenario.scenarios[0]?.status === 'failed' &&
+      !!noisyScenario.scenarios[0].screenshot &&
+      fs.existsSync(path.join(noisyRun, noisyScenario.scenarios[0].screenshot)),
+    noisy.output,
+  );
+
   // 5. Regression baselines: missing, written on request, compared.
   const baselines = () =>
     tasks.flatMap((task) => filesUnder(ws(`design/${task}/baselines`)));
@@ -210,16 +301,26 @@ export const runDesignProof = ({ projectRoot, workspace, report, name }) => {
       baselines().length === 0,
     missing.output,
   );
-  const update = design(['regress', '--all', '--update']);
-  const expected = tasks.flatMap((task) =>
-    /** @type {{ captures: Array<{ regression?: boolean }> }} */ (
-      readJson(ws(`design/${task}/plan.json`))
-    ).captures.filter((c) => c.regression),
-  ).length;
+  const update = design(['regress', '--all', '--update', '--label', 'update']);
+  // One baseline per screenshot, as the report lists them (scroll positions
+  // after the first are <id>--scroll-<n>).
+  const updateReport = ws('reports/design/_regression/update/report.json');
+  const listed = (
+    fs.existsSync(updateReport)
+      ? /** @type {Array<{ scenarios: Array<{ baselines?: string[] }> }>} */ (
+          readJson(updateReport)
+        )
+      : []
+  )
+    .flatMap((r) => r.scenarios.flatMap((s) => s.baselines ?? []))
+    .sort();
+  const onDisk = baselines()
+    .map((file) => path.relative(workspace.dir, file))
+    .sort();
   report.step(
-    `${name}: pnpm design regress --update writes the ${expected} baselines`,
-    update.status === 0 && baselines().length === expected,
-    update.output,
+    `${name}: pnpm design regress --update writes the ${listed.length} baselines its report lists`,
+    update.status === 0 && listed.length > 0 && onDisk.join() === listed.join(),
+    [update.output, ...onDisk].join('\n'),
   );
   const matched = design(['regress', '--all']);
   report.step(
@@ -242,17 +343,17 @@ export const runDesignProof = ({ projectRoot, workspace, report, name }) => {
     `${name}: a deliberate visual change (summary tile gap) fails the regression check`,
     changed !== original &&
       regression.status === 1 &&
-      /differs from the reviewed baseline/.test(regression.output),
+      /screenshot\(s\) differ from the reviewed baselines/.test(
+        regression.output,
+      ),
     regression.output,
   );
 
   // Evidence for CI artifacts, in a new folder of the caller's reports.
-  const target = path.join(
-    projectRoot,
-    'reports/adoption/design',
-    new Date().toISOString().replace(/[:.]/g, '-'),
-  );
+  const relative = `reports/adoption/design/${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  const target = resolveInside(projectRoot, 'reports', relative);
+  if (fs.existsSync(target)) throw new Error(`${relative} already exists`);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.cpSync(ws('reports/design'), target, { recursive: true });
-  return { evidence: path.relative(projectRoot, target) };
+  return { evidence: relative };
 };

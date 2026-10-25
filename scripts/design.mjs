@@ -234,6 +234,9 @@ const capture = (mode, names) => {
     return outcome.ok ? 0 : 1;
   }
   for (const { report } of outcome.runs) {
+    for (const failure of report.runFailures) {
+      console.log(`✗ ${report.task}: ${failure}`);
+    }
     for (const scenario of report.scenarios) {
       const geometry = scenario.geometry;
       const facts = [

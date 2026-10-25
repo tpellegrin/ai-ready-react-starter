@@ -85,6 +85,43 @@ When things conflict, this order wins:
 Record each material conflict as a `deviation` (what the reference shows,
 what you build, which rule wins) instead of silently redesigning.
 
+### Structure, visual identity, or both
+
+Decide from the request what the references are authoritative for, before
+mapping anything, and write it into `request`:
+
+- **Structure** (the default, and always for sketches and wireframes):
+  regions, their order and grouping, hierarchy, states and responsive
+  behavior. Colors, type and control shapes come from the theme; where a
+  reference looks different, a `design-system` deviation records it.
+- **Visual identity**, only when the person asks for it: brand colors, a
+  typeface, a distinctive control shape, imagery ("use our brand blue",
+  "it must look like the mock"). Write each one as a numbered
+  `requirement`, specific enough to check (the value, where it applies).
+- **Both**: the structure rules above plus the visual requirements.
+
+An explicit visual requirement outranks the current theme (precedence 1
+over 3). "The theme uses a different color" is not a reason to drop it;
+the way to meet it, in order of preference:
+
+1. a token or variant that already expresses it;
+2. a justified extension: the brand value in the theme
+   (`src/styles/themes`, [ADR 0005](../decisions/0005-styling-and-theme-system.md)),
+   or a component variant that can take it (`"use": "extension"`, with a
+   `justification` and a `decision`);
+3. a `deviation` only when a rule above the requirement wins: `reason`
+   `architecture` or `accessibility` (a brand color that fails contrast
+   against its background, for example), never `design-system`; tell the
+   person, and ask a `blocking` question when the requirement cannot be
+   met at all.
+
+Visual requirements never lift the other rules: tokens instead of raw
+colors, existing components before new ones, visible labels, contrast,
+focus visibility. The Pricing demonstration asked for structure in the
+product's theme ("using the product's components and theme"), so its blue
+accent and typeface became `design-system` deviations; the
+[example](#example) shows the same page with a brand requirement.
+
 Images do not define API contracts, validation rules, authorization,
 persistence or interactions they cannot show. Use the project's defaults
 (the feature template's endpoints, the four states, the form pattern) and
@@ -165,9 +202,29 @@ reference to `compare` with, `viewport`, `deviceScaleFactor`, `mobile`,
 `reducedMotion`, the `session` (`guest`, `signed-in`, `needs-onboarding`),
 every API call answered with fixed data (`api`, with `hold` for a loading
 state), `steps` to reach the state (click, fill, press, check, select,
-hover by locator), explicit `ready` conditions, and `fullPage` to grow the
-viewport to the scrolled content. For a high-fidelity reference, capture at
-its stated width and scale.
+hover by locator), explicit `ready` conditions, and the `extent`. For a
+high-fidelity reference, capture at its stated width and scale.
+
+The viewport is never resized: `vh` units, height media queries and sticky
+elements render as they do for a person at that size. `extent` says how
+much of the page the evidence covers:
+
+- `"viewport"` (the default): one screenshot of what fits in the viewport.
+  Regions below the fold are still measured, in the scrolled content's
+  coordinates.
+- `"scroll"`: the whole content, as screenshots at successive scroll
+  positions of the element the page scrolls in (the screenshot at position
+  0 first, then one viewport further each time). In this foundation that
+  is `MainLayout`'s content, not the document; the largest scrolling
+  element is used unless `scrollContainer` names one by locator. If the
+  end is not reached (at most 12 screenshots), the capture fails as
+  incomplete and says how many pixels were never in view.
+
+A reference exported as one tall image (a "full page" export) is compared
+with the screenshot at position 0 and the scroll positions after it: the
+report shows them in order. Plans written for the removed `"fullPage":
+true` (it grew the viewport to the content height) are refused with this
+replacement: use `"extent": "scroll"`.
 
 ```bash
 pnpm design capture expense-overview --label initial
@@ -181,8 +238,10 @@ The report, `reports/design/<task>/<label>/report.html`, shows each
 reference next to its render with region boxes, an overlay view, measured
 sizes, and the plan's deviations; `summary.md` is the pull-request version.
 
-Mechanical checks (pass/fail): the capture completed, every region with a
-locator is found and visible, siblings keep the reference's arrangement
+Mechanical checks (pass/fail): the capture completed and Playwright
+reported its test as passed (a console error, page error or failure after
+the screenshot fails it; the screenshot is kept), a `scroll` extent reached
+the end, every region with a locator is found and visible, siblings keep the reference's arrangement
 (above/below, left/right on a row — a documented deviation excuses one),
 children stay inside their parent when they are in the reference, no axe
 violations, no API call outside `api`. Sizes are measurements (shares of
@@ -219,8 +278,10 @@ pnpm design regress expense-overview --update   # write baselines deliberately, 
 pnpm design regress --all                       # compare; a missing baseline fails and nothing is written
 ```
 
-Baselines live in `design/<task>/baselines/` and are named per browser and
-platform (`desktop-content-chromium-linux.png`): CI on Linux needs Linux
+Baselines live in `design/<task>/baselines/`, one per screenshot (a
+`scroll` extent adds `<id>--scroll-<n>` for each position after the
+first), named per browser and platform
+(`desktop-content-chromium-linux.png`): CI on Linux needs Linux
 baselines (create them in CI's Playwright image or from a failed run's
 actual image after review). `pnpm verify` and CI run `pnpm design:regress`.
 This is regression against your own implementation — separate from the
@@ -276,8 +337,10 @@ The two plans of the demonstrations are complete examples:
 - **Screenshots of an existing product:** pixel-accurate (`screenshot`),
   but the product may not use these components; record where the
   foundation differs.
-- **High-fidelity mocks:** capture at the stated width and scale; expect
-  design-system adaptations (colors, type, control shapes) and record each.
+- **High-fidelity mocks:** capture at the stated width and scale. Unless
+  the request makes visual identity a requirement
+  ([above](#structure-visual-identity-or-both)), expect design-system
+  adaptations (colors, type, control shapes) and record each.
 - **Several screens:** one `screens` entry per route; states of one page
   are `states`, not screens. Flows need an explicit order.
 - **States** (empty, error, dialog open, validation): one reference with
@@ -334,6 +397,31 @@ implementation:
   "reason": "architecture"
 }
 ```
+
+A request that makes visual identity a requirement: _"Build the pricing
+page from these exports. The Team plan must use our brand blue (#1F5BD8)
+for its border, badge and button."_ The color is a requirement, so it is
+met with a theme token, not set aside as a design-system difference:
+
+```json
+{
+  "requirements": [
+    {
+      "id": "req-brand",
+      "text": "Team plan border, badge and call to action in the brand blue #1F5BD8."
+    }
+  ]
+}
+```
+
+The components stay the same; the theme carries the color. The brand
+blue joins the palette (`src/styles/themes/foundations.ts`) and the accent
+tokens the Team plan uses (`border.accent`, `action.accent`, `icon.accent`
+in `base.ts`) point at it; an acceptance criterion (`"verify": "capture"`)
+checks it on the render, and there is no `d-colors` deviation for that
+blue. Had white text on that blue failed contrast, the button would keep a
+passing color with a deviation of `reason` `accessibility`, and the person
+would be told.
 
 ## Limits
 

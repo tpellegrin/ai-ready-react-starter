@@ -187,6 +187,7 @@ describe('reports', () => {
         revision: { commit: 'abc', uncommittedChanges: false },
         planSha256: 'f'.repeat(64),
         ok: true,
+        runFailures: [],
         scenarios: [],
         observations: [],
         remaining: ['Rows are taller.', 'Type | size <differs>.'],
@@ -210,6 +211,7 @@ describe('reports', () => {
       revision: { commit: 'abc', uncommittedChanges: true },
       planSha256: 'f'.repeat(64),
       ok: true,
+      runFailures: [],
       scenarios: [
         {
           id: 'desktop',
@@ -249,11 +251,18 @@ describe('capture runs', () => {
    * A project with the complete plan, a sentinel in reports/verify and a
    * fake Playwright that writes what `write` returns for each scenario.
    * @param {(scenario: Manifest['scenarios'][number]) => Record<string, unknown> | null} write
-   * @param {{ start?: 'fail' | 'ok', output?: string, raw?: unknown }} [options]
+   * @param {{ start?: 'fail' | 'ok', output?: string, raw?: unknown, exit?: number, report?: unknown }} [options]
+   *   exit: Playwright's exit status; report: its JSON report
    */
   const setup = (
     write,
-    { start = 'ok', output = '', raw = completePlan() } = {},
+    {
+      start = 'ok',
+      output = '',
+      raw = completePlan(),
+      exit = 0,
+      report = undefined,
+    } = {},
   ) => {
     const project = projectWithPlan(raw);
     cleanups.push(project.cleanup);
@@ -283,7 +292,13 @@ describe('capture runs', () => {
         fs.writeFileSync(scenario.output.result, JSON.stringify(result));
         fs.writeFileSync(scenario.output.screenshot, makePng(12, 9));
       }
-      return { status: 0, stdout: output };
+      if (report !== undefined) {
+        fs.writeFileSync(
+          options.env.PLAYWRIGHT_JSON_OUTPUT_FILE ?? '',
+          JSON.stringify(report),
+        );
+      }
+      return { status: exit, stdout: output };
     };
     const run = (
       /** @type {Partial<Parameters<typeof runScenarios>[0]>} */ input = {},
@@ -375,6 +390,280 @@ describe('capture runs', () => {
       ]),
     );
     expect(playwright).not.toContain('--update-snapshots=all');
+  });
+
+  /**
+   * Playwright's JSON report for the complete plan's one scenario.
+   * @param {string} status  'expected' or 'unexpected'
+   * @param {string[]} errors  the test's error messages
+   * @param {string[]} [global]  errors outside any test
+   * @param {string} [task]
+   */
+  const playwrightReport = (
+    status,
+    errors,
+    global = [],
+    task = 'notes-page',
+  ) => ({
+    suites: [
+      {
+        title: 'capture.spec.ts',
+        suites: [
+          {
+            title: `${task}/desktop-content`,
+            specs: [
+              {
+                title: 'desktop-content',
+                tests: [
+                  {
+                    projectName: 'chromium',
+                    status,
+                    results: [
+                      { errors: errors.map((message) => ({ message })) },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    errors: global.map((message) => ({ message })),
+  });
+
+  it('fails the run when Playwright exits non-zero after successful results, without inventing a culprit', () => {
+    const { run, project } = setup(() => captured, {
+      exit: 1,
+      output: '1 error was not a part of any test',
+    });
+    const outcome = run();
+    expect(outcome.ok).toBe(false);
+    const report = outcome.runs[0]?.report;
+    expect(report?.ok).toBe(false);
+    expect(report?.runFailures).toEqual([
+      'Playwright exited with status 1.',
+      expect.stringMatching(
+        /^No scenario's test failed in Playwright's report \(there is none\), so the failure is not attributed to one\. Playwright said:\n1 error was not a part of any test$/,
+      ),
+    ]);
+    // Not attributed: the scenario keeps its own result, the run fails.
+    expect(report?.scenarios[0]).toMatchObject({
+      status: 'captured',
+      failures: [],
+    });
+    expect(
+      project.read('reports/design/notes-page/run-1/summary.md'),
+    ).toContain(
+      '- Mechanical checks: failed.\n  - run: Playwright exited with status 1.',
+    );
+  });
+
+  it('fails a scenario whose test failed at teardown (a console error) after its result was saved', () => {
+    const { run, project } = setup(() => captured, {
+      exit: 1,
+      report: playwrightReport('unexpected', [
+        'Error: console errors: console: Uncaught TypeError: boom\n\nexpect(received).toEqual(expected)',
+      ]),
+    });
+    const outcome = run();
+    const scenario = outcome.runs[0]?.report.scenarios[0];
+    expect(outcome.ok).toBe(false);
+    expect(scenario).toMatchObject({
+      status: 'failed',
+      screenshot: 'captures/notes-page--desktop-content.png',
+      failures: [
+        'Playwright reported the test failed after the scenario was recorded: Error: console errors: console: Uncaught TypeError: boom',
+      ],
+    });
+    // The scenario explains the exit status: no run-level failure.
+    expect(outcome.runs[0]?.report.runFailures).toEqual([]);
+    expect(
+      project.exists(
+        'reports/design/notes-page/run-1/captures/notes-page--desktop-content.png',
+      ),
+    ).toBe(true);
+  });
+
+  it("does not fail another task's report for a scenario failure in one regression run", () => {
+    const raw = withChanges(completePlan(), {
+      'captures.0.regression': true,
+    });
+    const other = withChanges(raw, { task: 'notes-two' });
+    const { run, project } = setup(
+      (scenario) => ({
+        ...captured,
+        regression: {
+          error:
+            scenario.task === 'notes-page'
+              ? 'Screenshot comparison failed:\n\n  1000 pixels (ratio 0.01 of all image pixels) are different.'
+              : null,
+        },
+      }),
+      {
+        raw,
+        exit: 1,
+        report: {
+          suites: [
+            ...playwrightReport('unexpected', [
+              'Error: Screenshot comparison failed:\n\n  1000 pixels (ratio 0.01 of all image pixels) are different.',
+            ]).suites,
+            ...playwrightReport('expected', [], [], 'notes-two').suites,
+          ],
+          errors: [],
+        },
+      },
+    );
+    project.write('design/notes-two/references/desktop.png', makePng(400, 300));
+    const outcome = run({
+      mode: 'regression',
+      plans: [
+        { plan: parse(raw), source: JSON.stringify(raw) },
+        { plan: parse(other), source: JSON.stringify(other) },
+      ],
+    });
+    expect(outcome.ok).toBe(false);
+    expect(
+      outcome.runs.map(({ task, report }) => ({
+        task,
+        ok: report.ok,
+        runFailures: report.runFailures,
+        status: report.scenarios[0]?.status,
+      })),
+    ).toEqual([
+      { task: 'notes-page', ok: false, runFailures: [], status: 'different' },
+      { task: 'notes-two', ok: true, runFailures: [], status: 'matched' },
+    ]);
+  });
+
+  it('reports a failure outside any scenario at run level', () => {
+    const { run } = setup(() => captured, {
+      exit: 1,
+      report: playwrightReport(
+        'expected',
+        [],
+        ['Error: Timed out waiting 180000ms from config.webServer.\n    at …'],
+      ),
+    });
+    const outcome = run();
+    expect(outcome.ok).toBe(false);
+    expect(outcome.runs[0]?.report.runFailures).toEqual([
+      'Playwright exited with status 1.',
+      'Error outside any scenario: Error: Timed out waiting 180000ms from config.webServer.',
+    ]);
+    expect(outcome.runs[0]?.report.scenarios[0]?.status).toBe('captured');
+  });
+
+  it('does not repeat a failure the result already reports', () => {
+    const { run } = setup(
+      () => ({
+        status: 'failed',
+        phase: 'ready',
+        error:
+          'readiness condition not met: role=heading was not visible within 10000 ms',
+      }),
+      {
+        exit: 1,
+        report: playwrightReport('unexpected', [
+          'Error: readiness condition not met: role=heading was not visible within 10000 ms',
+        ]),
+      },
+    );
+    expect(run().runs[0]?.report.scenarios[0]?.failures).toEqual([
+      'ready failed: readiness condition not met: role=heading was not visible within 10000 ms',
+    ]);
+  });
+
+  it('keeps the viewport and measures below the fold in the scrolled content', () => {
+    const raw = withChanges(completePlan(), { 'captures.0.extent': 'scroll' });
+    const { run, project } = setup(
+      () => ({
+        ...captured,
+        frame: { width: 1200, height: 900 },
+        content: { width: 1200, height: 2100 },
+        screenshots: [
+          { file: 'notes-page--desktop-content.png', scrollTop: 0 },
+          { file: 'notes-page--desktop-content--scroll-1.png', scrollTop: 900 },
+          {
+            file: 'notes-page--desktop-content--scroll-2.png',
+            scrollTop: 1200,
+          },
+        ],
+        extent: {
+          kind: 'scroll',
+          container: 'main[aria-label="Content"]',
+          clientHeight: 900,
+          scrollHeight: 2100,
+          positions: [0, 900, 1200],
+          complete: true,
+          missing: 0,
+        },
+        regions: [
+          // The page contains the scroller: it extends with the content.
+          {
+            id: 'page',
+            found: true,
+            visible: true,
+            count: 1,
+            box: { x: 0, y: 0, width: 1200, height: 2100 },
+          },
+          captured.regions[1],
+          // Below the fold of the 900 px viewport, inside the content.
+          {
+            id: 'list',
+            found: true,
+            visible: true,
+            count: 1,
+            box: { x: 60, y: 1200, width: 1080, height: 600 },
+          },
+        ],
+      }),
+      { raw },
+    );
+    const outcome = run();
+    const scenario = outcome.runs[0]?.report.scenarios[0];
+    expect(scenario?.failures).toEqual([]);
+    expect(outcome.ok).toBe(true);
+    expect(scenario?.contentFrame).toEqual({ width: 1200, height: 2100 });
+    expect(scenario?.screenshots?.map((shot) => shot.scrollTop)).toEqual([
+      0, 900, 1200,
+    ]);
+    expect(scenario?.geometry?.failures).toEqual([]);
+    const html = project
+      .read('reports/design/notes-page/run-1/report.html')
+      .replace(/\s+/g, ' ');
+    expect(html).toContain('viewport 1200×900, never resized');
+    expect(html).toContain(
+      'scroll: 3 screenshot(s) of main[aria-label=&quot;Content&quot;], end reached',
+    );
+    expect(html).toContain(
+      'src="captures/notes-page--desktop-content--scroll-2.png"',
+    );
+    expect(html).toContain('scrolled 1200 px of 2100 px');
+  });
+
+  it('fails an incomplete scroll capture instead of accepting it', () => {
+    const raw = withChanges(completePlan(), { 'captures.0.extent': 'scroll' });
+    const { run } = setup(
+      () => ({
+        ...captured,
+        extent: {
+          kind: 'scroll',
+          container: 'document',
+          clientHeight: 900,
+          scrollHeight: 20000,
+          positions: [0, 900, 1800],
+          complete: false,
+          missing: 17300,
+        },
+      }),
+      { raw },
+    );
+    const outcome = run();
+    expect(outcome.ok).toBe(false);
+    expect(outcome.runs[0]?.report.scenarios[0]?.failures).toEqual([
+      'incomplete capture: the last 17300 px of document were never in view after 3 screenshot(s)',
+    ]);
   });
 
   it('reports a failure to start Playwright for every scenario', () => {
@@ -526,6 +815,39 @@ describe('capture runs', () => {
         task === 'notes-page' || task === 'notes-two',
       );
     }
+  });
+
+  it('compares every scroll position with its own baseline and names the missing ones', () => {
+    const raw = withChanges(completePlan(), {
+      'captures.0.regression': true,
+      'captures.0.extent': 'scroll',
+    });
+    const { run } = setup(
+      () => ({
+        ...captured,
+        screenshots: [
+          { file: 'a.png', scrollTop: 0 },
+          { file: 'b.png', scrollTop: 900 },
+        ],
+        regression: {
+          error:
+            "A snapshot doesn't exist at /tmp/x/design/notes-page/baselines/desktop-content-chromium-linux.png.",
+          errors: [
+            "A snapshot doesn't exist at /tmp/x/design/notes-page/baselines/desktop-content-chromium-linux.png.",
+            "A snapshot doesn't exist at /tmp/x/design/notes-page/baselines/desktop-content--scroll-1-chromium-linux.png.",
+          ],
+        },
+      }),
+      { raw },
+    );
+    const scenario = run({ mode: 'regression' }).runs[0]?.report.scenarios[0];
+    expect(scenario?.baselines).toEqual([
+      `design/notes-page/baselines/desktop-content-chromium-${process.platform}.png`,
+      `design/notes-page/baselines/desktop-content--scroll-1-chromium-${process.platform}.png`,
+    ]);
+    expect(scenario?.failures[0]).toMatch(
+      /^no baseline at design\/notes-page\/baselines\/desktop-content-chromium-linux\.png, design\/notes-page\/baselines\/desktop-content--scroll-1-chromium-linux\.png: create it deliberately/,
+    );
   });
 
   it('says when there is nothing to compare', () => {

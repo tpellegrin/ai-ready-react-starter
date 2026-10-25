@@ -26,6 +26,7 @@ if (!outputDir || !process.env.DESIGN_MANIFEST) {
 
 export default defineConfig({
   testDir: 'e2e/design',
+  testMatch: 'capture.spec.ts',
   outputDir,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

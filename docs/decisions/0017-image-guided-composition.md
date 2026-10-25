@@ -32,6 +32,17 @@ evidence → focused correction.
   recorded environment, and reuse the e2e fixtures (session fake, motion
   settling, axe). Reports keep mechanical results, agent observations and
   human review apart.
+- **Captures keep the requested viewport.** Content below the fold is
+  reached by scrolling the page's scroll container (screenshots at
+  successive positions, reported as incomplete when the end is not
+  reached), never by growing the viewport to the content height, which
+  changes `vh` units, height media queries and sticky elements. A capture
+  passes only when Playwright's test passed too (console errors and
+  failures after the screenshot count).
+- **Writes stay where they belong.** `init` writes only under
+  `design/<task>/`, captures under `reports/design/` and baseline updates
+  under `design/<task>/baselines/`; every destination is checked before
+  the first write, and no path through a symbolic link is written.
 - **Two comparisons, kept apart.** Design comparison (render vs reference)
   is structural: presence, arrangement and containment of regions, with
   sizes as measurements. Visual regression (render vs reviewed baseline)

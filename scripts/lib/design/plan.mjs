@@ -355,8 +355,22 @@ const captureSchema = z.strictObject({
     .default('en-US'),
   colorScheme: z.enum(['light', 'dark']).default('light'),
   reducedMotion: z.enum(['reduce', 'no-preference']).default('reduce'),
-  /** Grow the viewport to fit the page's scrolling content. */
-  fullPage: z.boolean().default(false),
+  /**
+   * What the evidence covers, always at the requested viewport (it is never
+   * resized): one screenshot ("viewport"), or screenshots at successive
+   * scroll positions of the page's scroll container until its end
+   * ("scroll"; an end never reached is reported as incomplete).
+   */
+  extent: z.enum(['viewport', 'scroll']).default('viewport'),
+  /** The element "scroll" scrolls (default: the largest one that scrolls). */
+  scrollContainer: locatorSchema.optional(),
+  /** Removed: it resized the viewport (see the message). */
+  fullPage: z
+    .never({
+      error:
+        '"fullPage" was removed: it grew the viewport to the content height, which changes vh units, height media queries and sticky elements. Use "extent": "scroll" for screenshots of the whole content at the requested viewport, or delete it for one viewport screenshot.',
+    })
+    .optional(),
   session: z.enum(['guest', 'signed-in', 'needs-onboarding']),
   /** Every API call the page makes, answered with fixed data. */
   api: z.array(apiResponseSchema).default([]),

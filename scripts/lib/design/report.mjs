@@ -281,13 +281,17 @@ export const planSummary = (plan, check) => {
  *   a11y?: Array<{ id: string, impact: string, help: string, targets: string[] }> | undefined,
  *   unexpectedRequests?: string[] | undefined,
  *   failures: string[],
- *   baseline?: string | undefined,
- *   comparison?: Record<string, string> | undefined,
+ *   baselines?: string[] | undefined,
+ *   contentFrame?: { width: number, height: number } | undefined,
+ *   extent?: { kind: 'viewport' } | { kind: 'scroll', container: string, clientHeight: number, scrollHeight: number, positions: number[], complete: boolean, missing: number } | undefined,
+ *   screenshots?: Array<{ file: string, scrollTop: number }> | undefined,
+ *   comparison?: Array<{ shot: string, expected?: string | undefined, actual?: string | undefined, diff?: string | undefined }> | undefined,
  * }} ScenarioResult
  * @typedef {{
  *   task: string, title: string, label: string, mode: 'capture' | 'regression',
  *   createdAt: string, revision: { commit: string | null, uncommittedChanges: boolean },
  *   planSha256: string, ok: boolean, scenarios: ScenarioResult[],
+ *   runFailures: string[],
  *   observations: Array<{ round: string, capture: string, region?: string | undefined, observed: string, change?: string | undefined, status: string }>,
  *   remaining: string[],
  *   deviations: Array<{ screen: string, region?: string | undefined, observed: string, implemented: string, reason: string }>,
@@ -317,18 +321,23 @@ details { margin: .75rem 0; } summary { cursor: pointer; }
 const pct = (value) => `${(value * 100).toFixed(1)}%`;
 
 /**
- * Region boxes over an image, as percentages of its frame.
+ * Region boxes over an image, as percentages of its frame (clipped to it).
  * @param {Array<{ id: string, box: { x: number, y: number, width: number, height: number } | null }>} boxes
  * @param {{ width: number, height: number }} frame
  */
 const overlays = (boxes, frame) =>
   boxes
-    .filter((item) => item.box)
+    .filter((item) => item.box && item.box.y < frame.height)
     .map((item) => {
-      const box =
+      const whole =
         /** @type {{ x: number, y: number, width: number, height: number }} */ (
           item.box
         );
+      // Clipped to the image: below the fold is in the measured table.
+      const box = {
+        ...whole,
+        height: Math.min(whole.y + whole.height, frame.height) - whole.y,
+      };
       return html`<div
         class="region"
         style="${`left:${pct(box.x / frame.width)};top:${pct(box.y / frame.height)};width:${pct(box.width / frame.width)};height:${pct(box.height / frame.height)}`}"
@@ -376,24 +385,41 @@ const scenarioSection = (scenario, /** @type {RunReport} */ run) => {
         ? html`<span>axe violations: ${scenario.a11y.length}</span>`
         : ''}${scenario.compare
         ? html`<span>compared with reference ${scenario.compare}</span>`
-        : html`<span>no reference comparison</span>`}
+        : html`<span>no reference comparison</span>`}${frame
+        ? html`<span
+            >viewport ${frame.width}×${frame.height}, never resized</span
+          >`
+        : ''}${scenario.extent?.kind === 'scroll'
+        ? html`<span class="${scenario.extent.complete ? '' : 'bad'}"
+            >scroll: ${scenario.extent.positions.length} screenshot(s) of
+            ${scenario.extent.container},
+            ${scenario.extent.complete
+              ? 'end reached'
+              : `incomplete: last ${scenario.extent.missing} px never in view`}</span
+          >`
+        : ''}
     </p>
     ${scenario.error ? html`<p class="bad">${scenario.error}</p>` : ''}
     ${scenario.comparison
       ? html`<h3>Baseline comparison (Playwright)</h3>
-          <div class="pair">
-            ${['expected', 'actual', 'diff']
-              .filter((kind) => scenario.comparison?.[kind])
-              .map(
-                (kind) =>
-                  html`<figure>
-                    <div class="frame">
-                      <img src="${scenario.comparison?.[kind]}" alt="${kind}" />
-                    </div>
-                    <figcaption>${kind}</figcaption>
-                  </figure>`,
-              )}
-          </div>`
+          ${scenario.comparison.map(
+            (images) =>
+              html`<div class="pair">
+                ${
+                  /** @type {const} */ (['expected', 'actual', 'diff'])
+                    .filter((kind) => images[kind])
+                    .map(
+                      (kind) =>
+                        html`<figure>
+                          <div class="frame">
+                            <img src="${images[kind]}" alt="${kind}" />
+                          </div>
+                          <figcaption>${images.shot}: ${kind}</figcaption>
+                        </figure>`,
+                    )
+                }
+              </div>`,
+          )}`
       : ''}
     ${scenario.failures.length
       ? html`<h3>Mechanical failures</h3>
@@ -438,11 +464,41 @@ const scenarioSection = (scenario, /** @type {RunReport} */ run) => {
                 )}
               </div>
               <figcaption>
-                Render (${frame.width}×${frame.height} CSS px), boxes measured
-                in the browser
+                Render at ${frame.width}×${frame.height} CSS px
+                (${scenario.extent?.kind === 'scroll'
+                  ? 'scroll position 0'
+                  : 'one viewport screenshot'}),
+                boxes measured in the browser
+                ${scenario.contentFrame &&
+                scenario.contentFrame.height > frame.height
+                  ? html`and clipped here: the scrolled content is
+                    ${scenario.contentFrame.height} px tall`
+                  : ''}
               </figcaption>
             </figure>
           </div>
+          ${(scenario.screenshots ?? []).length > 1
+            ? html`<h3>Further scroll positions (same viewport)</h3>
+                <div class="pair">
+                  ${(scenario.screenshots ?? []).slice(1).map(
+                    (shot) =>
+                      html`<figure>
+                        <div class="frame">
+                          <img
+                            src="${shot.file}"
+                            alt="${`Render at scroll ${shot.scrollTop}`}"
+                          />
+                        </div>
+                        <figcaption>
+                          scrolled ${shot.scrollTop}
+                          px${scenario.extent?.kind === 'scroll'
+                            ? ` of ${scenario.extent.scrollHeight} px`
+                            : ''}
+                        </figcaption>
+                      </figure>`,
+                  )}
+                </div>`
+            : ''}
           ${scenario.referenceImage
             ? html`<details>
                 <summary>
@@ -622,7 +678,14 @@ ${
             <td class="${run.ok ? 'ok' : 'bad'}">
               ${run.ok
                 ? `all ${run.scenarios.length} scenario(s) passed`
-                : `${failed.length} of ${run.scenarios.length} scenario(s) failed: ${failed.map((s) => s.id).join(', ')}`}
+                : `${failed.length} of ${run.scenarios.length} scenario(s) failed${failed.length ? `: ${failed.map((s) => s.id).join(', ')}` : ''}`}
+              ${run.runFailures.length
+                ? html`<ul>
+                    ${run.runFailures.map(
+                      (failure) => html`<li class="bad">${failure}</li>`,
+                    )}
+                  </ul>`
+                : ''}
             </td>
           </tr>
           <tr>
@@ -692,6 +755,9 @@ export const runSummaryMarkdown = (run, reportPath) => {
     }),
     '',
     `- Mechanical checks: ${run.ok ? 'passed' : 'failed'}.`,
+    ...run.runFailures.map(
+      (failure) => `  - run: ${m(failure.split('\n')[0] ?? failure)}`,
+    ),
     `- Agent observations: ${run.observations.length} (plan review); remaining differences: ${run.remaining.length || 'none recorded'}`,
     ...run.remaining.map((text) => `  - ${m(text)}`),
     `- Human review: ${m(run.human.status)}.`,

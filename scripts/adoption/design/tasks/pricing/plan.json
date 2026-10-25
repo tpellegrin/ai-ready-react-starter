@@ -544,7 +544,7 @@
         "width": 1280,
         "height": 800
       },
-      "fullPage": true,
+      "extent": "scroll",
       "session": "guest",
       "ready": [
         {
@@ -570,7 +570,7 @@
       },
       "deviceScaleFactor": 2,
       "mobile": true,
-      "fullPage": true,
+      "extent": "scroll",
       "session": "guest",
       "ready": [
         {
@@ -593,7 +593,7 @@
         "width": 1280,
         "height": 800
       },
-      "fullPage": true,
+      "extent": "scroll",
       "session": "guest",
       "steps": [
         {

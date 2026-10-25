@@ -14,6 +14,8 @@ import {
   waitForRouteTransition,
 } from '../fixtures';
 
+import { captureScroll } from './scroll';
+
 /**
  * Renders the capture scenarios of a composition plan
  * (`pnpm design capture|regress`; manifest written by
@@ -21,8 +23,10 @@ import {
  * session, declared API responses, viewport, scale, locale, color scheme
  * and motion preference; performs its steps; waits for its explicit
  * readiness conditions, fonts, images, route transitions and motion; then
- * records a screenshot, the boxes of the plan's regions, axe results and
- * the environment. Regression runs also compare with the reviewed baseline.
+ * records screenshots at the requested viewport (never resized: one, or
+ * one per scroll position with "extent": "scroll", see scroll.ts), the
+ * boxes of the plan's regions, axe results and the environment. Regression
+ * runs also compare every screenshot with its reviewed baseline.
  * Results go to the run folder even when a phase fails, so the report can
  * say which phase failed and why.
  */
@@ -59,7 +63,8 @@ type Scenario = {
   locale: string;
   colorScheme: 'light' | 'dark';
   reducedMotion: 'reduce' | 'no-preference';
-  fullPage: boolean;
+  extent: 'viewport' | 'scroll';
+  scrollContainer?: LocatorSpec;
   session: 'guest' | 'signed-in' | 'needs-onboarding';
   api: ApiResponse[];
   steps: Step[];
@@ -171,7 +176,7 @@ const perform = async (page: Page, step: Step) => {
  * The box a person sees, in CSS pixels: the element's own box when it
  * paints something (background, border, shadow) or is a control or media,
  * otherwise the extent of its content (a heading's text, a list's items).
- * Runs in the page.
+ * Measured at scroll position 0. Runs in the page.
  */
 const visibleBox = (element: Element): Box => {
   const rect = element.getBoundingClientRect();
@@ -188,17 +193,29 @@ const visibleBox = (element: Element): Box => {
         parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 &&
         style.getPropertyValue(`border-${side}-style`) !== 'none',
     );
-  const box = (r: DOMRect) => ({
+  // In the scrolled content's frame: an element that is or contains the
+  // scroll container extends as far as the content it scrolls. Its own box
+  // stops at the scroller's visible height, and so does a content range
+  // that reaches the scroller only as a descendant's border box; the range
+  // over the scroller's own children already spans the scrolled content.
+  const scroller = document.querySelector('[data-design-scroller]');
+  const overflow =
+    scroller && (element === scroller || element.contains(scroller))
+      ? Math.max(0, scroller.scrollHeight - scroller.clientHeight)
+      : 0;
+  const box = (r: DOMRect, extra: number) => ({
     x: r.x,
     y: r.y,
     width: r.width,
-    height: r.height,
+    height: r.height + extra,
   });
-  if (paints) return box(rect);
+  if (paints) return box(rect, overflow);
   const range = document.createRange();
   range.selectNodeContents(element);
   const content = range.getBoundingClientRect();
-  return content.width && content.height ? box(content) : box(rect);
+  return content.width && content.height
+    ? box(content, element === scroller ? 0 : overflow)
+    : box(rect, overflow);
 };
 
 /** Fonts loaded, images decoded, transitions and motion finished. */
@@ -219,22 +236,6 @@ const settle = async (page: Page) => {
   await waitForRouteTransition(page);
   await settleMotion(page);
 };
-
-/** How much taller the viewport must be for scrolled content to fit. */
-const overflow = (page: Page) =>
-  page.evaluate(() => {
-    let extra = document.documentElement.scrollHeight - window.innerHeight;
-    for (const element of Array.from(document.querySelectorAll('*'))) {
-      const style = getComputedStyle(element);
-      if (
-        /(auto|scroll)/.test(style.overflowY) &&
-        element.scrollHeight > element.clientHeight
-      ) {
-        extra = Math.max(extra, element.scrollHeight - element.clientHeight);
-      }
-    }
-    return Math.max(0, Math.ceil(extra));
-  });
 
 for (const scenario of manifest.scenarios) {
   test.describe(`${scenario.task}/${scenario.id}`, () => {
@@ -304,22 +305,87 @@ for (const scenario of manifest.scenarios) {
 
         phase = 'settle';
         await settle(page);
-        if (scenario.fullPage) {
-          for (let round = 0; round < 3; round += 1) {
-            const extra = await overflow(page);
-            if (!extra) break;
-            const size = page.viewportSize() ?? scenario.viewport;
-            await page.setViewportSize({
-              width: size.width,
-              height: size.height + extra,
-            });
-            await settle(page);
+
+        // Screenshots first, at the requested viewport (never resized): one,
+        // or one per scroll position of the page's scroll container.
+        phase = 'capture';
+        fs.mkdirSync(path.dirname(scenario.output.screenshot), {
+          recursive: true,
+        });
+        const shotPath = (index: number) =>
+          index === 0
+            ? scenario.output.screenshot
+            : scenario.output.screenshot.replace(
+                /\.png$/,
+                `--scroll-${index}.png`,
+              );
+        const screenshots: Array<{ file: string; scrollTop: number }> = [];
+        const regressionErrors: string[] = [];
+        const shoot = async (index: number, scrollTop: number) => {
+          await page.screenshot({
+            path: shotPath(index),
+            animations: 'disabled',
+            caret: 'hide',
+          });
+          screenshots.push({ file: path.basename(shotPath(index)), scrollTop });
+          if (manifest.mode === 'regression' && scenario.baseline) {
+            const [task = '', folder = ''] = scenario.baseline;
+            try {
+              await expect(page).toHaveScreenshot(
+                index === 0
+                  ? scenario.baseline
+                  : [task, folder, `${scenario.id}--scroll-${index}.png`],
+              );
+            } catch (error) {
+              regressionErrors.push(
+                error instanceof Error ? error.message : String(error),
+              );
+            }
           }
+        };
+        const extent =
+          scenario.extent === 'scroll'
+            ? await captureScroll(page, {
+                container: scenario.scrollContainer
+                  ? find(page, scenario.scrollContainer)
+                  : undefined,
+                settle: () => settle(page),
+                shoot,
+              })
+            : null;
+        if (!extent) await shoot(0, 0);
+        result.screenshots = screenshots;
+        result.extent = extent
+          ? { kind: 'scroll', ...extent }
+          : { kind: 'viewport' };
+        if (manifest.mode === 'regression') {
+          result.regression = {
+            error: regressionErrors[0] ?? null,
+            errors: regressionErrors,
+          };
         }
 
         phase = 'measure';
         const viewport = page.viewportSize() ?? scenario.viewport;
+        if (
+          viewport.width !== scenario.viewport.width ||
+          viewport.height !== scenario.viewport.height
+        ) {
+          throw new Error(
+            `the viewport changed to ${viewport.width}×${viewport.height}; the capture is not evidence of ${scenario.viewport.width}×${scenario.viewport.height}`,
+          );
+        }
         result.frame = viewport;
+        // Boxes are measured at scroll position 0: content below the fold
+        // has positions past the viewport, in the scrolled content's frame.
+        result.content = {
+          width: viewport.width,
+          height:
+            viewport.height +
+            (extent
+              ? Math.max(0, extent.scrollHeight - extent.clientHeight)
+              : 0),
+        };
         result.regions = await Promise.all(
           scenario.regions.map(async (region) => {
             const locator = find(page, region.locator);
@@ -359,8 +425,10 @@ for (const scenario of manifest.scenarios) {
           playwright: playwrightVersion,
           platform: `${process.platform} ${process.arch}`,
           node: process.version,
-          requestedViewport: `${scenario.viewport.width}×${scenario.viewport.height}`,
-          capturedViewport: `${viewport.width}×${viewport.height}${viewport.height !== scenario.viewport.height ? ' (grown to fit the scrolled content)' : ''}`,
+          viewport: `${viewport.width}×${viewport.height} (as requested; never resized)`,
+          extent: extent
+            ? `scroll: ${extent.positions.length} screenshot(s) of ${extent.container} at ${extent.positions.join(', ')} px of ${extent.scrollHeight} px${extent.complete ? ', end reached' : `, INCOMPLETE: the last ${extent.missing} px were never in view`}`
+            : 'viewport: one screenshot',
           deviceScaleFactor: scenario.deviceScaleFactor,
           mobile: scenario.mobile,
           session: scenario.session,
@@ -397,25 +465,8 @@ for (const scenario of manifest.scenarios) {
           reducedMotion: scenario.reducedMotion,
         };
 
-        phase = 'capture';
-        fs.mkdirSync(path.dirname(scenario.output.screenshot), {
-          recursive: true,
-        });
-        await page.screenshot({
-          path: scenario.output.screenshot,
-          animations: 'disabled',
-          caret: 'hide',
-        });
-
-        if (manifest.mode === 'regression' && scenario.baseline) {
-          phase = 'regression';
-          try {
-            await expect(page).toHaveScreenshot(scenario.baseline);
-            result.regression = { error: null };
-          } catch (error) {
-            failure = error instanceof Error ? error : new Error(String(error));
-            result.regression = { error: failure.message };
-          }
+        if (regressionErrors.length) {
+          failure = new Error(regressionErrors[0]);
         }
       } catch (error) {
         failure = error instanceof Error ? error : new Error(String(error));
