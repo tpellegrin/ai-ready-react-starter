@@ -3,14 +3,33 @@ description: Restores the browser cache for the locked Playwright version and in
 runs:
   using: composite
   steps:
-    - name: Read Playwright version
+    - name: Read Playwright version and runner image
       id: version
       shell: bash
-      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      run: |
+        echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+        echo "image=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
     - uses: actions/cache@v6
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.version.outputs.version }}
+    # The system packages (~119 MB of .deb archives) come from the Ubuntu
+    # mirrors, whose speed varies from ~12 MB/s to ~190 kB/s on hosted
+    # runners: 10 s to over 30 minutes, enough to time a job out. Cached per
+    # runner image and Playwright version, only a cache miss downloads them.
+    - uses: actions/cache@v6
+      with:
+        path: ~/.cache/playwright-apt
+        key: playwright-apt-${{ steps.version.outputs.image }}-${{ steps.version.outputs.version }}
     - name: Install Chromium and WebKit
       shell: bash
-      run: pnpm exec playwright install --with-deps chromium webkit
+      run: |
+        if compgen -G "$HOME/.cache/playwright-apt/*.deb" > /dev/null; then
+          sudo cp "$HOME"/.cache/playwright-apt/*.deb /var/cache/apt/archives/
+          echo "Reusing $(ls "$HOME"/.cache/playwright-apt/*.deb | wc -l) cached system packages"
+        fi
+        pnpm exec playwright install --with-deps chromium webkit
+        mkdir -p "$HOME/.cache/playwright-apt"
+        if compgen -G "/var/cache/apt/archives/*.deb" > /dev/null; then
+          cp /var/cache/apt/archives/*.deb "$HOME/.cache/playwright-apt/"
+        fi
