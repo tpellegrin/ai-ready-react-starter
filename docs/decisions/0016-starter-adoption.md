@@ -50,3 +50,24 @@ its references in markers, then run `pnpm adopt:check`.
 - `pnpm gen` covers features, components, pages and flows with one
   validated plan/apply core and `starter:gen` markers in the existing
   registries; `pnpm gen:check` no longer depends on removable code.
+
+## Amendment (2026-10): the adoption check is starter-only
+
+- `pnpm adopt:check` verifies adopting the starter: it expects a fresh
+  adoption record (`removed` equal to the scenario's groups,
+  `starterRevision` equal to the copy's commit). An adopted project keeps
+  its first adoption's record, so the check cannot pass there.
+- A manifest group without a flag (`maintenance`) is removed by every
+  `pnpm adopt` run. Its `starter:maintenance` markers wrap the `adoption`
+  step in `scripts/lib/verify-steps.mjs` and the `adoption` CI job, so an
+  adopted project's `pnpm verify` and CI never run the check. Markers,
+  rather than a run-time skip, keep `pnpm docs:check`'s "verify and CI
+  agree" rule as it is.
+- In an adopted project (`adoption` set), `pnpm adopt:check` refuses to run
+  (exit 2) and says why; it never reaches the manifest assertions.
+- The scenarios now check the adopted copy's own setup without
+  `STARTER_NESTED_VERIFY`: no `adoption` step, no `adopt:check` in CI, and
+  the refusal. The nested verify still sets it, now only to skip the
+  audit; skipping the adoption step there is what had hidden the problem.
+- Projects adopted earlier delete the step and job by hand
+  (`docs/migration-notes.md`).

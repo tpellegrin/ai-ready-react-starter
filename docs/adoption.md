@@ -11,6 +11,7 @@ building your features with the generators.
 | **Infrastructure**                        | `src/config`, `src/api`, `src/auth`, `src/forms`, `src/components`, `src/styles`, `src/i18n`, `src/hooks`, `src/utils`, `src/globals`, `src/flows`, `src/guards`, `src/containers`, `src/mocks` (session + helpers), `src/test`, scripts, CI | Keep; extend                                                                 |
 | **Demo** (group `demo`)                   | `src/demo` (DemoHub start page, demo auth adapter, public onboarding preview), `.env.demo`, `pnpm build:demo`, the GitHub Pages workflow, `e2e/demo`                                                                                         | `pnpm adopt --remove-demo`                                                   |
 | **Reference feature** (group `reference`) | `src/features/resources`, `src/views/user/Resources`, its route, nav link, Dashboard card, mocks, copy, tests and doc paragraphs                                                                                                             | `pnpm adopt --remove-reference` once your first feature follows its patterns |
+| **Starter checks** (group `maintenance`)  | the adoption check's `pnpm verify` step and CI job (`pnpm adopt:check` verifies the starter itself)                                                                                                                                          | Removed by every `pnpm adopt` run                                            |
 | **Placeholder screens**                   | `views/guest/Welcome`, `views/guest/SignIn`, `views/user/Dashboard`, `views/onboarding/*`                                                                                                                                                    | Replace by hand (below)                                                      |
 
 The groups are declared in `starter.manifest.json`. Keep that file: it
@@ -83,6 +84,13 @@ scenario that builds two pages from reference images with
 adopted project's own `pnpm verify` (lint, types, docs, architecture, unit,
 coverage, build inspection, Storybook, e2e, generators). Run it after
 changing demo or reference code.
+
+The adoption check verifies the starter, not your product: an adopted
+project records its own adoption, so the check could never pass there.
+`adopt` therefore removes its `pnpm verify` step and its CI job
+(`starter:maintenance` markers), and `pnpm adopt:check` refuses to run in
+an adopted project. Projects adopted before this change remove the step
+and job by hand ([migration notes](migration-notes.md#the-adoption-check-is-starter-only-0016)).
 
 ## 2. Wire the real backend
 

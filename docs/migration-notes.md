@@ -186,3 +186,26 @@ For projects that already have the 2026-10 foundation:
   `reports/`.
 - `e2e/fixtures.ts` exports `axeViolations(page)`;
   `expectNoA11yViolations` is unchanged.
+
+# Migration notes (adopted projects)
+
+For products already adopted from the starter (`starter.manifest.json` ›
+`adoption` is set) that take later changes from it.
+
+## The adoption check is starter-only [0016]
+
+`pnpm adopt:check` verifies adopting the starter. In an adopted project it
+cannot pass: the manifest records your first adoption, not the fresh one
+the check expects. Adoption now removes the check from `pnpm verify` and CI
+(`starter:maintenance` markers), and `pnpm adopt:check` refuses to run in an
+adopted project (exit 2) instead of failing an assertion.
+
+Projects adopted before this change still run it. Delete by hand:
+
+- the `adoption` step (`script: 'adopt:check'`) at the end of
+  `scripts/lib/verify-steps.mjs`;
+- the `adoption` job (the scenario matrix running `pnpm adopt:check`) in
+  `.github/workflows/ci.yml`.
+
+Then `pnpm validate` (its docs check confirms that verify and CI still
+agree) and `pnpm verify`.
