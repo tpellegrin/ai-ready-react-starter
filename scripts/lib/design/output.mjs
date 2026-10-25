@@ -7,7 +7,8 @@
  * - Capture and regression runs write evidence only inside
  *   reports/design/, each run into a new folder (an existing run is never
  *   replaced or cleaned); `pnpm design regress --update` writes baselines
- *   only into design/<task>/baselines/.
+ *   only into design/<task>/baselines/, and removes only baselines there
+ *   that the scenario it updated no longer produces.
  * - Writes never follow a symlink: no part of the path below the project
  *   root (the base folder, its parents, task folders, the file itself) may
  *   be one, so a link cannot redirect a write into src/, elsewhere in the
@@ -140,6 +141,21 @@ export const writeNewFile = (root, base, relative, content) => {
     throw error;
   }
   return target;
+};
+
+/**
+ * Removes a file the command owns (a baseline no longer produced) inside
+ * `base`, never through a link and never a folder.
+ * @param {string} root
+ * @param {string} base
+ * @param {string} relative
+ */
+export const removeOwnedFile = (root, base, relative) => {
+  const target = resolveInside(root, base, relative);
+  if (!fs.lstatSync(target).isFile()) {
+    throw new Error(`${relative} is not a file; it was left as it is.`);
+  }
+  fs.rmSync(target);
 };
 
 /**

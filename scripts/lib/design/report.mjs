@@ -282,6 +282,7 @@ export const planSummary = (plan, check) => {
  *   unexpectedRequests?: string[] | undefined,
  *   failures: string[],
  *   baselines?: string[] | undefined,
+ *   screenshotSet?: { reviewed: string[], produced: string[], disappeared: string[], images: string[], removed?: string[] | undefined } | undefined,
  *   contentFrame?: { width: number, height: number } | undefined,
  *   extent?: { kind: 'viewport' } | { kind: 'scroll', container: string, clientHeight: number, scrollHeight: number, positions: number[], complete: boolean, missing: number } | undefined,
  *   screenshots?: Array<{ file: string, scrollTop: number }> | undefined,
@@ -420,6 +421,28 @@ const scenarioSection = (scenario, /** @type {RunReport} */ run) => {
                 }
               </div>`,
           )}`
+      : ''}
+    ${scenario.screenshotSet?.disappeared.length
+      ? html`<h3>Screenshot set</h3>
+          <p class="${scenario.screenshotSet.removed ? '' : 'bad'}">
+            ${scenario.screenshotSet.removed
+              ? `--update removed ${scenario.screenshotSet.removed.length} reviewed baseline(s) this render no longer produces: ${scenario.screenshotSet.removed.join(', ')}.`
+              : `${scenario.screenshotSet.disappeared.length} reviewed screenshot(s) no longer produced: this render has ${scenario.screenshotSet.produced.length}, the reviewed set ${scenario.screenshotSet.reviewed.length}. Missing now: ${scenario.screenshotSet.disappeared.join(', ')}.`}
+          </p>
+          <div class="pair">
+            ${scenario.screenshotSet.images.map(
+              (image) =>
+                html`<figure>
+                  <div class="frame">
+                    <img src="${image}" alt="${`Reviewed baseline ${image}`}" />
+                  </div>
+                  <figcaption>
+                    reviewed baseline, no longer produced:
+                    ${image.split('/').at(-1)}
+                  </figcaption>
+                </figure>`,
+            )}
+          </div>`
       : ''}
     ${scenario.failures.length
       ? html`<h3>Mechanical failures</h3>
@@ -758,6 +781,15 @@ export const runSummaryMarkdown = (run, reportPath) => {
     ...run.runFailures.map(
       (failure) => `  - run: ${m(failure.split('\n')[0] ?? failure)}`,
     ),
+    ...run.scenarios.flatMap((s) => {
+      const set = s.screenshotSet;
+      if (!set?.disappeared.length) return [];
+      return [
+        set.removed
+          ? `  - \`${s.id}\`: --update removed ${set.removed.length} reviewed baseline(s) no longer produced: ${m(set.removed.join(', '))}`
+          : `  - \`${s.id}\`: screenshot set changed, ${set.disappeared.length} reviewed screenshot(s) no longer produced (${set.produced.length} of ${set.reviewed.length}): ${m(set.disappeared.join(', '))}`,
+      ];
+    }),
     `- Agent observations: ${run.observations.length} (plan review); remaining differences: ${run.remaining.length || 'none recorded'}`,
     ...run.remaining.map((text) => `  - ${m(text)}`),
     `- Human review: ${m(run.human.status)}.`,

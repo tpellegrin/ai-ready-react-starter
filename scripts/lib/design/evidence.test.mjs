@@ -822,7 +822,7 @@ describe('capture runs', () => {
       'captures.0.regression': true,
       'captures.0.extent': 'scroll',
     });
-    const { run } = setup(
+    const { run, project } = setup(
       () => ({
         ...captured,
         screenshots: [
@@ -841,6 +841,10 @@ describe('capture runs', () => {
       { raw },
     );
     const scenario = run({ mode: 'regression' }).runs[0]?.report.scenarios[0];
+    // Added screenshots fail like any missing baseline, and none is written.
+    expect(scenario?.status).toBe('missing');
+    expect(scenario?.screenshotSet?.disappeared).toEqual([]);
+    expect(project.exists('design/notes-page/baselines')).toBe(false);
     expect(scenario?.baselines).toEqual([
       `design/notes-page/baselines/desktop-content-chromium-${process.platform}.png`,
       `design/notes-page/baselines/desktop-content--scroll-1-chromium-${process.platform}.png`,
@@ -848,6 +852,205 @@ describe('capture runs', () => {
     expect(scenario?.failures[0]).toMatch(
       /^no baseline at design\/notes-page\/baselines\/desktop-content-chromium-linux\.png, design\/notes-page\/baselines\/desktop-content--scroll-1-chromium-linux\.png: create it deliberately/,
     );
+  });
+
+  describe('the screenshot set', () => {
+    const platform = process.platform;
+    const other = platform === 'linux' ? 'darwin' : 'linux';
+    const base = 'design/notes-page/baselines';
+    /** The reviewed set of desktop-content: three scroll positions. */
+    const reviewed = [0, 1, 2].map(
+      (n) =>
+        `${base}/desktop-content${n ? `--scroll-${n}` : ''}-chromium-${platform}.png`,
+    );
+    /** Baselines that are not desktop-content's on this browser and platform. */
+    const unrelated = [
+      `${base}/desktop-content--scroll-1-webkit-${platform}.png`,
+      `${base}/desktop-content--scroll-1-chromium-${other}.png`,
+      `${base}/desktop-content-wide--scroll-1-chromium-${platform}.png`,
+      `design/notes-two/baselines/desktop-content--scroll-1-chromium-${platform}.png`,
+    ];
+    /**
+     * A shortened page: the render now produces `count` screenshots, all
+     * matching. With `update`, the fake Playwright writes them as
+     * `--update-snapshots=all` would.
+     */
+    const shortened = (count = 1, overrides = {}) => {
+      const raw = withChanges(completePlan(), {
+        'captures.0.regression': true,
+        'captures.0.extent': 'scroll',
+      });
+      /** @type {{ update: boolean, during?: () => void }} */
+      const state = { update: false };
+      const setupResult = setup(
+        () => {
+          if (state.update) {
+            for (const file of reviewed.slice(0, count)) {
+              setupResult.project.write(file, makePng(12, 9));
+            }
+          }
+          state.during?.();
+          return {
+            ...captured,
+            screenshots: Array.from({ length: count }, (_, n) => ({
+              file: `shot-${n}.png`,
+              scrollTop: n * 900,
+            })),
+            regression: { error: null, errors: [] },
+            ...overrides,
+          };
+        },
+        { raw },
+      );
+      const { project } = setupResult;
+      reviewed.forEach((file, n) => project.write(file, makePng(12 + n, 9)));
+      unrelated.forEach((file, n) => project.write(file, makePng(20 + n, 9)));
+      /** Every baseline file and its bytes. */
+      const baselines = () =>
+        Object.fromEntries(
+          [...reviewed, ...unrelated]
+            .filter((file) => project.exists(file))
+            .map((file) => [
+              file,
+              fs.readFileSync(path.join(project.root, file)).toString('base64'),
+            ]),
+        );
+      return { ...setupResult, state, baselines };
+    };
+
+    it('fails when reviewed screenshots disappear although the rest match, and changes no baseline', () => {
+      const { run, project, baselines } = shortened();
+      const before = baselines();
+      const outcome = run({ mode: 'regression' });
+      const report = outcome.runs[0]?.report;
+      const scenario = report?.scenarios[0];
+      expect(outcome.ok).toBe(false);
+      expect(scenario?.status).toBe('different');
+      expect(scenario?.failures).toEqual([
+        `screenshot set changed: 2 reviewed screenshot(s) no longer produced (${reviewed[1]}, ${reviewed[2]}); this render has 1 of the 3 reviewed. Content at the end of the page is gone or shorter: if that is intended, review the render and run \`pnpm design regress notes-page --update\``,
+      ]);
+      expect(scenario?.screenshotSet).toEqual({
+        reviewed,
+        produced: [reviewed[0]],
+        disappeared: [reviewed[1], reviewed[2]],
+        images: [1, 2].map(
+          (n) =>
+            `reviewed/notes-page/desktop-content--scroll-${n}-chromium-${platform}.png`,
+        ),
+      });
+      expect(baselines()).toEqual(before);
+      const dir = 'reports/design/_regression/run-1';
+      for (const image of scenario?.screenshotSet?.images ?? []) {
+        expect(project.exists(`${dir}/${image}`)).toBe(true);
+      }
+      const json =
+        /** @type {{ scenarios: Array<{ screenshotSet: unknown }> }} */ (
+          parseJson(project.read(`${dir}/report.json`))
+        );
+      expect(json.scenarios[0]?.screenshotSet).toEqual(scenario?.screenshotSet);
+      const html = project.read(`${dir}/report.html`);
+      expect(html).toContain('<h3>Screenshot set</h3>');
+      expect(html).toContain(
+        `2 reviewed screenshot(s) no longer produced: this render has 1, the reviewed set 3.`,
+      );
+      expect(html).toContain(
+        `src="reviewed/notes-page/desktop-content--scroll-2-chromium-${platform}.png"`,
+      );
+      expect(project.read(`${dir}/summary.md`)).toContain(
+        '  - `desktop-content`: screenshot set changed, 2 reviewed screenshot(s) no longer produced (1 of 3)',
+      );
+    });
+
+    it("--update removes only that scenario's baselines on this browser and platform, and the next run passes", () => {
+      const { run, project, state, baselines } = shortened();
+      const before = baselines();
+      state.update = true;
+      const updated = run({ mode: 'regression', update: true });
+      const scenario = updated.runs[0]?.report.scenarios[0];
+      expect(updated.ok).toBe(true);
+      expect(scenario?.screenshotSet?.removed).toEqual([
+        reviewed[1],
+        reviewed[2],
+      ]);
+      expect(updated.messages).toContain(
+        `Removed 2 baseline(s) notes-page/desktop-content no longer produces: ${reviewed[1]}, ${reviewed[2]} (copies in the run's reviewed/ folder).`,
+      );
+      const after = baselines();
+      expect(Object.keys(after)).toEqual([reviewed[0], ...unrelated]);
+      for (const file of unrelated) expect(after[file]).toBe(before[file]);
+      // The removed images stay in the run's evidence.
+      expect(
+        project.exists(
+          `reports/design/_regression/run-1/reviewed/notes-page/desktop-content--scroll-2-chromium-${platform}.png`,
+        ),
+      ).toBe(true);
+      expect(
+        project.read('reports/design/_regression/run-1/report.html'),
+      ).toContain(
+        `--update removed 2 reviewed baseline(s) this render no longer produces: ${reviewed[1]}, ${reviewed[2]}.`,
+      );
+
+      state.update = false;
+      const next = run({ mode: 'regression' });
+      expect(next.ok).toBe(true);
+      expect(next.runs[0]?.report.scenarios[0]).toMatchObject({
+        status: 'matched',
+        failures: [],
+        screenshotSet: { reviewed: [reviewed[0]], disappeared: [] },
+      });
+      expect(baselines()).toEqual(after);
+    });
+
+    it('--update keeps the set when the scenario failed', () => {
+      const { run, state, baselines } = shortened(1, {
+        a11y: [
+          {
+            id: 'label',
+            impact: 'serious',
+            help: 'Labels',
+            targets: ['input'],
+          },
+        ],
+      });
+      const before = baselines();
+      state.update = true;
+      const outcome = run({ mode: 'regression', update: true });
+      expect(outcome.ok).toBe(false);
+      expect(outcome.runs[0]?.report.scenarios[0]?.failures).toContain(
+        `the 2 reviewed baseline(s) this render no longer produces were kept (${reviewed[1]}, ${reviewed[2]}): the scenario failed, so its set was not updated`,
+      );
+      expect(Object.keys(baselines())).toEqual(Object.keys(before));
+    });
+
+    it('checks every baseline it would remove again before removing any', () => {
+      const { run, project, state, baselines } = shortened();
+      state.update = true;
+      // A link appears where a baseline was, after the check before the run.
+      state.during = () => {
+        fs.rmSync(path.join(project.root, reviewed[2] ?? ''));
+        fs.symlinkSync(
+          path.join(project.root, 'src/globals/paths.ts'),
+          path.join(project.root, reviewed[2] ?? ''),
+        );
+      };
+      const source = project.read('src/globals/paths.ts');
+      const outcome = run({ mode: 'regression', update: true });
+      const scenario = outcome.runs[0]?.report.scenarios[0];
+      expect(outcome.ok).toBe(false);
+      expect(scenario?.status).toBe('failed');
+      expect(scenario?.failures).toEqual([
+        `${reviewed[2]} is a symlink (to src/globals/paths.ts); design commands do not write through links. Make ${reviewed[2]} a real file inside the project.`,
+      ]);
+      expect(scenario?.screenshotSet?.removed).toBeUndefined();
+      // Nothing removed: neither the other obsolete baseline nor the link.
+      expect(Object.keys(baselines())).toContain(reviewed[1]);
+      expect(
+        fs
+          .lstatSync(path.join(project.root, reviewed[2] ?? ''))
+          .isSymbolicLink(),
+      ).toBe(true);
+      expect(project.read('src/globals/paths.ts')).toBe(source);
+    });
   });
 
   it('says when there is nothing to compare', () => {

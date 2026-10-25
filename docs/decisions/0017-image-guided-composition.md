@@ -46,8 +46,10 @@ evidence → focused correction.
 - **Two comparisons, kept apart.** Design comparison (render vs reference)
   is structural: presence, arrangement and containment of regions, with
   sizes as measurements. Visual regression (render vs reviewed baseline)
-  uses Playwright snapshots at default thresholds; baselines are written
-  only on request and missing ones fail.
+  uses Playwright snapshots at default thresholds, one per screenshot, and
+  compares the set as well: a reviewed screenshot that disappears fails
+  like a missing one. Baselines are written, and those no longer produced
+  removed, only on request.
 - **Proof in an adopted product.** `pnpm adopt:check --scenario design`
   replays two demonstrations from fixtures (`scripts/adoption/design`) after
   both starter groups are removed, with hash-checked overlays on generated
