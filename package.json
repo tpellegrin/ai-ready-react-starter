@@ -82,8 +82,8 @@
     "@types/react-dom": "^19.1.7",
     "@types/react-transition-group": "^4.4.12",
     "@vitejs/plugin-react": "^5.0.0",
-    "@vitest/browser-playwright": "~4.1.12",
-    "@vitest/coverage-v8": "~4.1.12",
+    "@vitest/browser-playwright": "~5.0.4",
+    "@vitest/coverage-v8": "~5.0.4",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.5",
@@ -111,7 +111,7 @@
     "typescript-eslint": "^8.39.1",
     "vite": "^7.3.7",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "~4.1.12"
+    "vitest": "~5.0.4"
   },
   "pnpm": {
     "overrides": {
